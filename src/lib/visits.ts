@@ -1,17 +1,19 @@
 import { getSupabaseAdmin } from "./supabase";
 import type { GymVisit, GymVisitInput, Profile } from "./types";
 
-export async function ensureProfile(username: string): Promise<Profile> {
+export async function createProfile(username: string): Promise<Profile> {
   const supabase = getSupabaseAdmin();
 
   const { data: existing, error: selectError } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id")
     .eq("username", username)
     .maybeSingle();
 
   if (selectError) throw new Error(selectError.message);
-  if (existing) return existing as Profile;
+  if (existing) {
+    throw new Error("That username is already taken. Try signing in instead.");
+  }
 
   const { data: created, error: insertError } = await supabase
     .from("profiles")
@@ -19,7 +21,13 @@ export async function ensureProfile(username: string): Promise<Profile> {
     .select("*")
     .single();
 
-  if (insertError) throw new Error(insertError.message);
+  if (insertError) {
+    if (insertError.code === "23505") {
+      throw new Error("That username is already taken. Try signing in instead.");
+    }
+    throw new Error(insertError.message);
+  }
+
   return created as Profile;
 }
 

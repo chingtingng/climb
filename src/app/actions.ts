@@ -12,9 +12,9 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase";
 import type { GradeSystem, GymVisitInput } from "@/lib/types";
 import {
+  createProfile,
   createVisit,
   deleteVisit,
-  ensureProfile,
   getProfileByUsername,
   listVisitsForProfile,
   updateVisit,
@@ -36,13 +36,7 @@ function requireConfigured(): ActionResult | null {
   return null;
 }
 
-export async function loginAction(
-  _prev: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  const configured = requireConfigured();
-  if (configured) return configured;
-
+function parseUsername(formData: FormData): string | ActionResult {
   const username = normalizeUsername(String(formData.get("username") ?? ""));
   if (!isValidUsername(username)) {
     return {
@@ -50,10 +44,51 @@ export async function loginAction(
       error: "Use 2–32 characters: lowercase letters, numbers, . or _",
     };
   }
+  return username;
+}
+
+export async function createAccountAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const parsed = parseUsername(formData);
+  if (typeof parsed !== "string") return parsed;
 
   try {
-    await ensureProfile(username);
-    await setSessionCookie(username);
+    await createProfile(parsed);
+    await setSessionCookie(parsed);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not create account",
+    };
+  }
+
+  redirect("/passport");
+}
+
+export async function loginAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const parsed = parseUsername(formData);
+  if (typeof parsed !== "string") return parsed;
+
+  try {
+    const profile = await getProfileByUsername(parsed);
+    if (!profile) {
+      return {
+        ok: false,
+        error: "No account with that username. Create one first.",
+      };
+    }
+    await setSessionCookie(parsed);
   } catch (error) {
     return {
       ok: false,
@@ -109,6 +144,16 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   };
 }
 
+async function requireSessionProfile() {
+  const session = await readSession();
+  if (!session) return { error: "Please sign in first." as const };
+
+  const profile = await getProfileByUsername(session.username);
+  if (!profile) return { error: "Account not found. Create an account first." as const };
+
+  return { session, profile };
+}
+
 export async function addVisitAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -116,15 +161,14 @@ export async function addVisitAction(
   const configured = requireConfigured();
   if (configured) return configured;
 
-  const session = await readSession();
-  if (!session) return { ok: false, error: "Please sign in first." };
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
 
   const parsed = parseVisitInput(formData);
   if (typeof parsed === "string") return { ok: false, error: parsed };
 
   try {
-    const profile = await ensureProfile(session.username);
-    await createVisit(profile.id, parsed);
+    await createVisit(auth.profile.id, parsed);
   } catch (error) {
     return {
       ok: false,
@@ -143,8 +187,8 @@ export async function updateVisitAction(
   const configured = requireConfigured();
   if (configured) return configured;
 
-  const session = await readSession();
-  if (!session) return { ok: false, error: "Please sign in first." };
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
 
   const visitId = String(formData.get("visit_id") ?? "");
   if (!visitId) return { ok: false, error: "Missing visit id." };
@@ -153,8 +197,7 @@ export async function updateVisitAction(
   if (typeof parsed === "string") return { ok: false, error: parsed };
 
   try {
-    const profile = await ensureProfile(session.username);
-    await updateVisit(profile.id, visitId, parsed);
+    await updateVisit(auth.profile.id, visitId, parsed);
   } catch (error) {
     return {
       ok: false,
@@ -170,12 +213,11 @@ export async function deleteVisitAction(visitId: string): Promise<ActionResult> 
   const configured = requireConfigured();
   if (configured) return configured;
 
-  const session = await readSession();
-  if (!session) return { ok: false, error: "Please sign in first." };
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
 
   try {
-    const profile = await ensureProfile(session.username);
-    await deleteVisit(profile.id, visitId);
+    await deleteVisit(auth.profile.id, visitId);
   } catch (error) {
     return {
       ok: false,

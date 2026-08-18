@@ -51,6 +51,7 @@ Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 w
 
 ## Notes
 
-- Username login creates a `profiles` row on first entry (e.g. `chalkchingup`)
+- **Create account** picks a username and inserts a `profiles` row
+- **Sign in** only works for usernames that already exist (still no password)
 - Visits are grouped by country → city
 - Grade systems: V-scale, Font, French
