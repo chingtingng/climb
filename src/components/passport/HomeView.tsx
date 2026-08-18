@@ -98,7 +98,7 @@ export function HomeView() {
       )}
 
       {visits.length > 0 ? (
-        <div className="pointer-events-none fixed bottom-[calc(4.15rem+env(safe-area-inset-bottom))] left-1/2 z-30 w-[min(100%,480px)] -translate-x-1/2 px-4">
+        <div className="pointer-events-none fixed bottom-[calc(4.65rem+env(safe-area-inset-bottom))] left-1/2 z-30 w-[min(100%,480px)] -translate-x-1/2 px-4">
           <button
             type="button"
             onClick={() => openLog()}

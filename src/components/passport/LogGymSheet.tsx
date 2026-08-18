@@ -245,6 +245,7 @@ function LogGymSheetInner({
                 setExisting(false);
               }}
               onSelect={selectGym}
+              onNext={goNext}
             />
           )}
 
@@ -255,6 +256,7 @@ function LogGymSheetInner({
               gyms={gyms}
               onCity={setCity}
               onCountry={setCountry}
+              onNext={goNext}
             />
           )}
 
@@ -393,11 +395,13 @@ function GymStep({
   matches,
   onQuery,
   onSelect,
+  onNext,
 }: {
   query: string;
   matches: GymGroup[];
   onQuery: (value: string) => void;
   onSelect: (gym: GymGroup) => void;
+  onNext: () => void;
 }) {
   return (
     <div className="space-y-3">
@@ -406,6 +410,12 @@ function GymStep({
         <input
           value={query}
           onChange={(e) => onQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onNext();
+            }
+          }}
           placeholder="Boulder World"
           autoComplete="off"
           autoCapitalize="words"
@@ -456,12 +466,14 @@ function LocationStep({
   gyms,
   onCity,
   onCountry,
+  onNext,
 }: {
   city: string;
   country: string;
   gyms: GymGroup[];
   onCity: (value: string) => void;
   onCountry: (value: string) => void;
+  onNext: () => void;
 }) {
   const cities = [...new Set(gyms.map((gym) => gym.city))];
 
@@ -472,6 +484,12 @@ function LocationStep({
         <input
           value={city}
           onChange={(e) => onCity(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onNext();
+            }
+          }}
           placeholder="Singapore"
           list="passport-cities"
           autoComplete="address-level2"
@@ -488,6 +506,12 @@ function LocationStep({
         <input
           value={country}
           onChange={(e) => onCountry(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onNext();
+            }
+          }}
           placeholder="Singapore"
           list="passport-countries"
           autoComplete="country-name"
