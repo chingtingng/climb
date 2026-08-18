@@ -171,6 +171,10 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     return "Pick a valid grade system.";
   }
 
+  if (notes.length > 400) {
+    return "Keep notes under 400 characters.";
+  }
+
   return {
     gym_name,
     country,
@@ -206,11 +210,11 @@ export async function addVisitAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not save visit",
+      error: error instanceof Error ? error.message : "Could not save that stamp.",
     };
   }
 
-  revalidatePath("/passport");
+  revalidatePassport();
   return { ok: true };
 }
 
@@ -235,11 +239,11 @@ export async function updateVisitAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not update visit",
+      error: error instanceof Error ? error.message : "Could not update that stamp.",
     };
   }
 
-  revalidatePath("/passport");
+  revalidatePassport();
   return { ok: true };
 }
 
@@ -255,10 +259,14 @@ export async function deleteVisitAction(visitId: string): Promise<ActionResult> 
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not delete visit",
+      error: error instanceof Error ? error.message : "Could not remove that stamp.",
     };
   }
 
-  revalidatePath("/passport");
+  revalidatePassport();
   return { ok: true };
+}
+
+function revalidatePassport() {
+  revalidatePath("/passport", "layout");
 }

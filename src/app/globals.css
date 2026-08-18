@@ -23,8 +23,16 @@
   --color-ink-soft: var(--ink-soft);
   --color-mist: var(--mist);
   --color-blush: var(--blush);
+  --color-pass-bg: #dceef8;
+  --color-pass-navy: #1b3a52;
+  --color-pass-muted: #5a7588;
+  --color-pass-primary: #347ea8;
+  --color-pass-line: #c3d7e5;
+  --color-pass-soft: #eef6fb;
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-nunito);
+  --font-pass: var(--font-dm-sans);
+  --font-pass-display: var(--font-dm-serif);
 }
 
 * {
@@ -243,5 +251,174 @@ textarea {
   .float-soft,
   .sheet-in {
     animation: none;
+  }
+}
+
+/* Authenticated passport shell — login/auth styles above stay untouched */
+.passport-root {
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--color-pass-bg);
+  color: var(--color-pass-navy);
+  font-family: var(--font-pass), var(--font-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.passport-root :focus-visible {
+  outline: 2px solid var(--color-pass-primary);
+  outline-offset: 2px;
+}
+
+.passport-frame {
+  width: min(100%, 480px);
+  margin: 0 auto;
+  min-height: 100dvh;
+  overflow-wrap: break-word;
+  padding: max(0.7rem, env(safe-area-inset-top))
+    max(1.05rem, env(safe-area-inset-right))
+    calc(5.75rem + env(safe-area-inset-bottom))
+    max(1.05rem, env(safe-area-inset-left));
+}
+
+.passport-mark {
+  font-family: var(--font-pass-display), var(--font-display), serif;
+  letter-spacing: -0.03em;
+}
+
+.passport-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 48px;
+  width: 100%;
+  padding: 0.7rem 1.1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-pass-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 8px 18px rgba(52, 126, 168, 0.22);
+}
+
+.passport-btn:enabled:active {
+  transform: scale(0.98);
+}
+
+.passport-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.passport-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  background: none;
+  color: var(--color-pass-muted);
+  font-weight: 600;
+}
+
+.passport-field {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 999px;
+  border: 1px solid var(--color-pass-line);
+  background: #fff;
+  padding: 0.75rem 1rem;
+  color: var(--color-pass-navy);
+  font-size: 16px;
+  outline: none;
+}
+
+.passport-field:focus {
+  border-color: var(--color-pass-primary);
+  box-shadow: 0 0 0 3px rgba(52, 126, 168, 0.18);
+}
+
+textarea.passport-field {
+  min-height: 7.5rem;
+  border-radius: 1.15rem;
+  resize: none;
+  line-height: 1.45;
+}
+
+.stamp-row {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: -0.15rem;
+  padding: 0.15rem 0.15rem 0.4rem;
+}
+
+.stamp-row::-webkit-scrollbar {
+  display: none;
+}
+
+.passport-nav {
+  position: fixed;
+  z-index: 40;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 480px);
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid var(--color-pass-line);
+  padding: 0.2rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom));
+  backdrop-filter: blur(10px);
+}
+
+.passport-sheet-in {
+  animation: passport-sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stamp-press {
+  animation: stamp-press 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes passport-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stamp-press {
+  from {
+    opacity: 0;
+    transform: scale(1.28) rotate(-10deg);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(0.94) rotate(2deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passport-sheet-in,
+  .stamp-press {
+    animation: none;
+  }
+
+  .passport-btn:enabled:active {
+    transform: none;
   }
 }

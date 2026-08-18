@@ -41,6 +41,13 @@ create table if not exists public.gym_visits (
 
 create index if not exists gym_visits_profile_id_idx on public.gym_visits (profile_id);
 create index if not exists gym_visits_country_city_idx on public.gym_visits (country, city);
+create index if not exists gym_visits_profile_gym_idx
+  on public.gym_visits (profile_id, lower(gym_name), lower(city), lower(country));
+
+-- A gym is the unique (profile, name, city, country) group of gym_visits rows.
+-- Repeat visits insert another gym_visits row; they do not create a second gym.
+-- Uniqueness is enforced in the app (case-insensitive name + city + country)
+-- rather than a unique constraint, so a second visit is always allowed.
 
 -- Upgrade tables created by the earlier username-only schema
 alter table public.profiles alter column id drop default;

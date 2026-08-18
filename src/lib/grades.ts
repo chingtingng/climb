@@ -97,3 +97,11 @@ export function formatGrade(system: GradeSystem, grade: string): string {
   if (system === "font") return `Font ${grade}`;
   return grade;
 }
+
+/** Rough 0–100 rank so mixed grade systems can still pick a “best send”. */
+export function gradeSortValue(system: GradeSystem, grade: string): number {
+  const list = gradesForSystem(system);
+  const idx = list.indexOf(grade);
+  if (idx < 0) return 0;
+  return (idx / Math.max(1, list.length - 1)) * 100;
+}

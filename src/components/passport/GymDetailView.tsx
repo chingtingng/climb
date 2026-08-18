@@ -1,0 +1,120 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { formatStampDate } from "@/lib/dates";
+import { formatGrade } from "@/lib/grades";
+import { findGymBySlug } from "@/lib/gyms";
+import { BackIcon } from "./icons";
+import { CountryStamp } from "./CountryStamp";
+import { DeleteStampDialog } from "./DeleteStampDialog";
+import { usePassport } from "./PassportContext";
+
+export function GymDetailView({ slug }: { slug: string }) {
+  const router = useRouter();
+  const { gyms, configured, openLog } = usePassport();
+  const gym = findGymBySlug(gyms, slug);
+
+  if (!gym) {
+    return (
+      <div className="pt-6 text-center">
+        <h1 className="passport-mark text-3xl text-pass-navy">
+          This stamp isn’t in your passport.
+        </h1>
+        <p className="mt-2 text-sm text-pass-muted">
+          It may have been removed, or the link is out of date.
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push("/passport/gyms")}
+          className="passport-btn mt-6"
+        >
+          Back to gyms
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <header className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mt-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white"
+          aria-label="Back"
+        >
+          <BackIcon />
+        </button>
+        <div className="min-w-0 flex-1 pt-1">
+          <h1 className="passport-mark text-[1.85rem] leading-tight break-words">
+            {gym.name}
+          </h1>
+          <p className="mt-1 text-sm text-pass-muted">
+            {gym.city} · {gym.country}
+          </p>
+        </div>
+        <CountryStamp country={gym.country} />
+      </header>
+
+      <section className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-[1.2rem] bg-white px-4 py-4">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
+            Highest grade
+          </p>
+          <p className="passport-mark mt-1 text-3xl leading-none">
+            {formatGrade(gym.bestGradeSystem, gym.bestGrade)}
+          </p>
+        </div>
+        <div className="rounded-[1.2rem] bg-white px-4 py-4">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
+            Visits
+          </p>
+          <p className="passport-mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="passport-mark text-xl">Visit history</h2>
+        <ul className="mt-3 space-y-2">
+          {gym.visits.map((visit) => (
+            <li
+              key={visit.id}
+              className="flex items-center gap-3 rounded-[1.15rem] bg-white px-3 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
+                <p className="text-sm break-words text-pass-muted">
+                  {formatGrade(visit.grade_system, visit.highest_grade)}
+                  {visit.notes ? ` · ${visit.notes}` : ""}
+                </p>
+              </div>
+              <DeleteStampDialog
+                visitId={visit.id}
+                onDeleted={() => {
+                  if (gym.visitCount <= 1) router.replace("/passport/gyms");
+                  router.refresh();
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <button
+        type="button"
+        disabled={!configured}
+        onClick={() =>
+          openLog({
+            name: gym.name,
+            city: gym.city,
+            country: gym.country,
+            existing: true,
+          })
+        }
+        className="passport-btn"
+      >
+        + Log another visit
+      </button>
+    </div>
+  );
+}
