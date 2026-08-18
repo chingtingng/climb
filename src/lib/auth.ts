@@ -1,65 +1,26 @@
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { emailToUsername } from "@/lib/username";
 
-const COOKIE_NAME = "chalk_passport_session";
-const SESSION_DAYS = 60;
-
-export type SessionPayload = {
+export type SessionUser = {
+  id: string;
   username: string;
 };
 
-function getSecret() {
-  const secret =
-    process.env.SESSION_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "chalk-passport-dev-secret-change-me";
-  return new TextEncoder().encode(secret);
-}
+export async function getSessionUser(): Promise<SessionUser | null> {
+  if (!isSupabaseConfigured()) return null;
 
-export async function createSessionToken(username: string): Promise<string> {
-  return new SignJWT({ username })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DAYS}d`)
-    .sign(getSecret());
-}
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
 
-export async function readSession(): Promise<SessionPayload | null> {
-  const jar = await cookies();
-  const token = jar.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  const username =
+    (typeof data.user.user_metadata?.username === "string"
+      ? data.user.user_metadata.username
+      : undefined) ||
+    emailToUsername(data.user.email);
 
-  try {
-    const { payload } = await jwtVerify(token, getSecret());
-    const username = payload.username;
-    if (typeof username !== "string" || !username) return null;
-    return { username };
-  } catch {
-    return null;
-  }
-}
+  if (!username) return null;
 
-export async function setSessionCookie(username: string) {
-  const token = await createSessionToken(username);
-  const jar = await cookies();
-  jar.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_DAYS * 24 * 60 * 60,
-  });
-}
-
-export async function clearSessionCookie() {
-  const jar = await cookies();
-  jar.delete(COOKIE_NAME);
-}
-
-export function normalizeUsername(raw: string): string {
-  return raw.trim().toLowerCase().replace(/\s+/g, "");
-}
-
-export function isValidUsername(username: string): boolean {
-  return /^[a-z0-9._]{2,32}$/.test(username);
+  return { id: data.user.id, username };
 }

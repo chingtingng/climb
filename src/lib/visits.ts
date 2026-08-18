@@ -1,54 +1,35 @@
-import { getSupabaseAdmin } from "./supabase";
+import { createClient } from "@/lib/supabase/server";
 import type { GymVisit, GymVisitInput, Profile } from "./types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function createProfile(username: string): Promise<Profile> {
-  const supabase = getSupabaseAdmin();
-
-  const { data: existing, error: selectError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (selectError) throw new Error(selectError.message);
-  if (existing) {
-    throw new Error("That username is already taken. Try signing in instead.");
+function mapDbError(message: string): Error {
+  if (/permission denied/i.test(message)) {
+    return new Error(
+      "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.",
+    );
   }
+  return new Error(message);
+}
 
-  const { data: created, error: insertError } = await supabase
+export async function ensureOwnProfile(
+  supabase: SupabaseClient,
+  userId: string,
+  username: string,
+): Promise<Profile> {
+  const { data, error } = await supabase
     .from("profiles")
-    .insert({ username })
+    .upsert({ id: userId, username }, { onConflict: "id" })
     .select("*")
     .single();
 
-  if (insertError) {
-    if (insertError.code === "23505") {
-      throw new Error("That username is already taken. Try signing in instead.");
-    }
-    throw new Error(insertError.message);
-  }
-
-  return created as Profile;
-}
-
-export async function getProfileByUsername(
-  username: string,
-): Promise<Profile | null> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  return (data as Profile | null) ?? null;
+  if (error) throw mapDbError(error.message);
+  return data as Profile;
 }
 
 export async function listVisitsForProfile(
   profileId: string,
 ): Promise<GymVisit[]> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("gym_visits")
     .select("*")
@@ -56,7 +37,7 @@ export async function listVisitsForProfile(
     .order("visited_on", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) throw mapDbError(error.message);
   return (data as GymVisit[]) ?? [];
 }
 
@@ -64,7 +45,7 @@ export async function createVisit(
   profileId: string,
   input: GymVisitInput,
 ): Promise<GymVisit> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("gym_visits")
     .insert({
@@ -80,7 +61,7 @@ export async function createVisit(
     .select("*")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw mapDbError(error.message);
   return data as GymVisit;
 }
 
@@ -89,7 +70,7 @@ export async function updateVisit(
   visitId: string,
   input: GymVisitInput,
 ): Promise<GymVisit> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("gym_visits")
     .update({
@@ -106,7 +87,7 @@ export async function updateVisit(
     .select("*")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw mapDbError(error.message);
   return data as GymVisit;
 }
 
@@ -114,12 +95,12 @@ export async function deleteVisit(
   profileId: string,
   visitId: string,
 ): Promise<void> {
-  const supabase = getSupabaseAdmin();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("gym_visits")
     .delete()
     .eq("id", visitId)
     .eq("profile_id", profileId);
 
-  if (error) throw new Error(error.message);
+  if (error) throw mapDbError(error.message);
 }

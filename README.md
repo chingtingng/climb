@@ -5,8 +5,8 @@ Mobile-first climbing gym tracker for [@chalkchingup](https://www.instagram.com/
 ## Stack
 
 - Next.js (App Router) → deploy on Vercel
-- Supabase Postgres for storage
-- Username-only login (signed httpOnly cookie; no password)
+- Supabase Postgres + Auth for storage and login
+- Username + password (same flow as Daybook / diary)
 
 ## Supabase project setup
 
@@ -15,23 +15,23 @@ When creating the project, use these **Security** checkboxes:
 | Setting | Choose | Why |
 |---|---|---|
 | **Enable Data API** | **ON** | Keeps PostgREST available for the JS client |
-| **Automatically expose new tables** | **OFF** | Don’t auto-grant API roles; control access yourself (recommended) |
+| **Automatically expose new tables** | **OFF** | Don’t auto-grant API roles; this repo’s SQL grants `authenticated` itself |
 | **Enable automatic RLS** | **ON** | New `public` tables get Row Level Security by default |
 
 Then:
 
-1. Open **SQL Editor** and run [`supabase/schema.sql`](./supabase/schema.sql)
-2. Copy keys from **Project Settings → API**
-3. Add env vars (local `.env.local` and Vercel project settings):
+1. Open **SQL Editor** and run [`supabase/schema.sql`](./supabase/schema.sql) (re-run it if you already ran an older version — that is what fixes `permission denied for table profiles`)
+2. **Authentication → Providers → Email**: enabled
+3. Turn **off** “Confirm email” so username signup works without a real inbox. The app maps usernames to synthetic emails like `you@chalk.local`.
+4. Copy keys from **Project Settings → API**
+5. Add env vars (local `.env.local` and Vercel project settings):
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SESSION_SECRET=a-long-random-string
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon_key
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` stays **server-only** (never prefix with `NEXT_PUBLIC_`). The app talks to the database through Next.js server actions; RLS is enabled with no public policies, so the anon key cannot read/write your tables.
+The app talks to the database as the signed-in user. RLS policies keep each climber’s visits private. You do **not** need the service role key in the app.
 
 ## Local development
 
@@ -51,7 +51,6 @@ Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 w
 
 ## Notes
 
-- **Create account** picks a username and inserts a `profiles` row
-- **Sign in** only works for usernames that already exist (still no password)
+- **Create account** / **Sign in** use a username and a required password
 - Visits are grouped by country → city
 - Grade systems: V-scale, Font, French

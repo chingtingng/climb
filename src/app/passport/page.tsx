@@ -1,22 +1,15 @@
 import { redirect } from "next/navigation";
 import { PassportApp } from "@/components/PassportApp";
-import { readSession } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { getProfileByUsername, listVisitsForProfile } from "@/lib/visits";
+import { listVisitsForProfile } from "@/lib/visits";
 
 export default async function PassportPage() {
-  const session = await readSession();
+  const session = await getSessionUser();
   if (!session) redirect("/");
 
   const configured = isSupabaseConfigured();
-  let visits = [] as Awaited<ReturnType<typeof listVisitsForProfile>>;
-
-  if (configured) {
-    const profile = await getProfileByUsername(session.username);
-    if (profile) {
-      visits = await listVisitsForProfile(profile.id);
-    }
-  }
+  const visits = configured ? await listVisitsForProfile(session.id) : [];
 
   return (
     <main className="app-shell">
