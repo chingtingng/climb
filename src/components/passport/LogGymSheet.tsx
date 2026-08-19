@@ -95,10 +95,10 @@ function LogGymSheetInner({
   const [isPending, startTransition] = useTransition();
   const pending = actionPending || isPending;
   const [name, setName] = useState(prefill?.name ?? "");
-  const [country, setCountry] = useState(prefill?.country ?? "Singapore");
+  const [country, setCountry] = useState(prefill?.country ?? "");
   const [city, setCity] = useState(
     prefill?.city ??
-      (skipsCityStep(prefill?.country ?? "Singapore") ? "Singapore" : ""),
+      (prefill?.country && skipsCityStep(prefill.country) ? "Singapore" : ""),
   );
   const [outlet, setOutlet] = useState(prefill?.outlet ?? "");
   const [query, setQuery] = useState(prefill?.name ?? "");
