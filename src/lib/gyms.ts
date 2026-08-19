@@ -76,10 +76,11 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
 
     const outlets: string[] = [];
     const seen = new Set<string>();
+    const gymName = label.name.trim().toLowerCase();
     for (const visit of sorted) {
       const outlet = visitOutlet(visit);
       const outletKey = outlet.toLowerCase();
-      if (seen.has(outletKey)) continue;
+      if (!outletKey || outletKey === gymName || seen.has(outletKey)) continue;
       seen.add(outletKey);
       outlets.push(outlet);
     }

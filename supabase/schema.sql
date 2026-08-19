@@ -96,7 +96,8 @@ exception
 end $$;
 
 -- ---------------------------------------------------------------------------
--- Gyms (shared catalog)
+-- Gyms (shared catalog — stamp picker reads these tables)
+-- Add/remove gyms and outlets here or in Table Editor. Closed: Boruda, The Cliff.
 -- ---------------------------------------------------------------------------
 create table public.gyms (
   id uuid primary key default gen_random_uuid(),
@@ -341,6 +342,9 @@ create policy "Anyone can view grade charts"
 
 -- ---------------------------------------------------------------------------
 -- Seed known gyms (shared catalog)
+-- The app reads gyms / gym_outlets / gym_grade_scales. After first run you can
+-- add gyms in the Table Editor; this seed is for a new project.
+-- Closed and omitted: Boruda, The Cliff (Snow City).
 -- ---------------------------------------------------------------------------
 with seeded as (
   insert into public.gyms (name, country)
@@ -365,9 +369,7 @@ with seeded as (
     ('Upwall Climbing', 'Singapore'),
     ('Project Send', 'Singapore'),
     ('Climb@T3', 'Singapore'),
-    ('The Cliff', 'Singapore'),
-    ('SAFRA Yishun', 'Singapore'),
-    ('Boruda', 'Singapore')
+    ('SAFRA Yishun', 'Singapore')
   returning id, name, country
 )
 insert into public.gym_outlets (gym_id, name, city)
@@ -408,9 +410,7 @@ join (
     ('Upwall Climbing', 'Singapore', 'Downtown East', 'Pasir Ris'),
     ('Project Send', 'Singapore', 'Esplanade', 'Esplanade'),
     ('Climb@T3', 'Singapore', 'T3', 'Changi'),
-    ('The Cliff', 'Singapore', 'Snow City', 'Jurong East'),
-    ('SAFRA Yishun', 'Singapore', 'Yishun', 'Yishun'),
-    ('Boruda', 'Singapore', 'Boruda', 'Singapore')
+    ('SAFRA Yishun', 'Singapore', 'Yishun', 'Yishun')
 ) as o(gym_name, country, name, city)
   on o.gym_name = s.name and o.country = s.country;
 
@@ -448,11 +448,6 @@ join (
       'Ground Up',
       'v',
       '[{"label":"V1","v_equiv":"V1"},{"label":"V2","v_equiv":"V2"},{"label":"V3","v_equiv":"V3"},{"label":"V4","v_equiv":"V4"},{"label":"V5","v_equiv":"V5"},{"label":"V6","v_equiv":"V6"},{"label":"V7","v_equiv":"V7"},{"label":"V8","v_equiv":"V8"}]'
-    ),
-    (
-      'Boruda',
-      'custom',
-      '[{"label":"7Q","v_equiv":"V1"},{"label":"6Q","v_equiv":"V2"},{"label":"5Q","v_equiv":"V3"},{"label":"4Q","v_equiv":"V4"},{"label":"3Q","v_equiv":"V5"},{"label":"2Q","v_equiv":"V6"},{"label":"1Q","v_equiv":"V7"},{"label":"1D","v_equiv":"V8"},{"label":"2D","v_equiv":"V9"}]'
     ),
     (
       'Climba',

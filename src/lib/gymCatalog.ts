@@ -40,7 +40,8 @@ function gym(
 }
 
 /**
- * Indoor climbing / bouldering gyms.
+ * Indoor climbing / bouldering gyms used to seed `gyms` / `gym_outlets` in Supabase.
+ * The stamp picker reads the database; add or remove gyms there (or in this seed).
  * Outlet `name` is what the gym calls that location (Bugis, Bendemeer).
  */
 export const KNOWN_GYMS: CatalogGym[] = [
@@ -160,47 +161,57 @@ export const KNOWN_GYMS: CatalogGym[] = [
   gym("Upwall Climbing", "Singapore", [["Downtown East", "Pasir Ris"]]),
   gym("Project Send", "Singapore", [["Esplanade", "Esplanade"]]),
   gym("Climb@T3", "Singapore", [["T3", "Changi"]]),
-  gym("The Cliff", "Singapore", [["Snow City", "Jurong East"]]),
   gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun"]]),
-  gym("Boruda", "Singapore", [["Boruda", "Singapore"]], {
-    kind: "custom",
-    bands: [
-      { label: "7Q", v_equiv: "V1" },
-      { label: "6Q", v_equiv: "V2" },
-      { label: "5Q", v_equiv: "V3" },
-      { label: "4Q", v_equiv: "V4" },
-      { label: "3Q", v_equiv: "V5" },
-      { label: "2Q", v_equiv: "V6" },
-      { label: "1Q", v_equiv: "V7" },
-      { label: "1D", v_equiv: "V8" },
-      { label: "2D", v_equiv: "V9" },
-    ],
-  }),
 ];
+
+const CLOSED_GYMS = new Set(["boruda", "the cliff"]);
 
 function gymKey(gym: Pick<CatalogGym, "name" | "country">): string {
   return `${gym.name.trim().toLowerCase()}\u001f${gym.country.trim().toLowerCase()}`;
 }
 
+export function isClosedGym(name: string): boolean {
+  return CLOSED_GYMS.has(name.trim().toLowerCase());
+}
+
+/** Drop leftover rows where the outlet was stored as the gym name. */
+export function visibleOutlets(gym: Pick<CatalogGym, "name" | "outlets">): GymOutlet[] {
+  const gymName = gym.name.trim().toLowerCase();
+  return mergeOutlets(
+    gym.outlets.filter((outlet) => outlet.name.trim().toLowerCase() !== gymName),
+  );
+}
+
+export function hasMultipleOutlets(gym: Pick<CatalogGym, "name" | "outlets">): boolean {
+  return visibleOutlets(gym).length > 1;
+}
+
+export function catalogGymSubtitle(gym: Pick<CatalogGym, "name" | "outlets">): string {
+  const outlets = visibleOutlets(gym);
+  return outlets.length > 1 ? outlets.map((outlet) => outlet.name).join(" · ") : "";
+}
+
 export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
   const map = new Map<string, CatalogGym>();
-  for (const item of KNOWN_GYMS) {
-    map.set(gymKey(item), { ...item, outlets: [...item.outlets] });
-  }
+
   for (const item of dbGyms) {
-    const key = gymKey(item);
-    const existing = map.get(key);
-    if (!existing) {
-      map.set(key, item);
-      continue;
-    }
-    map.set(key, {
-      ...existing,
-      id: item.id ?? existing.id,
-      scale: item.scale?.bands.length ? item.scale : existing.scale,
-      outlets: mergeOutlets(existing.outlets, item.outlets),
+    if (isClosedGym(item.name)) continue;
+    const known = findKnownGym(item.name, item.country);
+    map.set(gymKey(item), {
+      ...item,
+      scale: item.scale?.bands.length ? item.scale : known?.scale ?? null,
+      outlets: visibleOutlets({
+        name: item.name,
+        outlets: known ? mergeOutlets(known.outlets, item.outlets) : item.outlets,
+      }),
     });
   }
+
+  for (const item of KNOWN_GYMS) {
+    if (isClosedGym(item.name) || map.has(gymKey(item))) continue;
+    map.set(gymKey(item), { ...item, outlets: visibleOutlets(item) });
+  }
+
   return [...map.values()].sort((a, b) => {
     if (a.country !== b.country) {
       if (a.country === "Singapore") return -1;

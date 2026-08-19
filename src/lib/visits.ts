@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { findKnownGym } from "./gymCatalog";
+import { findKnownGym, isClosedGym, KNOWN_GYMS, mergeCatalogGyms, visibleOutlets } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
 import type {
   CatalogGym,
+  GradeScale,
   GradeSystem,
   GymOutlet,
   GymVisit,
@@ -164,6 +165,94 @@ export async function listCatalogGyms(): Promise<CatalogGym[]> {
   });
 }
 
+function catalogKey(name: string, country: string): string {
+  return `${name.trim().toLowerCase()}\u001f${country.trim().toLowerCase()}`;
+}
+
+/** Insert any seed gyms/outlets that are not in Supabase yet, then return the picker catalog. */
+export async function loadPassportCatalog(profileId: string): Promise<CatalogGym[]> {
+  const supabase = await createClient();
+  let gyms = await listCatalogGyms();
+  const have = new Set(gyms.map((gym) => catalogKey(gym.name, gym.country)));
+  const missingGyms = KNOWN_GYMS.filter(
+    (gym) => !isClosedGym(gym.name) && !have.has(catalogKey(gym.name, gym.country)),
+  );
+
+  if (missingGyms.length > 0) {
+    const inserted = await supabase.from("gyms").insert(
+      missingGyms.map((gym) => ({
+        name: gym.name,
+        country: gym.country,
+        created_by: profileId,
+      })),
+    );
+    if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
+      throw mapDbError(inserted.error.message);
+    }
+    gyms = await listCatalogGyms();
+  }
+
+  const outletRows: { gym_id: string; name: string; city: string; created_by: string }[] = [];
+  const scaleRows: {
+    gym_id: string;
+    kind: GradeSystem;
+    bands: GradeScale["bands"];
+    created_by: string;
+  }[] = [];
+
+  for (const known of KNOWN_GYMS) {
+    if (isClosedGym(known.name)) continue;
+    const dbGym = gyms.find(
+      (gym) =>
+        gym.name.toLowerCase() === known.name.toLowerCase() &&
+        gym.country.toLowerCase() === known.country.toLowerCase(),
+    );
+    if (!dbGym?.id) continue;
+
+    for (const outlet of visibleOutlets(known)) {
+      const exists = dbGym.outlets.some(
+        (item) => item.name.toLowerCase() === outlet.name.toLowerCase(),
+      );
+      if (!exists) {
+        outletRows.push({
+          gym_id: dbGym.id,
+          name: outlet.name,
+          city: outlet.city,
+          created_by: profileId,
+        });
+      }
+    }
+
+    if (known.scale?.bands.length && !dbGym.scale?.bands.length) {
+      scaleRows.push({
+        gym_id: dbGym.id,
+        kind: known.scale.kind,
+        bands: known.scale.bands,
+        created_by: profileId,
+      });
+    }
+  }
+
+  if (outletRows.length > 0) {
+    const inserted = await supabase.from("gym_outlets").insert(outletRows);
+    if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
+      throw mapDbError(inserted.error.message);
+    }
+  }
+  if (scaleRows.length > 0) {
+    const inserted = await supabase.from("gym_grade_scales").insert(scaleRows);
+    if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
+      throw mapDbError(inserted.error.message);
+    }
+  }
+
+  if (outletRows.length > 0 || scaleRows.length > 0) {
+    gyms = await listCatalogGyms();
+  }
+
+  return mergeCatalogGyms(gyms);
+}
+
 async function findGymRow(
   supabase: SupabaseClient,
   name: string,
@@ -204,11 +293,19 @@ async function ensureGymCatalog(
   const gymName = known?.name ?? input.gym_name.trim();
   const country = known?.country ?? input.country.trim();
   const scale = input.scale ?? known?.scale ?? null;
-  const outletName = (input.outlet?.trim() || input.city.trim() || "Main").trim();
-  const knownOutlet = known?.outlets.find(
-    (outlet) => outlet.name.toLowerCase() === outletName.toLowerCase(),
-  );
-  const city = (knownOutlet?.city || input.city.trim() || outletName).trim();
+  const knownOutlets = known ? visibleOutlets(known) : [];
+  const typedOutlet = (input.outlet?.trim() || input.city.trim() || "").trim();
+  const dummyOutlet = typedOutlet.toLowerCase() === gymName.toLowerCase();
+  const resolvedOutlet =
+    knownOutlets.length === 1
+      ? knownOutlets[0]
+      : knownOutlets.find((outlet) => outlet.name.toLowerCase() === typedOutlet.toLowerCase());
+  const outletName = (
+    resolvedOutlet?.name ||
+    (dummyOutlet ? knownOutlets[0]?.name : typedOutlet) ||
+    "Main"
+  ).trim();
+  const city = (resolvedOutlet?.city || input.city.trim() || outletName).trim();
 
   let gym = await findGymRow(supabase, gymName, country);
   if (!gym) {
@@ -237,8 +334,8 @@ async function ensureGymCatalog(
     throw new Error("Couldn't save that gym. Please try again.");
   }
 
-  if (known?.outlets) {
-    for (const outlet of known.outlets) {
+  if (knownOutlets.length > 0) {
+    for (const outlet of knownOutlets) {
       const found = await findOutletRow(supabase, gym.id, outlet.name);
       if (!found) {
         await supabase.from("gym_outlets").insert({

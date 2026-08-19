@@ -9,13 +9,16 @@ import { formatGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
 import {
   catalogCities,
   catalogCountries,
+  catalogGymSubtitle,
   defaultScaleFor,
   findKnownGym,
   gymsInCity,
   gymsInCountry,
+  hasMultipleOutlets,
   mergeOutlets,
   searchKnownGyms,
   skipsCityStep,
+  visibleOutlets,
 } from "@/lib/gymCatalog";
 import { gymSlug } from "@/lib/gyms";
 import type {
@@ -132,16 +135,19 @@ function LogGymSheetInner({
       (known?.scale && known.scale.bands.length > 0),
   );
 
-  const outlets: GymOutlet[] = mergeOutlets(
-    catalogMatch?.outlets ?? [],
-    known?.outlets ?? [],
-    (userMatch?.outlets ?? []).map((item) => ({ name: item, city: userMatch?.city || city })),
-    outlet && city ? [{ name: outlet, city }] : [],
-  );
+  const outlets: GymOutlet[] = visibleOutlets({
+    name,
+    outlets: mergeOutlets(
+      catalogMatch?.outlets ?? [],
+      known?.outlets ?? [],
+      (userMatch?.outlets ?? []).map((item) => ({ name: item, city: userMatch?.city || city })),
+      outlet && city ? [{ name: outlet, city }] : [],
+    ),
+  });
 
   const skipCity = skipsCityStep(country);
   const isExistingBrand = Boolean(userMatch || catalogMatch || known);
-  const needsOutlet = outlets.length > 1 || Boolean(userMatch && userMatch.outlets.length > 1);
+  const needsOutlet = outlets.length > 1;
   const isNewGym = !userMatch && !catalogMatch && !known;
   const needsScale = isNewGym && !hasCatalogScale;
   const needsCity = !skipCity;
@@ -190,17 +196,20 @@ function LogGymSheetInner({
   }, [state, router]);
 
   function applyGym(choice: { name: string; country: string; city?: string; outlets?: GymOutlet[] }) {
+    const locations = visibleOutlets({ name: choice.name, outlets: choice.outlets ?? [] });
     setName(choice.name);
     setQuery(choice.name);
     setCountry(choice.country);
-    if (skipsCityStep(choice.country) && choice.outlets?.length !== 1) {
+    if (skipsCityStep(choice.country) && locations.length !== 1) {
       setCity("Singapore");
     }
-    if (choice.outlets?.length === 1) {
-      setOutlet(choice.outlets[0].name);
-      setCity(choice.outlets[0].city);
+    if (locations.length === 1) {
+      setOutlet(locations[0].name);
+      setCity(locations[0].city);
     } else if (choice.city && !skipsCityStep(choice.country)) {
       setCity(choice.city);
+    } else {
+      setOutlet("");
     }
     setGrade("");
   }
@@ -225,6 +234,10 @@ function LogGymSheetInner({
       if (!name.trim()) return;
       if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
       if (isExistingBrand) {
+        if (outlets.length === 1) {
+          setOutlet(outlets[0].name);
+          setCity(outlets[0].city);
+        }
         if (needsOutlet) setStep("outlet");
         else if (needsScale) setStep("scale");
         else setStep("grade");
@@ -397,18 +410,33 @@ function LogGymSheetInner({
                 setName(value);
               }}
               onSelectUser={(gym) => {
-                applyGym({
-                  name: gym.name,
-                  country: gym.country,
-                  city: gym.city,
-                  outlets: gym.outlets.map((item) => ({ name: item, city: gym.city })),
-                });
-                if (gym.outlets.length > 1) setStep("outlet");
-                else setStep("grade");
+                const catalog = catalogGyms.find(
+                  (item) =>
+                    item.name.toLowerCase() === gym.name.toLowerCase() &&
+                    item.country.toLowerCase() === gym.country.toLowerCase(),
+                );
+                applyGym(
+                  catalog ?? {
+                    name: gym.name,
+                    country: gym.country,
+                    city: gym.city,
+                    outlets: gym.outlets.map((item) => ({ name: item, city: gym.city })),
+                  },
+                );
+                if (
+                  hasMultipleOutlets(
+                    catalog ?? {
+                      name: gym.name,
+                      outlets: gym.outlets.map((item) => ({ name: item, city: gym.city })),
+                    },
+                  )
+                ) {
+                  setStep("outlet");
+                } else setStep("grade");
               }}
               onSelectCatalog={(gym) => {
                 applyGym(gym);
-                if (gym.outlets.length > 1) setStep("outlet");
+                if (hasMultipleOutlets(gym)) setStep("outlet");
                 else setStep("grade");
               }}
               onNext={goNext}
@@ -662,13 +690,18 @@ function GymStep({
       {recent.length > 0 && (
         <ChoiceList
           label={q ? "Your gyms" : "Recent gyms"}
-          items={recent.map((gym) => ({
-            key: gym.slug,
-            title: gym.name,
-            subtitle: gym.outlets.length > 1 ? gym.outlets.join(" · ") : `${gym.city} · ${gym.country}`,
-            meta: `${gym.visitCount} ${gym.visitCount === 1 ? "visit" : "visits"}`,
-            onClick: () => onSelectUser(gym),
-          }))}
+          items={recent.map((gym) => {
+            const places = gym.outlets.filter(
+              (item) => item.toLowerCase() !== gym.name.toLowerCase(),
+            );
+            return {
+              key: gym.slug,
+              title: gym.name,
+              subtitle: places.length > 1 ? places.join(" · ") : "",
+              meta: `${gym.visitCount} ${gym.visitCount === 1 ? "visit" : "visits"}`,
+              onClick: () => onSelectUser(gym),
+            };
+          })}
         />
       )}
       {known.length > 0 && (
@@ -677,12 +710,7 @@ function GymStep({
           items={known.map((gym) => ({
             key: `${gym.name}-${gym.country}`,
             title: gym.name,
-            subtitle:
-              gym.outlets.length > 1
-                ? gym.outlets.map((o) => o.name).join(" · ")
-                : gym.outlets[0]
-                  ? gym.outlets[0].name
-                  : gym.country,
+            subtitle: catalogGymSubtitle(gym),
             meta: gym.scale?.kind === "color" ? "Colours" : gym.scale?.kind === "number" ? "Numbers" : undefined,
             onClick: () => onSelectCatalog(gym),
           }))}
@@ -694,10 +722,7 @@ function GymStep({
           items={extra.map((gym) => ({
             key: `cat-${gym.name}-${gym.country}`,
             title: gym.name,
-            subtitle:
-              gym.outlets.length > 1
-                ? gym.outlets.map((o) => o.name).join(" · ")
-                : gym.outlets[0]?.name ?? gym.country,
+            subtitle: catalogGymSubtitle(gym),
             onClick: () => onSelectCatalog(gym),
           }))}
         />
@@ -717,7 +742,7 @@ function ChoiceList({
   items,
 }: {
   label: string;
-  items: { key: string; title: string; subtitle: string; meta?: string; onClick: () => void }[];
+  items: { key: string; title: string; subtitle?: string; meta?: string; onClick: () => void }[];
 }) {
   return (
     <div>
@@ -734,7 +759,9 @@ function ChoiceList({
             >
               <span>
                 <span className="block font-semibold leading-tight">{item.title}</span>
-                <span className="text-sm text-pass-muted">{item.subtitle}</span>
+                {item.subtitle ? (
+                  <span className="text-sm text-pass-muted">{item.subtitle}</span>
+                ) : null}
               </span>
               {item.meta ? (
                 <span className="text-xs font-semibold text-pass-primary">{item.meta}</span>

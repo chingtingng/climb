@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import type { CatalogGym, GymVisit } from "@/lib/types";
 import { mergeCatalogGyms } from "@/lib/gymCatalog";
-import { listCatalogGyms, listVisitsForProfile } from "@/lib/visits";
+import { listVisitsForProfile, loadPassportCatalog } from "@/lib/visits";
 
 const dmSerif = DM_Serif_Display({
   variable: "--font-dm-serif",
@@ -37,7 +37,7 @@ export default async function PassportLayout({
   if (configured) {
     try {
       visits = await listVisitsForProfile(session.id);
-      catalogGyms = mergeCatalogGyms(await listCatalogGyms());
+      catalogGyms = await loadPassportCatalog(session.id);
     } catch (error) {
       loadError =
         error instanceof Error
