@@ -214,6 +214,10 @@ textarea {
 
 .auth-submit {
   margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   width: 100%;
   padding: 12px;
   border: none;
