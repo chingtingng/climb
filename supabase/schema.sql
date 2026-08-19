@@ -8,10 +8,14 @@
 -- users are kept.
 --
 -- Model:
---   gyms              shared brand (name + country)
+--   gyms              shared brand (name + country + climbing_types offered)
 --   gym_outlets       locations of that brand
 --   gym_grade_scales  one grade chart per gym (+ optional photo path)
---   visits            private stamps (gym_id + outlet_id + grade + date)
+--   visits            private stamps (gym + outlet + climbing_type + grade + date)
+--
+-- Climbing types: bouldering | top_rope | lead
+--   gyms.climbing_types  — what the gym offers (1+); if only one, stamp UI skips the type step
+--   visits.climbing_type — which discipline this stamp is for
 --
 -- Number / colour → V mapping lives on each band in gym_grade_scales.bands
 -- and is copied onto visits.v_equiv when you stamp. Band JSON shape (ordered
@@ -186,6 +190,41 @@ exception
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- Climbing type helpers
+-- ---------------------------------------------------------------------------
+create or replace function public.is_climbing_type(value text)
+returns boolean
+language sql
+immutable
+as $$
+  select value in ('bouldering', 'top_rope', 'lead');
+$$;
+
+create or replace function public.climbing_types_valid(types text[])
+returns boolean
+language sql
+immutable
+as $$
+  select
+    types is not null
+    and cardinality(types) >= 1
+    and cardinality(types) = (
+      select count(distinct t)
+      from unnest(types) as t
+    )
+    and not exists (
+      select 1
+      from unnest(types) as t
+      where not public.is_climbing_type(t)
+    );
+$$;
+
+revoke all on function public.is_climbing_type(text) from public, anon, authenticated;
+revoke all on function public.climbing_types_valid(text[]) from public, anon, authenticated;
+grant execute on function public.is_climbing_type(text) to authenticated, service_role;
+grant execute on function public.climbing_types_valid(text[]) to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
 -- Gyms (shared catalog — stamp picker reads these tables)
 -- Add/remove gyms and outlets here or in Table Editor. Closed: Boruda, The Cliff.
 -- ---------------------------------------------------------------------------
@@ -193,10 +232,12 @@ create table public.gyms (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   country text not null,
+  climbing_types text[] not null default array['bouldering']::text[],
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
   constraint gyms_name_len check (char_length(name) between 1 and 120),
-  constraint gyms_country_len check (char_length(country) between 1 and 80)
+  constraint gyms_country_len check (char_length(country) between 1 and 80),
+  constraint gyms_climbing_types_valid check (public.climbing_types_valid(climbing_types))
 );
 
 create unique index gyms_name_country_idx
@@ -304,6 +345,7 @@ create table public.visits (
   profile_id uuid not null references public.profiles (id) on delete cascade,
   gym_id uuid not null references public.gyms (id) on delete restrict,
   outlet_id uuid not null references public.gym_outlets (id) on delete restrict,
+  climbing_type text not null,
   grade_system text not null check (grade_system in ('v', 'font', 'french', 'number', 'color', 'custom')),
   highest_grade text not null,
   v_equiv text,
@@ -313,6 +355,7 @@ create table public.visits (
   visited_on date not null default current_date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint visits_climbing_type_check check (public.is_climbing_type(climbing_type)),
   constraint visits_grade_len check (char_length(highest_grade) between 1 and 40),
   constraint visits_v_equiv_format check (public.is_v_grade(v_equiv))
 );
@@ -563,29 +606,29 @@ create policy "Users can delete own visit media"
 -- Closed and omitted: Boruda, The Cliff (Snow City).
 -- ---------------------------------------------------------------------------
 with seeded as (
-  insert into public.gyms (name, country)
+  insert into public.gyms (name, country, climbing_types)
   values
-    ('Boulder Planet', 'Singapore'),
-    ('Boulder Planet', 'Indonesia'),
-    ('Boulder Planet', 'Thailand'),
-    ('Boulder Movement', 'Singapore'),
-    ('Boulder+', 'Singapore'),
-    ('BFF Climbing', 'Singapore'),
-    ('Climb Central', 'Singapore'),
-    ('Fit Bloc', 'Singapore'),
-    ('Kinetics Climbing', 'Singapore'),
-    ('Lighthouse', 'Singapore'),
-    ('Climba', 'Singapore'),
-    ('Ark Bloc', 'Singapore'),
-    ('Ground Up', 'Singapore'),
-    ('OYEYO Boulder Home', 'Singapore'),
-    ('ClimbUp', 'Singapore'),
-    ('Z-Vertigo', 'Singapore'),
-    ('Outpost Climbing', 'Singapore'),
-    ('Upwall Climbing', 'Singapore'),
-    ('Project Send', 'Singapore'),
-    ('Climb@T3', 'Singapore'),
-    ('SAFRA Yishun', 'Singapore')
+    ('Boulder Planet', 'Singapore', array['bouldering']::text[]),
+    ('Boulder Planet', 'Indonesia', array['bouldering']::text[]),
+    ('Boulder Planet', 'Thailand', array['bouldering']::text[]),
+    ('Boulder Movement', 'Singapore', array['bouldering']::text[]),
+    ('Boulder+', 'Singapore', array['bouldering']::text[]),
+    ('BFF Climbing', 'Singapore', array['bouldering']::text[]),
+    ('Climb Central', 'Singapore', array['bouldering', 'top_rope', 'lead']::text[]),
+    ('Fit Bloc', 'Singapore', array['bouldering', 'top_rope', 'lead']::text[]),
+    ('Kinetics Climbing', 'Singapore', array['bouldering', 'top_rope', 'lead']::text[]),
+    ('Lighthouse', 'Singapore', array['bouldering']::text[]),
+    ('Climba', 'Singapore', array['bouldering']::text[]),
+    ('Ark Bloc', 'Singapore', array['bouldering']::text[]),
+    ('Ground Up', 'Singapore', array['bouldering']::text[]),
+    ('OYEYO Boulder Home', 'Singapore', array['bouldering']::text[]),
+    ('ClimbUp', 'Singapore', array['bouldering', 'top_rope', 'lead']::text[]),
+    ('Z-Vertigo', 'Singapore', array['bouldering']::text[]),
+    ('Outpost Climbing', 'Singapore', array['bouldering', 'top_rope', 'lead']::text[]),
+    ('Upwall Climbing', 'Singapore', array['top_rope', 'lead']::text[]),
+    ('Project Send', 'Singapore', array['bouldering']::text[]),
+    ('Climb@T3', 'Singapore', array['top_rope', 'lead']::text[]),
+    ('SAFRA Yishun', 'Singapore', array['bouldering', 'top_rope', 'lead']::text[])
   returning id, name, country
 )
 insert into public.gym_outlets (gym_id, name, city)

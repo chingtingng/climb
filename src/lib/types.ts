@@ -1,3 +1,7 @@
+import type { ClimbingType } from "./climbingTypes";
+
+export type { ClimbingType };
+
 export type GradeSystem = "v" | "font" | "french" | "number" | "color" | "custom";
 
 export type GradeBand = {
@@ -37,6 +41,7 @@ export type GymVisit = {
   country: string;
   city: string;
   outlet?: string | null;
+  climbing_type: ClimbingType;
   grade_system: GradeSystem;
   highest_grade: string;
   v_equiv?: string | null;
@@ -56,6 +61,10 @@ export type GymVisitInput = {
   /** When set with outlet_id, save path can skip name-based catalog resolution. */
   gym_id?: string;
   outlet_id?: string;
+  /** Types this gym offers — saved when creating / updating the catalog gym. */
+  climbing_types?: ClimbingType[];
+  /** Discipline for this stamp. */
+  climbing_type: ClimbingType;
   grade_system: GradeSystem;
   highest_grade: string;
   v_equiv?: string;
@@ -87,6 +96,8 @@ export type CatalogGym = {
   id?: string;
   name: string;
   country: string;
+  /** Disciplines this gym offers. Single-type gyms skip the visit type picker. */
+  climbing_types: ClimbingType[];
   outlets: GymOutlet[];
   scale: GradeScale | null;
 };

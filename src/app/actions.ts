@@ -8,6 +8,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getSiteUrl } from "@/lib/site-url";
 import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
+import {
+  CLIMBING_TYPES,
+  isClimbingType,
+  normalizeClimbingTypes,
+  type ClimbingType,
+} from "@/lib/climbingTypes";
 import { isHouseSystem, normalizeBandVRange, normalizeVEquiv } from "@/lib/grades";
 import {
   createVisit,
@@ -360,6 +366,8 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
   const photo_path = String(formData.get("photo_path") ?? "").trim();
   const video_path = String(formData.get("video_path") ?? "").trim();
+  const climbing_typeRaw = String(formData.get("climbing_type") ?? "").trim();
+  const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
 
   if (!gym_name || !country || !city || !highest_grade || !visited_on) {
     return "Please fill in gym, place, grade, and date.";
@@ -367,6 +375,27 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
 
   if (!["v", "font", "french", "number", "color", "custom"].includes(grade_system)) {
     return "Pick a valid grade system.";
+  }
+
+  let climbing_types = normalizeClimbingTypes(
+    climbingTypesRaw
+      ? climbingTypesRaw.split(",").map((item) => item.trim())
+      : climbing_typeRaw
+        ? [climbing_typeRaw]
+        : [],
+  );
+  if (climbing_types.length === 0) {
+    climbing_types = ["bouldering"];
+  }
+
+  let climbing_type: ClimbingType = isClimbingType(climbing_typeRaw)
+    ? climbing_typeRaw
+    : climbing_types[0];
+  if (!climbing_types.includes(climbing_type)) {
+    return "That climbing type isn’t offered at this gym.";
+  }
+  if (!(CLIMBING_TYPES as readonly string[]).includes(climbing_type)) {
+    return "Pick a valid climbing type.";
   }
 
   if (notes.length > 400) {
@@ -423,6 +452,8 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     outlet: outlet || undefined,
     gym_id: gym_id || undefined,
     outlet_id: outlet_id || undefined,
+    climbing_types,
+    climbing_type,
     grade_system,
     highest_grade,
     v_equiv: normalizeVEquiv(v_equiv),

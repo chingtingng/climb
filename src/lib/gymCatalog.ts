@@ -1,5 +1,10 @@
 import { COLOR_GRADES, numberRange } from "./grades";
 import { countryMeta } from "./countries";
+import {
+  DEFAULT_CLIMBING_TYPES,
+  normalizeClimbingTypes,
+  type ClimbingType,
+} from "./climbingTypes";
 import type { CatalogGym, GradeBand, GradeScale, GymOutlet } from "./types";
 
 function vBands(labels: string[], startV = 1): GradeBand[] {
@@ -32,15 +37,21 @@ const BOULDER_PLANET_SCALE: GradeScale = {
   ],
 };
 
+const BOULDER_ONLY: ClimbingType[] = ["bouldering"];
+const ROPE_ONLY: ClimbingType[] = ["top_rope", "lead"];
+const FULL_WALL: ClimbingType[] = ["bouldering", "top_rope", "lead"];
+
 function gym(
   name: string,
   country: string,
   outlets: Array<[outlet: string, city: string]>,
   scale: GradeScale | null = null,
+  climbing_types: ClimbingType[] = BOULDER_ONLY,
 ): CatalogGym {
   return {
     name,
     country,
+    climbing_types: normalizeClimbingTypes(climbing_types),
     outlets: outlets.map(([outlet, city]) => ({ name: outlet, city })),
     scale,
   };
@@ -124,12 +135,18 @@ export const KNOWN_GYMS: CatalogGym[] = [
       ],
     },
   ),
-  gym("Climb Central", "Singapore", [
-    ["The Kallang", "Kallang"],
-    ["Funan", "Funan"],
-    ["Novena", "Novena"],
-    ["SAFRA Choa Chu Kang", "Choa Chu Kang"],
-  ]),
+  gym(
+    "Climb Central",
+    "Singapore",
+    [
+      ["The Kallang", "Kallang"],
+      ["Funan", "Funan"],
+      ["Novena", "Novena"],
+      ["SAFRA Choa Chu Kang", "Choa Chu Kang"],
+    ],
+    null,
+    FULL_WALL,
+  ),
   gym(
     "Fit Bloc",
     "Singapore",
@@ -139,8 +156,9 @@ export const KNOWN_GYMS: CatalogGym[] = [
       ["Telok Ayer", "Telok Ayer"],
     ],
     { kind: "number", bands: numberBands(1, 8, 1) },
+    FULL_WALL,
   ),
-  gym("Kinetics Climbing", "Singapore", [["Serangoon", "Serangoon"]]),
+  gym("Kinetics Climbing", "Singapore", [["Serangoon", "Serangoon"]], null, FULL_WALL),
   gym("Lighthouse", "Singapore", [["Pasir Panjang", "Pasir Panjang"]], {
     kind: "number",
     bands: numberBands(1, 9, 1),
@@ -162,13 +180,13 @@ export const KNOWN_GYMS: CatalogGym[] = [
     })),
   }),
   gym("OYEYO Boulder Home", "Singapore", [["Mackenzie", "Rochor"]]),
-  gym("ClimbUp", "Singapore", [["Katong", "Katong"]]),
+  gym("ClimbUp", "Singapore", [["Katong", "Katong"]], null, FULL_WALL),
   gym("Z-Vertigo", "Singapore", [["Bukit Timah", "Bukit Timah"]]),
-  gym("Outpost Climbing", "Singapore", [["Lavender", "Lavender"]]),
-  gym("Upwall Climbing", "Singapore", [["Downtown East", "Pasir Ris"]]),
+  gym("Outpost Climbing", "Singapore", [["Lavender", "Lavender"]], null, FULL_WALL),
+  gym("Upwall Climbing", "Singapore", [["Downtown East", "Pasir Ris"]], null, ROPE_ONLY),
   gym("Project Send", "Singapore", [["Esplanade", "Esplanade"]]),
-  gym("Climb@T3", "Singapore", [["T3", "Changi"]]),
-  gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun"]]),
+  gym("Climb@T3", "Singapore", [["T3", "Changi"]], null, ROPE_ONLY),
+  gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun"]], null, FULL_WALL),
 ];
 
 const CLOSED_GYMS = new Set(["boruda", "the cliff"]);
@@ -204,8 +222,17 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
   for (const item of dbGyms) {
     if (isClosedGym(item.name)) continue;
     const known = findKnownGym(item.name, item.country);
+    const fromDb = normalizeClimbingTypes(item.climbing_types);
+    const fromKnown = normalizeClimbingTypes(known?.climbing_types);
+    const climbing_types =
+      fromDb.length > 0
+        ? fromDb
+        : fromKnown.length > 0
+          ? fromKnown
+          : DEFAULT_CLIMBING_TYPES;
     map.set(gymKey(item), {
       ...item,
+      climbing_types,
       scale: item.scale?.bands.length ? item.scale : known?.scale ?? null,
       outlets: visibleOutlets({
         name: item.name,
@@ -216,7 +243,12 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
 
   for (const item of KNOWN_GYMS) {
     if (isClosedGym(item.name) || map.has(gymKey(item))) continue;
-    map.set(gymKey(item), { ...item, outlets: visibleOutlets(item) });
+    const climbing_types = normalizeClimbingTypes(item.climbing_types);
+    map.set(gymKey(item), {
+      ...item,
+      climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
+      outlets: visibleOutlets(item),
+    });
   }
 
   return [...map.values()].sort((a, b) => {

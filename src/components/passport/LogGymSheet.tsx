@@ -4,6 +4,14 @@ import { useActionState, useEffect, useId, useRef, useState, useTransition } fro
 import { useRouter } from "next/navigation";
 import { addVisitAction, type ActionResult } from "@/app/actions";
 import { citiesForCountry } from "@/lib/cities";
+import {
+  CLIMBING_TYPES,
+  CLIMBING_TYPE_LABELS,
+  DEFAULT_CLIMBING_TYPES,
+  formatClimbingType,
+  normalizeClimbingTypes,
+  type ClimbingType,
+} from "@/lib/climbingTypes";
 import { COUNTRY_NAMES } from "@/lib/countries";
 import { todayISO } from "@/lib/dates";
 import { displayGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
@@ -45,6 +53,8 @@ type Step =
   | "city"
   | "gym"
   | "outlet"
+  | "offer"
+  | "climb"
   | "scale"
   | "grade"
   | "date"
@@ -113,6 +123,8 @@ function LogGymSheetInner({
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [newOutletName, setNewOutletName] = useState("");
+  const [gymOfferTypes, setGymOfferTypes] = useState<ClimbingType[]>(DEFAULT_CLIMBING_TYPES);
+  const [climbType, setClimbType] = useState<ClimbingType>("bouldering");
   const closeRef = useRef<HTMLButtonElement>(null);
   const pending = actionPending || isPending || mediaUploading;
 
@@ -159,6 +171,16 @@ function LogGymSheetInner({
   const isNewGym = !userMatch && !catalogMatch && !known;
   const needsScale = isNewGym && !hasCatalogScale;
   const needsCity = !skipCity;
+  const catalogTypes = normalizeClimbingTypes(
+    catalogMatch?.climbing_types ?? known?.climbing_types,
+  );
+  const offeredTypes = isNewGym
+    ? gymOfferTypes
+    : catalogTypes.length > 0
+      ? catalogTypes
+      : DEFAULT_CLIMBING_TYPES;
+  const needsOffer = isNewGym;
+  const needsClimb = offeredTypes.length > 1;
 
   const activeScale = hasCatalogScale ? resolvedScale : needsScale ? scale : resolvedScale;
   const pickerSystem =
@@ -169,6 +191,8 @@ function LogGymSheetInner({
     ...(needsCity ? (["city"] as const) : []),
     "gym",
     ...(needsOutlet ? (["outlet"] as const) : []),
+    ...(needsOffer ? (["offer"] as const) : []),
+    ...(needsClimb ? (["climb"] as const) : []),
     ...(needsScale ? (["scale"] as const) : []),
     "grade",
     "date",
@@ -176,10 +200,32 @@ function LogGymSheetInner({
   ];
 
   const [step, setStep] = useState<Step>(() => {
-    if (prefill?.existing) return needsOutlet ? "outlet" : "grade";
+    if (prefill?.existing) {
+      if (needsOutlet) return "outlet";
+      if (needsClimb) return "climb";
+      return "grade";
+    }
     return "country";
   });
   const stepIndex = Math.max(0, steps.indexOf(step));
+
+  function afterLocationStep(): Step {
+    if (needsOffer) return "offer";
+    if (needsClimb) return "climb";
+    if (needsScale) return "scale";
+    return "grade";
+  }
+
+  function afterOfferStep(): Step {
+    if (gymOfferTypes.length > 1) return "climb";
+    if (needsScale) return "scale";
+    return "grade";
+  }
+
+  function afterClimbStep(): Step {
+    if (needsScale) return "scale";
+    return "grade";
+  }
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -198,11 +244,32 @@ function LogGymSheetInner({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function applyGym(choice: { name: string; country: string; city?: string; outlets?: GymOutlet[] }) {
+  useEffect(() => {
+    const types = offeredTypes;
+    if (types.length === 1) {
+      setClimbType(types[0]);
+      return;
+    }
+    setClimbType((current) => (types.includes(current) ? current : types[0] ?? "bouldering"));
+  }, [offeredTypes.join(",")]);
+
+  function applyGym(choice: {
+    name: string;
+    country: string;
+    city?: string;
+    outlets?: GymOutlet[];
+    climbing_types?: ClimbingType[];
+  }) {
     const locations = visibleOutlets({ name: choice.name, outlets: choice.outlets ?? [] });
+    const types =
+      normalizeClimbingTypes(choice.climbing_types).length > 0
+        ? normalizeClimbingTypes(choice.climbing_types)
+        : DEFAULT_CLIMBING_TYPES;
     setName(choice.name);
     setQuery(choice.name);
     setCountry(choice.country);
+    setGymOfferTypes(types);
+    setClimbType(types[0]);
     if (skipsCityStep(choice.country) && locations.length !== 1) {
       setCity("Singapore");
     }
@@ -248,13 +315,12 @@ function LogGymSheetInner({
         }
         // Optional outlet on this step can skip the dedicated picker.
         if (needsOutlet && !outlet.trim()) setStep("outlet");
-        else if (needsScale) setStep("scale");
-        else setStep("grade");
+        else setStep(afterLocationStep());
       } else if (!skipsCityStep(country) && !city.trim()) {
         setStep("city");
       } else {
         if (!outlet.trim()) setOutlet(city.trim() || country.trim());
-        setStep(needsScale ? "scale" : "grade");
+        setStep(afterLocationStep());
       }
       return;
     }
@@ -263,7 +329,18 @@ function LogGymSheetInner({
       const match = outlets.find((item) => item.name === outlet);
       if (match) setCity(match.city);
       else if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
-      setStep(needsScale ? "scale" : "grade");
+      setStep(afterLocationStep());
+      return;
+    }
+    if (step === "offer") {
+      if (gymOfferTypes.length < 1) return;
+      if (gymOfferTypes.length === 1) setClimbType(gymOfferTypes[0]);
+      setStep(afterOfferStep());
+      return;
+    }
+    if (step === "climb") {
+      if (!climbType || !offeredTypes.includes(climbType)) return;
+      setStep(afterClimbStep());
       return;
     }
     if (step === "scale") {
@@ -301,9 +378,10 @@ function LogGymSheetInner({
     (step === "country" && country.trim().length > 0) ||
     (step === "city" && city.trim().length > 0) ||
     (step === "gym" && name.trim().length > 0) ||
-    (step === "outlet" && outlet.trim()) ||
-    (step === "scale" &&
-      (!isHouseSystem(scale.kind) || scale.bands.length > 0)) ||
+    (step === "outlet" && Boolean(outlet.trim())) ||
+    (step === "offer" && gymOfferTypes.length > 0) ||
+    (step === "climb" && Boolean(climbType) && offeredTypes.includes(climbType)) ||
+    (step === "scale" && (!isHouseSystem(scale.kind) || scale.bands.length > 0)) ||
     (step === "grade" && Boolean(grade)) ||
     step === "date";
 
@@ -314,6 +392,7 @@ function LogGymSheetInner({
         <SuccessState
           name={name}
           place={[outlet || city, country].filter(Boolean).join(" · ")}
+          climbLabel={formatClimbingType(climbType)}
           gradeLabel={
             displayGrade(pickerSystem, grade, vEquivFor(pickerSystem, grade, activeScale)).grade
           }
@@ -436,14 +515,15 @@ function LogGymSheetInner({
                     item.name.toLowerCase() === gym.name.toLowerCase() &&
                     sameCountry(item.country, gym.country),
                 );
-                applyGym(
+                const choice =
                   catalog ?? {
                     name: gym.name,
                     country: gym.country,
                     city: gym.city,
                     outlets: gym.outlets.map((item) => ({ name: item, city: gym.city })),
-                  },
-                );
+                    climbing_types: DEFAULT_CLIMBING_TYPES,
+                  };
+                applyGym(choice);
                 if (
                   hasMultipleOutlets(
                     catalog ?? {
@@ -453,11 +533,20 @@ function LogGymSheetInner({
                   )
                 ) {
                   setStep("outlet");
-                } else setStep("grade");
+                } else if (normalizeClimbingTypes(choice.climbing_types).length > 1) {
+                  setStep("climb");
+                } else if (needsScale) {
+                  setStep("scale");
+                } else {
+                  setStep("grade");
+                }
               }}
               onSelectCatalog={(gym) => {
                 applyGym(gym);
                 if (hasMultipleOutlets(gym)) setStep("outlet");
+                else if (normalizeClimbingTypes(gym.climbing_types).length > 1) {
+                  setStep("climb");
+                } else if (needsScale) setStep("scale");
                 else setStep("grade");
               }}
               onNext={goNext}
@@ -484,6 +573,29 @@ function LogGymSheetInner({
                 setOutlet(label);
                 setNewOutletName("");
               }}
+            />
+          )}
+
+          {step === "offer" && (
+            <ClimbOfferStep
+              selected={gymOfferTypes}
+              onToggle={(type) => {
+                setGymOfferTypes((current) => {
+                  const has = current.includes(type);
+                  const next = has
+                    ? current.filter((item) => item !== type)
+                    : normalizeClimbingTypes([...current, type]);
+                  return next.length > 0 ? next : current;
+                });
+              }}
+            />
+          )}
+
+          {step === "climb" && (
+            <ClimbTypeStep
+              options={offeredTypes}
+              selected={climbType}
+              onSelect={setClimbType}
             />
           )}
 
@@ -608,6 +720,8 @@ function LogGymSheetInner({
                     }
                     data.set("grade_system", pickerSystem);
                     data.set("highest_grade", grade);
+                    data.set("climbing_type", climbType);
+                    data.set("climbing_types", offeredTypes.join(","));
                     data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
                     data.set("visited_on", visitedOn);
                     data.set("notes", notes);
@@ -683,6 +797,10 @@ function titleFor(step: Step) {
       return "Which gym?";
     case "outlet":
       return "Which outlet?";
+    case "offer":
+      return "What do they offer?";
+    case "climb":
+      return "What did you climb?";
     case "scale":
       return "How does it grade?";
     case "grade":
@@ -706,6 +824,79 @@ function uniqueNames(values: string[]): string[] {
     ordered.push(trimmed);
   }
   return ordered;
+}
+
+function ClimbOfferStep({
+  selected,
+  onToggle,
+}: {
+  selected: ClimbingType[];
+  onToggle: (type: ClimbingType) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-pass-muted">
+        Pick every discipline this gym has. If there’s only one, you won’t be asked again when
+        logging.
+      </p>
+      <div className="grid gap-2">
+        {CLIMBING_TYPES.map((type) => {
+          const active = selected.includes(type);
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => onToggle(type)}
+              aria-pressed={active}
+              className={`rounded-[1.15rem] px-4 py-3.5 text-left text-base font-semibold transition ${
+                active
+                  ? "bg-pass-primary text-white"
+                  : "bg-pass-soft text-pass-navy"
+              }`}
+            >
+              {CLIMBING_TYPE_LABELS[type]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ClimbTypeStep({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: ClimbingType[];
+  selected: ClimbingType;
+  onSelect: (type: ClimbingType) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-pass-muted">This gym offers more than one style — which was today?</p>
+      <div className="grid gap-2">
+        {options.map((type) => {
+          const active = selected === type;
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => onSelect(type)}
+              aria-pressed={active}
+              className={`rounded-[1.15rem] px-4 py-3.5 text-left text-base font-semibold transition ${
+                active
+                  ? "bg-pass-primary text-white"
+                  : "bg-pass-soft text-pass-navy"
+              }`}
+            >
+              {CLIMBING_TYPE_LABELS[type]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function GymStep({
@@ -1280,6 +1471,7 @@ function OutletStep({
 function SuccessState({
   name,
   place,
+  climbLabel,
   gradeLabel,
   date,
   onViewGym,
@@ -1287,6 +1479,7 @@ function SuccessState({
 }: {
   name: string;
   place: string;
+  climbLabel: string;
   gradeLabel: string;
   date: string;
   onViewGym: () => void;
@@ -1319,7 +1512,8 @@ function SuccessState({
       </h2>
       <p className="mt-3 text-lg font-semibold leading-tight">{name}</p>
       <p className="text-sm text-pass-muted">{place}</p>
-      <p className="mt-2 text-xl font-semibold text-pass-navy">{gradeLabel}</p>
+      <p className="mt-2 text-sm font-semibold text-pass-primary">{climbLabel}</p>
+      <p className="mt-1 text-xl font-semibold text-pass-navy">{gradeLabel}</p>
       <p className="mt-1 text-sm text-pass-muted">Added to your passport</p>
       <button type="button" onClick={onViewGym} className="passport-btn mt-6">
         View gym

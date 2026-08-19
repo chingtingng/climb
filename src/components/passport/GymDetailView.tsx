@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDate } from "@/lib/dates";
 import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
 import { BackIcon } from "./icons";
@@ -106,7 +107,7 @@ export function GymDetailView({ slug }: { slug: string }) {
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
                   <p className="text-sm break-words text-pass-muted">
-                    {formatVisitPlace(visit)} ·{" "}
+                    {formatVisitPlace(visit)} · {formatClimbingType(visit.climbing_type)} ·{" "}
                     <GradeLabel
                       system={visit.grade_system}
                       grade={visit.highest_grade}

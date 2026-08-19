@@ -1,4 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  DEFAULT_CLIMBING_TYPES,
+  isClimbingType,
+  normalizeClimbingTypes,
+} from "./climbingTypes";
 import { countryMeta } from "./countries";
 import { findKnownGym, isClosedGym, KNOWN_GYMS, mergeCatalogGyms, visibleOutlets } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
@@ -21,6 +26,7 @@ const VISIT_SELECT = `
   profile_id,
   gym_id,
   outlet_id,
+  climbing_type,
   grade_system,
   highest_grade,
   v_equiv,
@@ -39,6 +45,7 @@ type VisitRow = {
   profile_id: string;
   gym_id: string;
   outlet_id: string;
+  climbing_type?: string | null;
   grade_system: string;
   highest_grade: string;
   v_equiv: string | null;
@@ -69,6 +76,10 @@ function rowToVisit(row: VisitRow): GymVisit {
     outlet: outlet?.name ?? "",
     city: outlet?.city ?? "",
     country: gym?.country ?? "",
+    climbing_type:
+      row.climbing_type && isClimbingType(row.climbing_type)
+        ? row.climbing_type
+        : "bouldering",
     grade_system: isGradeSystem(row.grade_system) ? row.grade_system : "custom",
     highest_grade: row.highest_grade,
     v_equiv: row.v_equiv,
@@ -93,7 +104,7 @@ function mapDbError(message: string): Error {
       "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.",
     );
   }
-  if (isMissingRelation(message) || /grade_system|visits_grade/i.test(message)) {
+  if (isMissingRelation(message) || /grade_system|visits_grade|climbing_type|climbing_types/i.test(message)) {
     return new Error(
       "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
@@ -189,12 +200,22 @@ export async function listVisitsForProfile(profileId: string): Promise<GymVisit[
 }
 
 async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]> {
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("gyms")
     .select(
-      "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+      "id, name, country, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
     )
     .order("name");
+
+  const { data, error } =
+    primary.error && /climbing_types|schema cache|PGRST204|column/i.test(primary.error.message)
+      ? await supabase
+          .from("gyms")
+          .select(
+            "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+          )
+          .order("name")
+      : primary;
 
   if (error) throw mapDbError(error.message);
 
@@ -203,10 +224,14 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
       ? row.gym_grade_scales[0]
       : row.gym_grade_scales;
     const outlets = Array.isArray(row.gym_outlets) ? row.gym_outlets : [];
+    const climbing_types = normalizeClimbingTypes(
+      "climbing_types" in row ? (row.climbing_types as string[] | null) : null,
+    );
     return {
       id: row.id as string,
       name: row.name as string,
       country: row.country as string,
+      climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
       outlets: outlets.map((outlet: GymOutlet) => ({
         id: outlet.id,
         name: outlet.name,
@@ -245,11 +270,28 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
       missingGyms.map((gym) => ({
         name: gym.name,
         country: gym.country,
+        climbing_types: normalizeClimbingTypes(gym.climbing_types).length
+          ? normalizeClimbingTypes(gym.climbing_types)
+          : DEFAULT_CLIMBING_TYPES,
         created_by: profileId,
       })),
     );
     if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
-      throw mapDbError(inserted.error.message);
+      // Column may be missing before climbing-types.sql — retry without it.
+      if (/climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+        const retry = await supabase.from("gyms").insert(
+          missingGyms.map((gym) => ({
+            name: gym.name,
+            country: gym.country,
+            created_by: profileId,
+          })),
+        );
+        if (retry.error && !/duplicate|unique/i.test(retry.error.message)) {
+          throw mapDbError(retry.error.message);
+        }
+      } else {
+        throw mapDbError(inserted.error.message);
+      }
     }
     gyms = await fetchCatalogGyms(supabase);
   }
@@ -362,6 +404,11 @@ async function ensureGymCatalog(
   const resolvedCountry = countryMeta(known?.country ?? input.country);
   const country = resolvedCountry.name || (known?.country ?? input.country.trim());
   const scale = input.scale ?? known?.scale ?? null;
+  const climbingTypes = normalizeClimbingTypes(
+    input.climbing_types ?? known?.climbing_types,
+  );
+  const resolvedClimbingTypes =
+    climbingTypes.length > 0 ? climbingTypes : DEFAULT_CLIMBING_TYPES;
   const knownOutlets = known ? visibleOutlets(known) : [];
   const typedOutlet = (input.outlet?.trim() || input.city.trim() || "").trim();
   const dummyOutlet = typedOutlet.toLowerCase() === gymName.toLowerCase();
@@ -397,13 +444,33 @@ async function ensureGymCatalog(
       .insert({
         name: gymName,
         country,
+        climbing_types: resolvedClimbingTypes,
         created_by: profileId,
       })
       .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
       .single();
 
     if (inserted.error) {
-      if (/duplicate|unique/i.test(inserted.error.message)) {
+      if (/climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+        const retry = await supabase
+          .from("gyms")
+          .insert({
+            name: gymName,
+            country,
+            created_by: profileId,
+          })
+          .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
+          .single();
+        if (retry.error) {
+          if (/duplicate|unique/i.test(retry.error.message)) {
+            gym = await findGymCatalogRow(supabase, gymName, country);
+          } else {
+            throw mapDbError(retry.error.message);
+          }
+        } else {
+          gym = retry.data as GymCatalogRow;
+        }
+      } else if (/duplicate|unique/i.test(inserted.error.message)) {
         gym = await findGymCatalogRow(supabase, gymName, country);
       } else {
         throw mapDbError(inserted.error.message);
@@ -548,6 +615,7 @@ export async function createVisit(
       profile_id: profileId,
       gym_id: catalog.gymId,
       outlet_id: catalog.outletId,
+      climbing_type: input.climbing_type,
       grade_system: input.grade_system,
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
@@ -558,6 +626,12 @@ export async function createVisit(
     })
     .select(VISIT_SELECT)
     .single();
+
+  if (error && /climbing_type/i.test(error.message)) {
+    throw new Error(
+      "Climbing types aren’t set up yet. Run supabase/schema.sql (or supabase/climbing-types.sql) in the Supabase SQL Editor, then try again.",
+    );
+  }
 
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
@@ -571,6 +645,7 @@ export async function createVisit(
         profile_id: profileId,
         gym_id: catalog.gymId,
         outlet_id: catalog.outletId,
+        climbing_type: input.climbing_type,
         grade_system: input.grade_system,
         highest_grade: input.highest_grade.trim(),
         v_equiv: input.v_equiv?.trim() || null,
@@ -583,6 +658,7 @@ export async function createVisit(
   profile_id,
   gym_id,
   outlet_id,
+  climbing_type,
   grade_system,
   highest_grade,
   v_equiv,
@@ -618,6 +694,7 @@ export async function updateVisit(
     .update({
       gym_id: catalog.gymId,
       outlet_id: catalog.outletId,
+      climbing_type: input.climbing_type,
       grade_system: input.grade_system,
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
@@ -631,6 +708,11 @@ export async function updateVisit(
     .select(VISIT_SELECT)
     .single();
 
+  if (error && /climbing_type/i.test(error.message)) {
+    throw new Error(
+      "Climbing types aren’t set up yet. Run supabase/schema.sql (or supabase/climbing-types.sql) in the Supabase SQL Editor, then try again.",
+    );
+  }
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
       throw new Error(

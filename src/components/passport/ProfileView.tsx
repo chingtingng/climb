@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
+import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDayMonth } from "@/lib/dates";
 import { gymSlug } from "@/lib/gyms";
 import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
@@ -278,7 +279,9 @@ function RecentRow({ visit }: { visit: GymVisit }) {
           <span className="block truncate text-sm font-semibold leading-tight">
             {visit.gym_name}
           </span>
-          <span className="block truncate text-xs text-pass-muted">{place}</span>
+          <span className="block truncate text-xs text-pass-muted">
+            {place} · {formatClimbingType(visit.climbing_type)}
+          </span>
         </span>
         <span className="shrink-0 rounded-full bg-pass-soft px-2.5 py-1 text-xs font-semibold text-pass-primary">
           <GradeLabel

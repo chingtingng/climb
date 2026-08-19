@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDate } from "@/lib/dates";
 import type { GymVisit } from "@/lib/types";
 import { formatVisitPlace, gymSlug } from "@/lib/gyms";
@@ -78,7 +79,7 @@ export function HomeView() {
                         {visit.gym_name}
                       </span>
                       <span className="block truncate text-sm text-pass-muted">
-                        {formatVisitPlace(visit)}
+                        {formatVisitPlace(visit)} · {formatClimbingType(visit.climbing_type)}
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
