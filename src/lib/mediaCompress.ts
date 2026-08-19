@@ -5,6 +5,9 @@ export const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 export const MAX_VIDEO_SECONDS = 60;
 export const TARGET_MAX_EDGE = 1080;
 
+/** Metadata probe should fail fast — some mobile codecs never fire loadedmetadata. */
+const VIDEO_META_TIMEOUT_MS = 8_000;
+
 export type PreparedVisitMedia = {
   photo: File | null;
   video: File | null;
@@ -93,22 +96,63 @@ function renameExt(name: string, ext: string): string {
   return `${base}.${ext}`;
 }
 
-function loadVideoMeta(file: File): Promise<HTMLVideoElement> {
+type VideoMeta = {
+  duration: number;
+  videoWidth: number;
+  videoHeight: number;
+};
+
+function loadVideoMeta(file: File): Promise<VideoMeta> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement("video");
+    let settled = false;
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      video.load();
+      fn();
+    };
+
+    const timer = setTimeout(() => {
+      finish(() =>
+        reject(
+          new Error(
+            "That video took too long to check. Try a shorter clip under 1 minute, exported at 1080p.",
+          ),
+        ),
+      );
+    }, VIDEO_META_TIMEOUT_MS);
+
     video.preload = "metadata";
     video.muted = true;
     video.playsInline = true;
     video.onloadedmetadata = () => {
-      URL.revokeObjectURL(url);
-      resolve(video);
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      finish(() =>
+        resolve({
+          duration,
+          videoWidth: video.videoWidth || 0,
+          videoHeight: video.videoHeight || 0,
+        }),
+      );
     };
     video.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Couldn't read that video."));
+      finish(() => reject(new Error("Couldn't read that video.")));
     };
     video.src = url;
+    // Safari sometimes needs an explicit load after setting src.
+    try {
+      video.load();
+    } catch {
+      // Ignore — onloadedmetadata / onerror still drive the promise.
+    }
   });
 }
 
@@ -127,9 +171,33 @@ function pickRecorderMime(): string | undefined {
   return undefined;
 }
 
+function waitForVideoData(video: HTMLVideoElement, timeoutMs: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (video.readyState >= 2) {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.onloadeddata = null;
+      video.onerror = null;
+      fn();
+    };
+    const timer = setTimeout(() => {
+      finish(() => reject(new Error("Couldn't read that video.")));
+    }, timeoutMs);
+    video.onloadeddata = () => finish(() => resolve());
+    video.onerror = () => finish(() => reject(new Error("Couldn't read that video.")));
+  });
+}
+
 /**
- * Cap duration at 60s. If the longest edge is above 1080p, re-encode via canvas
- * so Supabase storage stays smaller (quality may drop vs the original).
+ * Cap duration at 60s. Prefer accepting videos already under the size cap —
+ * canvas re-encode is realtime and feels stuck on phones. Only re-encode when
+ * the file is oversized (and the browser can MediaRecorder-compress).
  */
 export async function compressVideoTo1080p(
   file: File,
@@ -144,34 +212,33 @@ export async function compressVideoTo1080p(
   }
 
   const probe = await loadVideoMeta(file);
-  const duration = Number.isFinite(probe.duration) ? probe.duration : 0;
+  const duration = probe.duration;
   if (duration > MAX_VIDEO_SECONDS + 0.4) {
     throw new Error("Videos need to be under 1 minute.");
   }
 
-  const maxEdge = Math.max(probe.videoWidth || 0, probe.videoHeight || 0);
-  const alreadyOk = maxEdge > 0 && maxEdge <= TARGET_MAX_EDGE && file.size <= MAX_VIDEO_BYTES;
-  if (alreadyOk) {
+  const maxEdge = Math.max(probe.videoWidth, probe.videoHeight);
+  const withinSize = file.size <= MAX_VIDEO_BYTES;
+
+  // Fast path: duration OK and already small enough for storage — skip re-encode.
+  // (Resolution alone isn't worth a full realtime canvas pass on mobile.)
+  if (withinSize) {
     onProgress?.(1);
     return { file, compressed: false };
   }
 
   if (maxEdge <= 0) {
-    if (file.size > MAX_VIDEO_BYTES) {
-      throw new Error("That video is too large. Export at 1080p and try again.");
-    }
-    return { file, compressed: false };
+    throw new Error("That video is too large. Export at 1080p and try again.");
   }
 
   const mime = pickRecorderMime();
   if (!mime || typeof MediaRecorder === "undefined") {
-    if (file.size > MAX_VIDEO_BYTES) {
-      throw new Error(
-        "This browser can't compress video. Export at 1080p (under ~40 MB) and try again.",
-      );
-    }
-    return { file, compressed: false };
+    throw new Error(
+      "This browser can't compress video. Export at 1080p (under ~40 MB) and try again.",
+    );
   }
+
+  onProgress?.(0.02);
 
   const scale = Math.min(1, TARGET_MAX_EDGE / maxEdge);
   const width = Math.max(2, Math.round((probe.videoWidth * scale) / 2) * 2);
@@ -182,10 +249,18 @@ export async function compressVideoTo1080p(
   video.src = url;
   video.muted = true;
   video.playsInline = true;
-  await new Promise<void>((resolve, reject) => {
-    video.onloadeddata = () => resolve();
-    video.onerror = () => reject(new Error("Couldn't read that video."));
-  });
+  try {
+    video.load();
+  } catch {
+    // optional
+  }
+
+  try {
+    await waitForVideoData(video, VIDEO_META_TIMEOUT_MS);
+  } catch (err) {
+    URL.revokeObjectURL(url);
+    throw err;
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -223,22 +298,60 @@ export async function compressVideoTo1080p(
     recorder.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
   });
 
+  const playBudgetMs =
+    (duration > 0 ? duration * 1000 : MAX_VIDEO_SECONDS * 1000) + 15_000;
+
   recorder.start(250);
   video.currentTime = 0;
-  await video.play();
+  try {
+    await video.play();
+  } catch {
+    if (recorder.state !== "inactive") recorder.stop();
+    recordStream.getTracks().forEach((track) => track.stop());
+    URL.revokeObjectURL(url);
+    throw new Error("Couldn't compress that video.");
+  }
 
   await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.onended = null;
+      video.onerror = null;
+      fn();
+    };
+    const timer = setTimeout(() => {
+      try {
+        video.pause();
+      } catch {
+        // ignore
+      }
+      finish(() =>
+        reject(
+          new Error(
+            "Video compress timed out. Export at 1080p under ~40 MB and try again.",
+          ),
+        ),
+      );
+    }, playBudgetMs);
+
     const draw = () => {
-      if (video.ended || video.paused) {
-        resolve();
+      if (settled) return;
+      if (video.ended) {
+        finish(() => resolve());
         return;
       }
-      ctx.drawImage(video, 0, 0, width, height);
-      if (duration > 0) onProgress?.(Math.min(0.99, video.currentTime / duration));
+      // Don't treat a brief buffer pause as done — wait for ended / timeout.
+      if (!video.paused) {
+        ctx.drawImage(video, 0, 0, width, height);
+        if (duration > 0) onProgress?.(Math.min(0.99, video.currentTime / duration));
+      }
       requestAnimationFrame(draw);
     };
-    video.onended = () => resolve();
-    video.onerror = () => reject(new Error("Couldn't compress that video."));
+    video.onended = () => finish(() => resolve());
+    video.onerror = () => finish(() => reject(new Error("Couldn't compress that video.")));
     draw();
   });
 
