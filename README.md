@@ -52,5 +52,6 @@ Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 w
 ## Notes
 
 - **Create account** / **Sign in** use a username and a required password
-- Visits are grouped by country → city
+- After login: **Home**, **Gyms**, and **Profile**, with a stepped **+ Log a gym** flow
+- Repeat visits to the same gym (name + city + country) add another stamp, not a duplicate gym
 - Grade systems: V-scale, Font, French

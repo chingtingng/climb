@@ -29,3 +29,25 @@ export type GymVisitInput = {
   notes?: string;
   visited_on: string;
 };
+
+/** A gym is the unique (name + city + country) group of visits. */
+export type GymGroup = {
+  slug: string;
+  name: string;
+  city: string;
+  country: string;
+  visits: GymVisit[];
+  visitCount: number;
+  lastVisited: string;
+  bestGrade: string;
+  bestGradeSystem: GradeSystem;
+};
+
+export type PassportStats = {
+  gyms: number;
+  cities: number;
+  countries: number;
+  bestSend: string | null;
+  mostVisitedGym: GymGroup | null;
+  favouriteCity: string | null;
+};
