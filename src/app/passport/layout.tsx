@@ -5,6 +5,7 @@ import { PassportShell } from "@/components/passport/PassportShell";
 import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import type { CatalogGym, GymVisit } from "@/lib/types";
+import { mergeCatalogGyms } from "@/lib/gymCatalog";
 import { listCatalogGyms, listVisitsForProfile } from "@/lib/visits";
 
 const dmSerif = DM_Serif_Display({
@@ -36,13 +37,16 @@ export default async function PassportLayout({
   if (configured) {
     try {
       visits = await listVisitsForProfile(session.id);
-      catalogGyms = await listCatalogGyms();
+      catalogGyms = mergeCatalogGyms(await listCatalogGyms());
     } catch (error) {
       loadError =
         error instanceof Error
           ? error.message
           : "Couldn't load your stamps right now. Try again in a moment.";
+      catalogGyms = mergeCatalogGyms([]);
     }
+  } else {
+    catalogGyms = mergeCatalogGyms([]);
   }
 
   return (
