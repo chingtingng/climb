@@ -53,7 +53,10 @@ export function PassportProvider({
   const [logOpen, setLogOpen] = useState(false);
   const [logPrefill, setLogPrefill] = useState<LogPrefill | null>(null);
 
-  const gyms = useMemo(() => groupVisitsByGym(visits), [visits]);
+  const gyms = useMemo(
+    () => groupVisitsByGym(visits, catalogGyms),
+    [visits, catalogGyms],
+  );
   const stats = useMemo(() => computeStats(visits, gyms), [visits, gyms]);
 
   const openLog = useCallback((prefill?: LogPrefill) => {

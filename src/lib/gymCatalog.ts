@@ -5,6 +5,7 @@ import {
   normalizeClimbingTypes,
   type ClimbingType,
 } from "./climbingTypes";
+import { normalizePlaceKind, type PlaceKind } from "./placeKinds";
 import type { CatalogGym, GradeBand, GradeScale, GymOutlet } from "./types";
 
 function vBands(labels: string[], startV = 1): GradeBand[] {
@@ -47,10 +48,12 @@ function gym(
   outlets: Array<[outlet: string, city: string]>,
   scale: GradeScale | null = null,
   climbing_types: ClimbingType[] = BOULDER_ONLY,
+  place_kind: PlaceKind = "gym",
 ): CatalogGym {
   return {
     name,
     country,
+    place_kind,
     climbing_types: normalizeClimbingTypes(climbing_types),
     outlets: outlets.map(([outlet, city]) => ({ name: outlet, city })),
     scale,
@@ -58,9 +61,10 @@ function gym(
 }
 
 /**
- * Indoor climbing / bouldering gyms used to seed `gyms` / `gym_outlets` in Supabase.
- * The stamp picker reads the database; add or remove gyms there (or in this seed).
+ * Climbing places used to seed `gyms` / `gym_outlets` in Supabase.
+ * The stamp picker reads the database; add or remove places there (or in this seed).
  * Outlet `name` is what the gym calls that location (Bugis, Bendemeer).
+ * Seeded catalog rows are place_kind `gym` (artificial).
  */
 export const KNOWN_GYMS: CatalogGym[] = [
   gym(
@@ -232,6 +236,7 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
           : DEFAULT_CLIMBING_TYPES;
     map.set(gymKey(item), {
       ...item,
+      place_kind: normalizePlaceKind(item.place_kind ?? known?.place_kind),
       climbing_types,
       scale: item.scale?.bands.length ? item.scale : known?.scale ?? null,
       outlets: visibleOutlets({
@@ -246,6 +251,7 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
     const climbing_types = normalizeClimbingTypes(item.climbing_types);
     map.set(gymKey(item), {
       ...item,
+      place_kind: normalizePlaceKind(item.place_kind),
       climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
       outlets: visibleOutlets(item),
     });

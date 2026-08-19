@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDate } from "@/lib/dates";
 import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
+import { formatPlaceKind } from "@/lib/placeKinds";
 import { BackIcon } from "./icons";
 import { CountryStamp } from "./CountryStamp";
 import { DeleteStampDialog } from "./DeleteStampDialog";
@@ -52,7 +53,7 @@ export function GymDetailView({ slug }: { slug: string }) {
             {gym.name}
           </h1>
           <p className="mt-1 text-sm text-pass-muted">
-            {formatGymPlace(gym)}
+            {formatPlaceKind(gym.place_kind)} · {formatGymPlace(gym)}
           </p>
         </div>
         <CountryStamp country={gym.country} />

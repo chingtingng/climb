@@ -15,6 +15,7 @@ import {
   type ClimbingType,
 } from "@/lib/climbingTypes";
 import { isHouseSystem, normalizeBandVRange, normalizeVEquiv } from "@/lib/grades";
+import { isPlaceKind, normalizePlaceKind } from "@/lib/placeKinds";
 import {
   createVisit,
   deleteVisit,
@@ -368,6 +369,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const video_path = String(formData.get("video_path") ?? "").trim();
   const climbing_typeRaw = String(formData.get("climbing_type") ?? "").trim();
   const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
+  const placeKindRaw = String(formData.get("place_kind") ?? "").trim();
 
   if (!gym_name || !country || !city || !highest_grade || !visited_on) {
     return "Please fill in place, grade, and date.";
@@ -375,6 +377,15 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
 
   if (!["v", "font", "french", "number", "color", "custom"].includes(grade_system)) {
     return "Pick a valid grade system.";
+  }
+
+  const place_kind = placeKindRaw
+    ? isPlaceKind(placeKindRaw)
+      ? placeKindRaw
+      : null
+    : normalizePlaceKind(undefined);
+  if (!place_kind) {
+    return "Pick Gym or Rock for this place.";
   }
 
   let climbing_types = normalizeClimbingTypes(
@@ -453,6 +464,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     gym_id: gym_id || undefined,
     outlet_id: outlet_id || undefined,
     climbing_types,
+    place_kind,
     climbing_type,
     grade_system,
     highest_grade,

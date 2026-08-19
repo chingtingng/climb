@@ -7,6 +7,7 @@ import {
 import { countryMeta } from "./countries";
 import { findKnownGym, isClosedGym, KNOWN_GYMS, mergeCatalogGyms, visibleOutlets } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
+import { normalizePlaceKind } from "./placeKinds";
 import type {
   CatalogGym,
   GradeScale,
@@ -14,6 +15,7 @@ import type {
   GymOutlet,
   GymVisit,
   GymVisitInput,
+  PlaceKind,
   Profile,
 } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -200,50 +202,71 @@ export async function listVisitsForProfile(profileId: string): Promise<GymVisit[
 }
 
 async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]> {
-  const primary = await supabase
+  const full = await supabase
     .from("gyms")
     .select(
-      "id, name, country, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+      "id, name, country, place_kind, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
     )
     .order("name");
 
-  const { data, error } =
-    primary.error && /climbing_types|schema cache|PGRST204|column/i.test(primary.error.message)
-      ? await supabase
-          .from("gyms")
-          .select(
-            "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
-          )
-          .order("name")
-      : primary;
+  let rows: Array<Record<string, unknown>> | null = full.data as Array<Record<string, unknown>> | null;
+  let error = full.error;
+
+  if (error && /place_kind|schema cache|PGRST204|column/i.test(error.message)) {
+    const withoutKind = await supabase
+      .from("gyms")
+      .select(
+        "id, name, country, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+      )
+      .order("name");
+    rows = withoutKind.data as Array<Record<string, unknown>> | null;
+    error = withoutKind.error;
+  }
+
+  if (error && /climbing_types|schema cache|PGRST204|column/i.test(error.message)) {
+    const bare = await supabase
+      .from("gyms")
+      .select(
+        "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+      )
+      .order("name");
+    rows = bare.data as Array<Record<string, unknown>> | null;
+    error = bare.error;
+  }
 
   if (error) throw mapDbError(error.message);
 
-  return (data ?? []).map((row) => {
-    const scaleRow = Array.isArray(row.gym_grade_scales)
-      ? row.gym_grade_scales[0]
-      : row.gym_grade_scales;
+  return (rows ?? []).map((row) => {
+    const scaleRaw = row.gym_grade_scales;
+    const scaleRow = Array.isArray(scaleRaw) ? scaleRaw[0] : scaleRaw;
     const outlets = Array.isArray(row.gym_outlets) ? row.gym_outlets : [];
     const climbing_types = normalizeClimbingTypes(
       "climbing_types" in row ? (row.climbing_types as string[] | null) : null,
     );
+    const scale =
+      scaleRow && typeof scaleRow === "object"
+        ? {
+            kind: (isGradeSystem(String((scaleRow as { kind?: string }).kind ?? ""))
+              ? (scaleRow as { kind: string }).kind
+              : "custom") as GradeSystem,
+            bands: (scaleRow as { bands?: GradeScale["bands"] }).bands ?? [],
+            chartPath: (scaleRow as { chart_path?: string | null }).chart_path,
+          }
+        : null;
     return {
       id: row.id as string,
       name: row.name as string,
       country: row.country as string,
+      place_kind: normalizePlaceKind(
+        "place_kind" in row ? (row.place_kind as string | null) : null,
+      ),
       climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
-      outlets: outlets.map((outlet: GymOutlet) => ({
+      outlets: (outlets as GymOutlet[]).map((outlet) => ({
         id: outlet.id,
         name: outlet.name,
         city: outlet.city,
       })),
-      scale: scaleRow
-        ? {
-            kind: (isGradeSystem(scaleRow.kind) ? scaleRow.kind : "custom") as GradeSystem,
-            bands: scaleRow.bands ?? [],
-            chartPath: scaleRow.chart_path,
-          }
-        : null,
+      scale,
     } satisfies CatalogGym;
   });
 }
@@ -270,6 +293,7 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
       missingGyms.map((gym) => ({
         name: gym.name,
         country: gym.country,
+        place_kind: normalizePlaceKind(gym.place_kind),
         climbing_types: normalizeClimbingTypes(gym.climbing_types).length
           ? normalizeClimbingTypes(gym.climbing_types)
           : DEFAULT_CLIMBING_TYPES,
@@ -277,8 +301,8 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
       })),
     );
     if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
-      // Column may be missing before climbing-types.sql — retry without it.
-      if (/climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+      // Column may be missing before place-kind.sql / climbing-types.sql — retry without.
+      if (/place_kind|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
         const retry = await supabase.from("gyms").insert(
           missingGyms.map((gym) => ({
             name: gym.name,
@@ -402,6 +426,9 @@ async function ensureGymCatalog(
   );
   const resolvedClimbingTypes =
     climbingTypes.length > 0 ? climbingTypes : DEFAULT_CLIMBING_TYPES;
+  const placeKind: PlaceKind = normalizePlaceKind(
+    input.place_kind ?? known?.place_kind,
+  );
   const knownOutlets = known ? visibleOutlets(known) : [];
   const typedOutlet = (input.outlet?.trim() || input.city.trim() || "").trim();
   const dummyOutlet = typedOutlet.toLowerCase() === gymName.toLowerCase();
@@ -437,6 +464,7 @@ async function ensureGymCatalog(
       .insert({
         name: gymName,
         country,
+        place_kind: placeKind,
         climbing_types: resolvedClimbingTypes,
         created_by: profileId,
       })
@@ -444,7 +472,7 @@ async function ensureGymCatalog(
       .single();
 
     if (inserted.error) {
-      if (/climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+      if (/place_kind|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
         const retry = await supabase
           .from("gyms")
           .insert({

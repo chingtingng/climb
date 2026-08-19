@@ -31,6 +31,13 @@ import {
   visibleOutlets,
 } from "@/lib/gymCatalog";
 import { gymSlug } from "@/lib/gyms";
+import {
+  PLACE_KINDS,
+  PLACE_KIND_HELP,
+  PLACE_KIND_LABELS,
+  normalizePlaceKind,
+  type PlaceKind,
+} from "@/lib/placeKinds";
 import type {
   CatalogGym,
   GradeScale,
@@ -53,6 +60,7 @@ type Step =
   | "city"
   | "gym"
   | "outlet"
+  | "kind"
   | "offer"
   | "climb"
   | "scale"
@@ -126,6 +134,7 @@ function LogGymSheetInner({
   const [newOutletName, setNewOutletName] = useState("");
   const [gymOfferTypes, setGymOfferTypes] = useState<ClimbingType[]>(DEFAULT_CLIMBING_TYPES);
   const [climbType, setClimbType] = useState<ClimbingType>("bouldering");
+  const [placeKind, setPlaceKind] = useState<PlaceKind>("gym");
   const closeRef = useRef<HTMLButtonElement>(null);
   const prevStepRef = useRef<Step | null>(null);
   const pending = actionPending || isPending || mediaUploading;
@@ -181,8 +190,15 @@ function LogGymSheetInner({
     : catalogTypes.length > 0
       ? catalogTypes
       : DEFAULT_CLIMBING_TYPES;
+  const needsKind = isNewGym;
   const needsOffer = isNewGym;
   const needsClimb = offeredTypes.length > 1;
+
+  const resolvedPlaceKind = needsKind
+    ? placeKind
+    : normalizePlaceKind(
+        catalogMatch?.place_kind ?? known?.place_kind ?? userMatch?.place_kind,
+      );
 
   const activeScale = hasCatalogScale ? resolvedScale : needsScale ? scale : resolvedScale;
   const pickerSystem =
@@ -193,6 +209,7 @@ function LogGymSheetInner({
     ...(needsCity ? (["city"] as const) : []),
     "gym",
     ...(needsOutlet ? (["outlet"] as const) : []),
+    ...(needsKind ? (["kind"] as const) : []),
     ...(needsOffer ? (["offer"] as const) : []),
     ...(needsClimb ? (["climb"] as const) : []),
     ...(needsScale ? (["scale"] as const) : []),
@@ -212,6 +229,14 @@ function LogGymSheetInner({
   const stepIndex = Math.max(0, steps.indexOf(step));
 
   function afterLocationStep(): Step {
+    if (needsKind) return "kind";
+    if (needsOffer) return "offer";
+    if (needsClimb) return "climb";
+    if (needsScale) return "scale";
+    return "grade";
+  }
+
+  function afterKindStep(): Step {
     if (needsOffer) return "offer";
     if (needsClimb) return "climb";
     if (needsScale) return "scale";
@@ -269,6 +294,7 @@ function LogGymSheetInner({
     city?: string;
     outlets?: GymOutlet[];
     climbing_types?: ClimbingType[];
+    place_kind?: PlaceKind;
   }) {
     const locations = visibleOutlets({ name: choice.name, outlets: choice.outlets ?? [] });
     const types =
@@ -278,6 +304,7 @@ function LogGymSheetInner({
     setName(choice.name);
     setQuery(choice.name);
     setCountry(choice.country);
+    setPlaceKind(normalizePlaceKind(choice.place_kind));
     setGymOfferTypes(types);
     setClimbType(types[0]);
     if (skipsCityStep(choice.country) && locations.length !== 1) {
@@ -342,6 +369,10 @@ function LogGymSheetInner({
       setStep(afterLocationStep());
       return;
     }
+    if (step === "kind") {
+      setStep(afterKindStep());
+      return;
+    }
     if (step === "offer") {
       if (gymOfferTypes.length < 1) return;
       if (gymOfferTypes.length === 1) setClimbType(gymOfferTypes[0]);
@@ -391,6 +422,7 @@ function LogGymSheetInner({
     (step === "city" && city.trim().length > 0) ||
     (step === "gym" && name.trim().length > 0) ||
     (step === "outlet" && Boolean(outlet.trim())) ||
+    (step === "kind" && Boolean(placeKind)) ||
     (step === "offer" && gymOfferTypes.length > 0) ||
     (step === "climb" && Boolean(climbType) && offeredTypes.includes(climbType)) ||
     (step === "scale" && (!isHouseSystem(scaleDraft.kind) || scaleDraft.bands.length > 0)) ||
@@ -532,6 +564,7 @@ function LogGymSheetInner({
                     name: gym.name,
                     country: gym.country,
                     city: gym.city,
+                    place_kind: gym.place_kind,
                     outlets: gym.outlets.map((item) => ({ name: item, city: gym.city })),
                     climbing_types: DEFAULT_CLIMBING_TYPES,
                   };
@@ -586,6 +619,10 @@ function LogGymSheetInner({
                 setNewOutletName("");
               }}
             />
+          )}
+
+          {step === "kind" && (
+            <PlaceKindStep selected={placeKind} onSelect={setPlaceKind} />
           )}
 
           {step === "offer" && (
@@ -730,6 +767,7 @@ function LogGymSheetInner({
                     data.set("highest_grade", grade);
                     data.set("climbing_type", climbType);
                     data.set("climbing_types", offeredTypes.join(","));
+                    data.set("place_kind", resolvedPlaceKind);
                     data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
                     data.set("visited_on", visitedOn);
                     data.set("notes", notes);
@@ -805,6 +843,8 @@ function titleFor(step: Step) {
       return "Which place?";
     case "outlet":
       return "Which outlet?";
+    case "kind":
+      return "Gym or rock?";
     case "offer":
       return "What do they offer?";
     case "climb":
@@ -832,6 +872,49 @@ function uniqueNames(values: string[]): string[] {
     ordered.push(trimmed);
   }
   return ordered;
+}
+
+function PlaceKindStep({
+  selected,
+  onSelect,
+}: {
+  selected: PlaceKind;
+  onSelect: (kind: PlaceKind) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-pass-muted">
+        Pick what you’re climbing on. Outdoor plastic walls still count as Gym.
+      </p>
+      <div className="grid gap-2">
+        {PLACE_KINDS.map((kind) => {
+          const active = selected === kind;
+          return (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => onSelect(kind)}
+              aria-pressed={active}
+              className={`rounded-[1.15rem] px-4 py-3.5 text-left transition ${
+                active
+                  ? "bg-pass-primary text-white"
+                  : "bg-pass-soft text-pass-navy"
+              }`}
+            >
+              <span className="block text-base font-semibold">{PLACE_KIND_LABELS[kind]}</span>
+              <span
+                className={`mt-1 block text-sm leading-snug ${
+                  active ? "text-white/85" : "text-pass-muted"
+                }`}
+              >
+                {PLACE_KIND_HELP[kind]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function ClimbOfferStep({
