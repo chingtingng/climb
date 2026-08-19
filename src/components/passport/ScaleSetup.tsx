@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { COLOR_GRADES, GRADE_SYSTEMS, isHouseSystem, V_GRADES } from "@/lib/grades";
+import {
+  COLOR_GRADES,
+  GRADE_SYSTEMS,
+  isHouseSystem,
+  normalizeBandVRange,
+  V_GRADES,
+} from "@/lib/grades";
 import { defaultScaleFor } from "@/lib/gymCatalog";
 import type { GradeBand, GradeScale, GradeSystem } from "@/lib/types";
 
@@ -41,6 +47,14 @@ export function ScaleSetup({
     onChange({
       ...scale,
       bands: scale.bands.map((band, i) => (i === index ? { ...band, ...patch } : band)),
+    });
+  }
+
+  function setBandV(index: number, nextMin: string, nextMax: string) {
+    const range = normalizeBandVRange(nextMin || undefined, nextMax || undefined);
+    updateBand(index, {
+      v_equiv: range.v_equiv,
+      v_max: range.v_max,
     });
   }
 
@@ -114,6 +128,9 @@ export function ScaleSetup({
               className="passport-field"
             />
           </label>
+          <p className="col-span-2 text-xs text-pass-muted">
+            Chart bands can map to a V range below (e.g. 7 and 8 both → V3–V4).
+          </p>
         </div>
       ) : null}
 
@@ -188,36 +205,73 @@ export function ScaleSetup({
               Add
             </button>
           </div>
+          <p className="mt-1.5 text-xs text-pass-muted">
+            One row per chart band — any label works (“7Q”, “Alien Tags”).
+          </p>
         </div>
       ) : null}
 
       {scale.bands.length > 0 ? (
         <div>
           <p className="mb-1.5 text-sm font-semibold">Map to V-scale</p>
+          <p className="mb-2 text-xs text-pass-muted">
+            Set From and To the same for a single grade, or different for a range (V3–V4).
+          </p>
           <ul className="space-y-1.5">
-            {scale.bands.map((band, index) => (
-              <li
-                key={`${band.label}-${index}`}
-                className="flex min-h-11 items-center gap-2 rounded-2xl border border-pass-line bg-white px-3"
-              >
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold">{band.label}</span>
-                <label className="flex items-center gap-2 text-sm text-pass-muted">
-                  <span className="sr-only">V-scale equivalent for {band.label}</span>
-                  <select
-                    value={band.v_equiv ?? ""}
-                    onChange={(e) => updateBand(index, { v_equiv: e.target.value || undefined })}
-                    className="min-h-10 rounded-full border border-pass-line bg-pass-soft px-2 text-sm font-semibold text-pass-navy"
-                  >
-                    <option value="">Skip</option>
-                    {V_GRADES.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </li>
-            ))}
+            {scale.bands.map((band, index) => {
+              const min = band.v_equiv ?? "";
+              const max = band.v_max ?? band.v_equiv ?? "";
+              return (
+                <li
+                  key={`${band.label}-${index}`}
+                  className="flex min-h-11 flex-wrap items-center gap-2 rounded-2xl border border-pass-line bg-white px-3 py-2"
+                >
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{band.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <label className="sr-only" htmlFor={`v-min-${index}`}>
+                      V-scale from for {band.label}
+                    </label>
+                    <select
+                      id={`v-min-${index}`}
+                      value={min}
+                      onChange={(e) => {
+                        const nextMin = e.target.value;
+                        const nextMax = max && max !== min ? max : nextMin;
+                        setBandV(index, nextMin, nextMax);
+                      }}
+                      className="min-h-10 min-w-[4.5rem] rounded-full border border-pass-line bg-pass-soft px-2 text-sm font-semibold text-pass-navy"
+                    >
+                      <option value="">Skip</option>
+                      {V_GRADES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-xs font-semibold text-pass-muted" aria-hidden>
+                      –
+                    </span>
+                    <label className="sr-only" htmlFor={`v-max-${index}`}>
+                      V-scale to for {band.label}
+                    </label>
+                    <select
+                      id={`v-max-${index}`}
+                      value={max}
+                      disabled={!min}
+                      onChange={(e) => setBandV(index, min, e.target.value)}
+                      className="min-h-10 min-w-[4.5rem] rounded-full border border-pass-line bg-pass-soft px-2 text-sm font-semibold text-pass-navy disabled:opacity-40"
+                    >
+                      <option value="">Skip</option>
+                      {V_GRADES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}

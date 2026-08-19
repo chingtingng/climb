@@ -18,11 +18,15 @@
 -- easy → hard):
 --   [
 --     {"label":"4","v_equiv":"V1"},
+--     {"label":"7","v_equiv":"V3","v_max":"V4"},
 --     {"label":"White","color":"#f4f1ea","v_equiv":"V1"}
 --   ]
 --   label     required house-grade label (number, colour name, custom, …)
---   v_equiv   optional V-scale: VB | V0 … V16
+--   v_equiv   optional V-scale low (or only): VB | V0 … V16
+--   v_max     optional V-scale high when the band is a range (e.g. V3–V4)
 --   color     optional hex, for colour systems
+--
+-- Stamps store visits.v_equiv as the high end of the range for ranking.
 --
 -- After running:
 -- 1) Authentication → Providers → Email: enabled
@@ -179,6 +183,11 @@ begin
     end if;
 
     v := nullif(trim(coalesce(el->>'v_equiv', '')), '');
+    if v is not null and not public.is_v_grade(v) then
+      return false;
+    end if;
+
+    v := nullif(trim(coalesce(el->>'v_max', '')), '');
     if v is not null and not public.is_v_grade(v) then
       return false;
     end if;

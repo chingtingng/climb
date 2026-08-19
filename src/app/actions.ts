@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
-import { isHouseSystem, normalizeVEquiv } from "@/lib/grades";
+import { isHouseSystem, normalizeBandVRange, normalizeVEquiv } from "@/lib/grades";
 import {
   createVisit,
   deleteVisit,
@@ -198,11 +198,14 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
         kind: parsed.kind,
         bands: parsed.bands
           .filter((band) => band?.label)
-          .map((band) => ({
-            label: String(band.label).slice(0, 40),
-            v_equiv: normalizeVEquiv(band.v_equiv),
-            color: band.color ? String(band.color).slice(0, 16) : undefined,
-          })),
+          .map((band) => {
+            const range = normalizeBandVRange(band.v_equiv, band.v_max);
+            return {
+              label: String(band.label).slice(0, 40),
+              ...range,
+              color: band.color ? String(band.color).slice(0, 16) : undefined,
+            };
+          }),
       };
     } catch {
       return "Couldn’t read that gym’s grade mapping.";

@@ -1,6 +1,6 @@
 "use client";
 
-import { COLOR_GRADES, colorHex, GRADE_SYSTEMS, gradesForSystem } from "@/lib/grades";
+import { COLOR_GRADES, colorHex, formatBandV, GRADE_SYSTEMS, gradesForSystem } from "@/lib/grades";
 import type { GradeScale, GradeSystem } from "@/lib/types";
 
 export function GradeLabel({
@@ -94,12 +94,15 @@ export function GradePicker({
             className={`grid gap-2 ${
               isColor
                 ? "grid-cols-2 min-[380px]:grid-cols-3"
-                : "grid-cols-4 min-[380px]:grid-cols-5"
+                : locked && grades.some((g) => g.length > 4)
+                  ? "grid-cols-2 min-[380px]:grid-cols-3"
+                  : "grid-cols-4 min-[380px]:grid-cols-5"
             }`}
           >
             {grades.map((item) => {
               const selected = item === grade;
               const band = scale?.bands.find((b) => b.label === item);
+              const vHint = band ? formatBandV(band) : "";
               if (isColor) {
                 const hex = colorHex(item, band?.color);
                 return (
@@ -118,7 +121,12 @@ export function GradePicker({
                       style={{ background: hex }}
                       aria-hidden
                     />
-                    {item}
+                    <span className="min-w-0">
+                      <span className="block truncate">{item}</span>
+                      {vHint ? (
+                        <span className="block text-[11px] font-medium text-pass-muted">{vHint}</span>
+                      ) : null}
+                    </span>
                   </button>
                 );
               }
@@ -127,13 +135,16 @@ export function GradePicker({
                   key={item}
                   type="button"
                   onClick={() => onGrade(item)}
-                  className={`min-h-11 rounded-xl border text-sm font-semibold ${
+                  className={`flex min-h-11 flex-col items-center justify-center rounded-xl border px-1.5 text-sm font-semibold ${
                     selected
                       ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
                       : "border-pass-line bg-white text-pass-navy"
                   }`}
                 >
-                  {item}
+                  <span className="max-w-full truncate">{item}</span>
+                  {vHint ? (
+                    <span className="text-[10px] font-medium text-pass-muted">{vHint}</span>
+                  ) : null}
                 </button>
               );
             })}

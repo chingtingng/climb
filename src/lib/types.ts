@@ -2,7 +2,10 @@ export type GradeSystem = "v" | "font" | "french" | "number" | "color" | "custom
 
 export type GradeBand = {
   label: string;
+  /** Low end of the V mapping (or the only grade when not a range). */
   v_equiv?: string;
+  /** High end when this house grade spans a V range (e.g. V3–V4). */
+  v_max?: string;
   color?: string;
 };
 
