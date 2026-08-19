@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteVisitAction } from "@/app/actions";
+import { Button } from "@/components/ui/Button";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { TrashIcon } from "./icons";
 
@@ -24,7 +25,7 @@ export function DeleteStampDialog({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex size-11 items-center justify-center rounded-full text-pass-muted"
+        className="inline-flex size-11 items-center justify-center rounded-full text-ink-soft"
         aria-label="Remove this stamp"
       >
         <TrashIcon />
@@ -34,7 +35,7 @@ export function DeleteStampDialog({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
           <button
             type="button"
-            className="absolute inset-0 bg-[#1b3a52]/35"
+            className="absolute inset-0 bg-ink/35"
             aria-label="Cancel"
             onClick={() => !pending && setOpen(false)}
           />
@@ -42,26 +43,28 @@ export function DeleteStampDialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-title"
-            className="passport-sheet-in relative w-full max-w-[20rem] rounded-[1.35rem] bg-white p-5 text-center shadow-[0_16px_40px_rgba(27,58,82,0.16)]"
+            className="passport-sheet-in relative w-full max-w-xs rounded-xl bg-surface p-5 text-center shadow-sheet"
           >
-            <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full bg-[#fdecec] text-[#b42318]">
+            <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full bg-danger-fill text-danger-solid">
               <TrashIcon />
             </div>
-            <h2 id="delete-title" className="passport-mark text-2xl text-pass-navy">
+            <h2 id="delete-title" className="mark text-2xl text-ink">
               Remove this stamp?
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-pass-muted">
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
               This will remove this visit from your passport.
             </p>
             {error ? (
-              <p role="alert" className="mt-3 text-sm text-[#8a2f2f]">
+              <p role="alert" className="mt-3 text-sm text-danger-ink">
                 {error}
               </p>
             ) : null}
-            <button
+            <Button
               type="button"
+              variant="destructive"
               disabled={pending}
               aria-busy={pending}
+              className="mt-4"
               onClick={async () => {
                 if (pending) return;
                 setPending(true);
@@ -80,22 +83,23 @@ export function DeleteStampDialog({
                   setPending(false);
                 }
               }}
-              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#c23b3b] px-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
+              <TrashIcon />
               <ActionButtonLabel
                 pending={pending}
                 idle="Remove stamp"
                 busy="Removing…"
               />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="tertiary"
               disabled={pending}
               onClick={() => setOpen(false)}
-              className="passport-btn-ghost mt-1 w-full"
+              className="mt-1 w-full"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

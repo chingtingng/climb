@@ -44,11 +44,11 @@ export function FlashToast({ message, durationMs = 5000 }: Props) {
     <div
       role="alert"
       aria-live="assertive"
-      className={`pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[70] flex justify-center px-3 transition duration-200 ease-out ${
-        leaving ? "translate-y-[-0.35rem] opacity-0" : "translate-y-0 opacity-100"
+      className={`pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[70] flex justify-center px-3 ${
+        leaving ? "toast-out" : "toast-in"
       }`}
     >
-      <p className="pointer-events-auto max-w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl bg-[#8a2f2f] px-4 py-3 text-sm font-medium leading-snug text-white shadow-[0_12px_32px_rgba(27,58,82,0.28)]">
+      <p className="pointer-events-auto max-w-[min(24rem,calc(100vw-1.5rem))] rounded-lg bg-danger-ink px-4 py-3 text-sm font-medium leading-snug text-surface shadow-lifted">
         {active}
       </p>
     </div>

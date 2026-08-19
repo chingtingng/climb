@@ -8,6 +8,10 @@ import {
   type ActionResult,
 } from "@/app/actions";
 import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
+import { Button } from "@/components/ui/Button";
+import { Banner } from "@/components/ui/EmptyState";
+import { Field } from "@/components/ui/Field";
+import { Stamp } from "@/components/ui/Stamp";
 
 type Mode = "signin" | "signup";
 
@@ -140,19 +144,19 @@ export function LoginForm({
     <div className="auth-card">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-white/50 blur-2xl"
+        className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-surface/50 blur-2xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-[#9fd0ea]/35 blur-3xl"
+        className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-sky-500/35 blur-3xl"
       />
+      <div aria-hidden className="mb-3 flex justify-center gap-3">
+        <Stamp variant="grade" size="sm" seed="login-v4" label="V4" />
+        <Stamp variant="country" size="sm" country="Singapore" seed="SG" />
+      </div>
 
-      <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-ink-soft">
-        climbing log
-      </p>
-      <h1 className="brand-mark text-[2.6rem] leading-[0.92] text-ink">
-        Chalk Passport
-      </h1>
+      <p className="label-micro mb-2">climbing log</p>
+      <h1 className="mark text-mark text-ink">Chalk Passport</h1>
       <p className="auth-subtitle">
         Stamp the places you’ve sent — by country, city, and highest grade.
       </p>
@@ -161,7 +165,7 @@ export function LoginForm({
         {mode === "signin" ? (
           <label>
             Username or email
-            <input
+            <Field
               name="identifier"
               type="text"
               value={identifier}
@@ -179,7 +183,7 @@ export function LoginForm({
           <>
             <label>
               Username
-              <input
+              <Field
                 name="username"
                 type="text"
                 value={username}
@@ -199,7 +203,7 @@ export function LoginForm({
                 aria-describedby={usernameError ? "username-availability" : undefined}
               />
               {usernameError && (
-                <span id="username-availability" className="auth-field-error" role="alert">
+                <span id="username-availability" className="text-xs font-medium text-danger-ink" role="alert">
                   {usernameError}
                 </span>
               )}
@@ -207,7 +211,7 @@ export function LoginForm({
 
             <label>
               Email
-              <input
+              <Field
                 name="email"
                 type="email"
                 value={email}
@@ -226,7 +230,7 @@ export function LoginForm({
 
         <label>
           Password
-          <input
+          <Field
             name="password"
             type="password"
             value={password}
@@ -240,21 +244,24 @@ export function LoginForm({
         </label>
 
         {!configured && (
-          <p className="rounded-2xl bg-white/70 px-4 py-3 text-sm leading-relaxed text-ink-soft">
+          <Banner>
             Connect Supabase first — add env vars and run{" "}
-            <code className="rounded bg-sky px-1.5 py-0.5 text-[0.8rem]">
+            <code className="rounded-xs bg-sky-100 px-1.5 py-0.5 text-sm">
               supabase/schema.sql
             </code>
             .
-          </p>
+          </Banner>
         )}
 
-        {verifyMessage && <p className="auth-success">{verifyMessage}</p>}
-        {error && <p className="auth-error">{error}</p>}
+        {verifyMessage && <Banner tone="success">{verifyMessage}</Banner>}
+        {error && (
+          <Banner tone="danger" role="alert">
+            {error}
+          </Banner>
+        )}
 
-        <button
+        <Button
           type="submit"
-          className="auth-submit"
           disabled={loading || !configured || (mode === "signup" && signupBlocked)}
           aria-busy={loading}
         >
@@ -263,13 +270,14 @@ export function LoginForm({
             idle={mode === "signin" ? "Sign in" : "Create account"}
             busy="Please wait…"
           />
-        </button>
+        </Button>
       </form>
 
-      <button
+      <Button
         type="button"
-        className="auth-toggle"
+        variant="tertiary"
         disabled={loading}
+        className="mt-4 text-sky-600"
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
@@ -280,7 +288,7 @@ export function LoginForm({
         {mode === "signin"
           ? "Don’t have an account? Sign up"
           : "Already have an account? Sign in"}
-      </button>
+      </Button>
     </div>
   );
 }

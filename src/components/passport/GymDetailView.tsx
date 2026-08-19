@@ -1,14 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDate } from "@/lib/dates";
 import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
-import { formatPlaceKind } from "@/lib/placeKinds";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { GradeBadge } from "@/components/ui/GradeBadge";
+import { DisciplineMark, PlaceKindMark } from "@/components/ui/Marks";
+import { placeInk } from "@/components/ui/Stamp";
 import { BackIcon } from "./icons";
 import { CountryStamp } from "./CountryStamp";
 import { DeleteStampDialog } from "./DeleteStampDialog";
-import { GradeLabel } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { VisitMediaPreview } from "./VisitMediaPreview";
 
@@ -19,21 +22,14 @@ export function GymDetailView({ slug }: { slug: string }) {
 
   if (!gym) {
     return (
-      <div className="pt-6 text-center">
-        <h1 className="passport-mark text-3xl text-pass-navy">
-          This stamp isn’t in your passport.
-        </h1>
-        <p className="mt-2 text-sm text-pass-muted">
-          It may have been removed, or the link is out of date.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.push("/passport/gyms")}
-          className="passport-btn mt-6"
-        >
-          Back to places
-        </button>
-      </div>
+      <EmptyState
+        seed="missing-stamp"
+        label="?"
+        title="This stamp isn’t in your passport."
+        body="It may have been removed, or the link is out of date."
+        actionLabel="Back to places"
+        onAction={() => router.push("/passport/gyms")}
+      />
     );
   }
 
@@ -43,30 +39,31 @@ export function GymDetailView({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={() => router.back()}
-          className="mt-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white"
+          className="mt-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-surface shadow-soft"
           aria-label="Back"
         >
           <BackIcon />
         </button>
         <div className="min-w-0 flex-1 pt-1">
-          <h1 className="passport-mark text-[1.85rem] leading-tight break-words">
-            {gym.name}
-          </h1>
-          <p className="mt-1 text-sm text-pass-muted">
-            {formatPlaceKind(gym.place_kind)} · {formatGymPlace(gym)}
+          <h1 className="mark text-2xl leading-tight break-words">{gym.name}</h1>
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-soft">
+            <PlaceKindMark kind={gym.place_kind} />
+            <span aria-hidden>·</span>
+            <span>{formatGymPlace(gym)}</span>
           </p>
         </div>
-        <CountryStamp country={gym.country} />
+        <CountryStamp country={gym.country} ink={placeInk(gym.place_kind)} />
+        <span className="sr-only">{gym.country}</span>
       </header>
 
       {gym.outlets.length > 1 ? (
         <section>
-          <h2 className="passport-mark text-xl">Outlets</h2>
+          <h2 className="mark text-xl">Outlets</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {gym.outlets.map((outlet) => (
               <span
                 key={outlet}
-                className="inline-flex min-h-10 items-center rounded-full bg-white px-3 text-sm font-semibold"
+                className="inline-flex min-h-11 items-center rounded-full bg-sky-100 px-3 text-sm font-semibold text-sky-700"
               >
                 {outlet}
               </span>
@@ -76,62 +73,64 @@ export function GymDetailView({ slug }: { slug: string }) {
       ) : null}
 
       <section className="grid grid-cols-2 gap-2.5">
-        <div className="rounded-[1.2rem] bg-white px-4 py-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Highest grade
-          </p>
-          <p className="passport-mark mt-1 text-3xl leading-none">
-            <GradeLabel
+        <Card className="px-4 py-4">
+          <p className="label-micro">Highest grade</p>
+          <p className="mt-2">
+            <GradeBadge
               system={gym.bestGradeSystem}
               grade={gym.bestGrade}
               vEquiv={gym.bestVEquiv}
             />
           </p>
-        </div>
-        <div className="rounded-[1.2rem] bg-white px-4 py-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Visits
-          </p>
-          <p className="passport-mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
-        </div>
+        </Card>
+        <Card className="px-4 py-4">
+          <p className="label-micro">Visits</p>
+          <p className="mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
+        </Card>
       </section>
 
       <section>
-        <h2 className="passport-mark text-xl">Visit history</h2>
+        <h2 className="mark text-xl">Visit history</h2>
         <ul className="mt-3 space-y-2">
           {gym.visits.map((visit) => (
-            <li
-              key={visit.id}
-              className="rounded-[1.15rem] bg-white px-3 py-2.5"
-            >
-              <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
-                  <p className="text-sm break-words text-pass-muted">
-                    {formatVisitPlace(visit)} · {formatClimbingType(visit.climbing_type)} ·{" "}
-                    <GradeLabel
-                      system={visit.grade_system}
-                      grade={visit.highest_grade}
-                      vEquiv={visit.v_equiv}
-                    />
-                    {visit.notes ? ` · ${visit.notes}` : ""}
-                  </p>
+            <li key={visit.id}>
+              <Card className="px-3 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
+                    <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-soft">
+                      <span>{formatVisitPlace(visit)}</span>
+                      <span aria-hidden>·</span>
+                      <DisciplineMark type={visit.climbing_type} />
+                      <span aria-hidden>·</span>
+                      <GradeBadge
+                        system={visit.grade_system}
+                        grade={visit.highest_grade}
+                        vEquiv={visit.v_equiv}
+                      />
+                    </p>
+                    {visit.notes ? (
+                      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                        {visit.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                  <DeleteStampDialog
+                    visitId={visit.id}
+                    onDeleted={() => {
+                      if (gym.visitCount <= 1) router.replace("/passport/gyms");
+                      router.refresh();
+                    }}
+                  />
                 </div>
-                <DeleteStampDialog
-                  visitId={visit.id}
-                  onDeleted={() => {
-                    if (gym.visitCount <= 1) router.replace("/passport/gyms");
-                    router.refresh();
-                  }}
-                />
-              </div>
-              <VisitMediaPreview photoPath={visit.photo_path} videoPath={visit.video_path} />
+                <VisitMediaPreview photoPath={visit.photo_path} videoPath={visit.video_path} />
+              </Card>
             </li>
           ))}
         </ul>
       </section>
 
-      <button
+      <Button
         type="button"
         disabled={!configured}
         onClick={() =>
@@ -142,10 +141,9 @@ export function GymDetailView({ slug }: { slug: string }) {
             existing: true,
           })
         }
-        className="passport-btn"
       >
         + Log another visit
-      </button>
+      </Button>
     </div>
   );
 }

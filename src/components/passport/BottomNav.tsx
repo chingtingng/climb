@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cx } from "@/components/ui/cx";
 import { GymsIcon, HomeIcon, ProfileIcon } from "./icons";
 
 const ITEMS = [
@@ -35,9 +36,10 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-12 flex-col items-center justify-center gap-0.5 text-[0.7rem] font-semibold ${
-              active ? "text-pass-primary" : "text-pass-muted"
-            }`}
+            className={cx(
+              "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-full px-2 text-xs font-semibold",
+              active ? "bg-sky-100 text-sky-700" : "text-ink-soft",
+            )}
           >
             <Icon filled={active} />
             {item.label}
