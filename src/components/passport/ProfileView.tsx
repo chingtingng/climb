@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
 import { formatStampDayMonth } from "@/lib/dates";
 import { gymSlug } from "@/lib/gyms";
 import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
+import { ActionButtonLabel } from "./ActionButtonLabel";
 import { GradeLabel } from "./GradePicker";
 import { ChevronIcon, GymsIcon, MountainIcon } from "./icons";
 import { usePassport } from "./PassportContext";
@@ -127,20 +129,30 @@ export function ProfileView() {
             </span>
           </a>
           <form action={logoutAction}>
-            <button
-              type="submit"
-              className="flex min-h-14 w-full items-center gap-3 border-t border-pass-line px-4 text-sm font-semibold text-[#b42318]"
-            >
-              <LogoutIcon />
-              Log out
-              <span className="ml-auto text-pass-line">
-                <ChevronIcon />
-              </span>
-            </button>
+            <LogoutButton />
           </form>
         </div>
       </section>
     </div>
+  );
+}
+
+function LogoutButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      className="flex min-h-14 w-full items-center gap-3 border-t border-pass-line px-4 text-sm font-semibold text-[#b42318] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <LogoutIcon />
+      <ActionButtonLabel pending={pending} idle="Log out" busy="Logging out…" />
+      <span className="ml-auto text-pass-line">
+        <ChevronIcon />
+      </span>
+    </button>
   );
 }
 

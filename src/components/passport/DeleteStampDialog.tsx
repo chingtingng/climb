@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteVisitAction } from "@/app/actions";
+import { ActionButtonLabel } from "./ActionButtonLabel";
 import { TrashIcon } from "./icons";
 
 export function DeleteStampDialog({
@@ -60,21 +61,32 @@ export function DeleteStampDialog({
             <button
               type="button"
               disabled={pending}
+              aria-busy={pending}
               onClick={async () => {
+                if (pending) return;
                 setPending(true);
                 setError(null);
-                const result = await deleteVisitAction(visitId);
-                setPending(false);
-                if (result.error) {
-                  setError(result.error);
-                  return;
+                try {
+                  const result = await deleteVisitAction(visitId);
+                  if (result.error) {
+                    setError(result.error);
+                    setPending(false);
+                    return;
+                  }
+                  setOpen(false);
+                  onDeleted?.();
+                } catch {
+                  setError("Could not remove that stamp.");
+                  setPending(false);
                 }
-                setOpen(false);
-                onDeleted?.();
               }}
-              className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#c23b3b] px-4 font-semibold text-white disabled:opacity-60"
+              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#c23b3b] px-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {pending ? "Removing..." : "Remove stamp"}
+              <ActionButtonLabel
+                pending={pending}
+                idle="Remove stamp"
+                busy="Removing…"
+              />
             </button>
             <button
               type="button"

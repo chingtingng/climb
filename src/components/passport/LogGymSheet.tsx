@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addVisitAction, type ActionResult } from "@/app/actions";
 import { COUNTRY_NAMES } from "@/lib/countries";
@@ -28,6 +28,7 @@ import type {
   GymGroup,
   GymOutlet,
 } from "@/lib/types";
+import { ActionButtonLabel } from "./ActionButtonLabel";
 import { CloseIcon, MountainIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
@@ -89,7 +90,9 @@ function LogGymSheetInner({
   onHome: () => void;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(addVisitAction, initial);
+  const [state, formAction, actionPending] = useActionState(addVisitAction, initial);
+  const [isPending, startTransition] = useTransition();
+  const pending = actionPending || isPending;
   const [name, setName] = useState(prefill?.name ?? "");
   const [country, setCountry] = useState(prefill?.country ?? "Singapore");
   const [city, setCity] = useState(
@@ -106,7 +109,6 @@ function LogGymSheetInner({
   const [chartFile, setChartFile] = useState<File | null>(null);
   const [newOutletName, setNewOutletName] = useState("");
   const closeRef = useRef<HTMLButtonElement>(null);
-  const submitted = useRef(false);
 
   const known = findKnownGym(name, country);
   const catalogMatch = catalogGyms.find(
@@ -192,7 +194,6 @@ function LogGymSheetInner({
 
   useEffect(() => {
     if (state?.ok) router.refresh();
-    if (state && !state.ok) submitted.current = false;
   }, [state, router]);
 
   function applyGym(choice: { name: string; country: string; city?: string; outlets?: GymOutlet[] }) {
@@ -532,7 +533,12 @@ function LogGymSheetInner({
         </div>
 
         <div className="flex gap-2 pt-2">
-          <button type="button" onClick={goBack} className="passport-btn-ghost min-w-[5.5rem]">
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={pending}
+            className="passport-btn-ghost min-w-[5.5rem]"
+          >
             {step === steps[0] ? "Cancel" : "Back"}
           </button>
           {step === "notes" ? (
@@ -546,9 +552,9 @@ function LogGymSheetInner({
                 !grade ||
                 !(city.trim() || skipCity)
               }
+              aria-busy={pending}
               onClick={() => {
-                if (pending || submitted.current) return;
-                submitted.current = true;
+                if (pending) return;
                 const data = new FormData();
                 data.set("gym_name", name.trim());
                 data.set("city", (city.trim() || (skipCity ? "Singapore" : "")).trim());
@@ -563,11 +569,13 @@ function LogGymSheetInner({
                 data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
                 if (needsScale) data.set("scale_json", JSON.stringify(scale));
                 if (chartFile) data.set("grade_chart", chartFile);
-                formAction(data);
+                startTransition(() => {
+                  formAction(data);
+                });
               }}
               className="passport-btn flex-1"
             >
-              {pending ? "Saving..." : "Add stamp"}
+              <ActionButtonLabel pending={pending} idle="Add stamp" busy="Saving…" />
             </button>
           ) : (
             <button

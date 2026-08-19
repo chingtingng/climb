@@ -6,6 +6,7 @@ import {
   loginAction,
   type ActionResult,
 } from "@/app/actions";
+import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
 
 type Mode = "signin" | "signup";
 
@@ -108,18 +109,20 @@ export function LoginForm({ configured }: { configured: boolean }) {
           type="submit"
           className="auth-submit"
           disabled={loading || !configured}
+          aria-busy={loading}
         >
-          {loading
-            ? "Please wait…"
-            : mode === "signin"
-              ? "Sign in"
-              : "Create account"}
+          <ActionButtonLabel
+            pending={loading}
+            idle={mode === "signin" ? "Sign in" : "Create account"}
+            busy="Please wait…"
+          />
         </button>
       </form>
 
       <button
         type="button"
         className="auth-toggle"
+        disabled={loading}
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
