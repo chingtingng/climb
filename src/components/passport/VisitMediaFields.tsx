@@ -117,7 +117,7 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
         <p className="text-sm font-semibold">Media (optional)</p>
         <p className="mt-1 text-xs leading-relaxed text-pass-muted">
           Up to 1 photo and 1 video (under {MAX_VIDEO_SECONDS}s). Prefer 1080p — we’ll compress
-          higher resolutions so Supabase storage stays lean (quality may drop).
+          higher resolutions (quality may drop).
         </p>
       </div>
 

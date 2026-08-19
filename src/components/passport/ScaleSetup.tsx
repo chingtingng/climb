@@ -71,6 +71,13 @@ export function ScaleSetup({
     setCustomLabel("");
   }
 
+  function removeBand(index: number) {
+    onChange({
+      ...scale,
+      bands: scale.bands.filter((_, i) => i !== index),
+    });
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-sm leading-relaxed text-pass-muted">
@@ -268,6 +275,18 @@ export function ScaleSetup({
                         </option>
                       ))}
                     </select>
+                    {scale.kind === "custom" ? (
+                      <button
+                        type="button"
+                        onClick={() => removeBand(index)}
+                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-pass-muted hover:bg-pass-soft hover:text-pass-navy"
+                        aria-label={`Remove ${band.label}`}
+                      >
+                        <span aria-hidden className="text-lg leading-none">
+                          ×
+                        </span>
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               );

@@ -363,7 +363,6 @@ type GymCatalogRow = {
     | { id: string; name: string; city: string }[]
     | { id: string; name: string; city: string }
     | null;
-  gym_grade_scales: { id: string }[] | { id: string } | null;
 };
 
 async function findGymCatalogRow(
@@ -373,7 +372,7 @@ async function findGymCatalogRow(
 ): Promise<GymCatalogRow | null> {
   const { data, error } = await supabase
     .from("gyms")
-    .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
+    .select("id, gym_outlets(id, name, city)")
     .ilike("name", escapeIlike(name.trim()))
     .ilike("country", escapeIlike(country.trim()))
     .limit(1)
@@ -389,11 +388,6 @@ function outletList(
   return Array.isArray(value) ? value : [value];
 }
 
-function hasGradeScale(value: GymCatalogRow["gym_grade_scales"]): boolean {
-  if (!value) return false;
-  return Array.isArray(value) ? value.length > 0 : Boolean(value.id);
-}
-
 async function ensureGymCatalog(
   supabase: SupabaseClient,
   profileId: string,
@@ -403,7 +397,6 @@ async function ensureGymCatalog(
   const gymName = known?.name ?? input.gym_name.trim();
   const resolvedCountry = countryMeta(known?.country ?? input.country);
   const country = resolvedCountry.name || (known?.country ?? input.country.trim());
-  const scale = input.scale ?? known?.scale ?? null;
   const climbingTypes = normalizeClimbingTypes(
     input.climbing_types ?? known?.climbing_types,
   );
@@ -447,7 +440,7 @@ async function ensureGymCatalog(
         climbing_types: resolvedClimbingTypes,
         created_by: profileId,
       })
-      .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
+      .select("id, gym_outlets(id, name, city)")
       .single();
 
     if (inserted.error) {
@@ -459,7 +452,7 @@ async function ensureGymCatalog(
             country,
             created_by: profileId,
           })
-          .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
+          .select("id, gym_outlets(id, name, city)")
           .single();
         if (retry.error) {
           if (/duplicate|unique/i.test(retry.error.message)) {
@@ -524,17 +517,8 @@ async function ensureGymCatalog(
     throw new Error("Couldn't save that gym location. Please try again.");
   }
 
-  if (scale) {
-    await ensureGradeScale(
-      supabase,
-      profileId,
-      gym.id,
-      scale,
-      input.chartFile ?? null,
-      hasGradeScale(gym.gym_grade_scales),
-    );
-  }
-
+  // Grade scale is committed after the visit insert succeeds (see createVisit /
+  // updateVisit) so abandoned drafts never land in the catalog.
   return { gymId: gym.id, outletId: outlet.id };
 }
 
@@ -605,7 +589,12 @@ export async function createVisit(
   input: GymVisitInput,
 ): Promise<GymVisit> {
   const supabase = await createClient();
-  const catalog = await ensureGymCatalog(supabase, profileId, input);
+  // Resolve gym/outlet without writing the grade scale yet.
+  const catalog = await ensureGymCatalog(supabase, profileId, {
+    ...input,
+    scale: undefined,
+    chartFile: null,
+  });
   const photo_path = ownedMediaPath(profileId, input.photo_path);
   const video_path = ownedMediaPath(profileId, input.video_path);
 
@@ -672,11 +661,36 @@ export async function createVisit(
       )
       .single();
     if (retry.error) throw mapDbError(retry.error.message);
+    await commitGradeScaleIfNeeded(supabase, profileId, catalog.gymId, input);
     return rowToVisit(retry.data as VisitRow);
   }
 
   if (error) throw mapDbError(error.message);
+  await commitGradeScaleIfNeeded(supabase, profileId, catalog.gymId, input);
   return rowToVisit(data as VisitRow);
+}
+
+async function commitGradeScaleIfNeeded(
+  supabase: SupabaseClient,
+  profileId: string,
+  gymId: string,
+  input: GymVisitInput,
+): Promise<void> {
+  if (!input.scale) return;
+  const { data, error } = await supabase
+    .from("gym_grade_scales")
+    .select("id")
+    .eq("gym_id", gymId)
+    .maybeSingle();
+  if (error) throw mapDbError(error.message);
+  await ensureGradeScale(
+    supabase,
+    profileId,
+    gymId,
+    input.scale,
+    input.chartFile ?? null,
+    Boolean(data?.id),
+  );
 }
 
 export async function updateVisit(
@@ -685,7 +699,11 @@ export async function updateVisit(
   input: GymVisitInput,
 ): Promise<GymVisit> {
   const supabase = await createClient();
-  const catalog = await ensureGymCatalog(supabase, profileId, input);
+  const catalog = await ensureGymCatalog(supabase, profileId, {
+    ...input,
+    scale: undefined,
+    chartFile: null,
+  });
   const photo_path = ownedMediaPath(profileId, input.photo_path);
   const video_path = ownedMediaPath(profileId, input.video_path);
 
@@ -751,10 +769,12 @@ export async function updateVisit(
       )
       .single();
     if (retry.error) throw mapDbError(retry.error.message);
+    await commitGradeScaleIfNeeded(supabase, profileId, catalog.gymId, input);
     return rowToVisit(retry.data as VisitRow);
   }
 
   if (error) throw mapDbError(error.message);
+  await commitGradeScaleIfNeeded(supabase, profileId, catalog.gymId, input);
   return rowToVisit(data as VisitRow);
 }
 

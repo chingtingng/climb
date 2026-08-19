@@ -117,6 +117,7 @@ function LogGymSheetInner({
   const [visitedOn, setVisitedOn] = useState(todayISO());
   const [notes, setNotes] = useState("");
   const [scale, setScale] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
+  const [scaleDraft, setScaleDraft] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
   const [chartFile, setChartFile] = useState<File | null>(null);
   const [visitPhoto, setVisitPhoto] = useState<File | null>(null);
   const [visitVideo, setVisitVideo] = useState<File | null>(null);
@@ -126,6 +127,7 @@ function LogGymSheetInner({
   const [gymOfferTypes, setGymOfferTypes] = useState<ClimbingType[]>(DEFAULT_CLIMBING_TYPES);
   const [climbType, setClimbType] = useState<ClimbingType>("bouldering");
   const closeRef = useRef<HTMLButtonElement>(null);
+  const prevStepRef = useRef<Step | null>(null);
   const pending = actionPending || isPending || mediaUploading;
 
   const known = findKnownGym(name, country);
@@ -244,6 +246,14 @@ function LogGymSheetInner({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Seed the editable draft when entering the scale step; commit only on Next.
+  useEffect(() => {
+    if (step === "scale" && prevStepRef.current !== "scale") {
+      setScaleDraft(scale);
+    }
+    prevStepRef.current = step;
+  }, [step, scale]);
+
   useEffect(() => {
     const types = offeredTypes;
     if (types.length === 1) {
@@ -344,8 +354,10 @@ function LogGymSheetInner({
       return;
     }
     if (step === "scale") {
-      if (isHouseSystem(scale.kind) && scale.bands.length < 1) return;
-      setSystem(scale.kind);
+      if (isHouseSystem(scaleDraft.kind) && scaleDraft.bands.length < 1) return;
+      setScale(scaleDraft);
+      setSystem(scaleDraft.kind);
+      setGrade("");
       setStep("grade");
       return;
     }
@@ -381,7 +393,7 @@ function LogGymSheetInner({
     (step === "outlet" && Boolean(outlet.trim())) ||
     (step === "offer" && gymOfferTypes.length > 0) ||
     (step === "climb" && Boolean(climbType) && offeredTypes.includes(climbType)) ||
-    (step === "scale" && (!isHouseSystem(scale.kind) || scale.bands.length > 0)) ||
+    (step === "scale" && (!isHouseSystem(scaleDraft.kind) || scaleDraft.bands.length > 0)) ||
     (step === "grade" && Boolean(grade)) ||
     step === "date";
 
@@ -601,13 +613,9 @@ function LogGymSheetInner({
 
           {step === "scale" && (
             <ScaleSetup
-              scale={scale}
+              scale={scaleDraft}
               chartFile={chartFile}
-              onChange={(next) => {
-                setScale(next);
-                setSystem(next.kind);
-                setGrade("");
-              }}
+              onChange={setScaleDraft}
               onChart={setChartFile}
             />
           )}
