@@ -856,6 +856,7 @@ function SearchSelect({
   const [highlight, setHighlight] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const showClear = query.length > 0 || value.length > 0;
 
   useEffect(() => {
     setQuery(value);
@@ -894,60 +895,80 @@ function SearchSelect({
     inputRef.current?.blur();
   }
 
+  function clear() {
+    setQuery("");
+    onSelect("");
+    setOpen(false);
+    inputRef.current?.focus();
+  }
+
   return (
     <div ref={rootRef} className="relative">
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">{label}</span>
-        <input
-          ref={inputRef}
-          value={query}
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={
-            open && filtered[highlight] ? `${listId}-${highlight}` : undefined
-          }
-          autoComplete="off"
-          autoCapitalize="words"
-          placeholder={placeholder}
-          className="passport-field"
-          onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
+        <span className="relative block">
+          <input
+            ref={inputRef}
+            value={query}
+            role="combobox"
+            aria-expanded={open}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={
+              open && filtered[highlight] ? `${listId}-${highlight}` : undefined
+            }
+            autoComplete="off"
+            autoCapitalize="words"
+            placeholder={placeholder}
+            className={`passport-field${showClear ? " passport-field-clearable" : ""}`}
+            onFocus={() => setOpen(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
               setOpen(true);
-              setHighlight((index) =>
-                filtered.length === 0 ? 0 : Math.min(index + 1, filtered.length - 1),
-              );
-              return;
-            }
-            if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setOpen(true);
-              setHighlight((index) => Math.max(index - 1, 0));
-              return;
-            }
-            if (e.key === "Enter") {
-              e.preventDefault();
-              const exact = options.find(
-                (item) => item.toLowerCase() === query.trim().toLowerCase(),
-              );
-              const choice = exact ?? filtered[highlight];
-              if (choice) commit(choice);
-              return;
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setOpen(false);
-              setQuery(value);
-            }
-          }}
-        />
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setOpen(true);
+                setHighlight((index) =>
+                  filtered.length === 0 ? 0 : Math.min(index + 1, filtered.length - 1),
+                );
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setOpen(true);
+                setHighlight((index) => Math.max(index - 1, 0));
+                return;
+              }
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const exact = options.find(
+                  (item) => item.toLowerCase() === query.trim().toLowerCase(),
+                );
+                const choice = exact ?? filtered[highlight];
+                if (choice) commit(choice);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setOpen(false);
+                setQuery(value);
+              }
+            }}
+          />
+          {showClear ? (
+            <button
+              type="button"
+              aria-label={`Clear ${label.toLowerCase()}`}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-pass-muted"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={clear}
+            >
+              <CloseIcon className="size-4" />
+            </button>
+          ) : null}
+        </span>
       </label>
       {open ? (
         <ul
@@ -1048,33 +1069,21 @@ function CityStep({
       .filter((gym) => gym.country.toLowerCase() === country.trim().toLowerCase())
       .map((gym) => gym.city),
   ];
-  const cities = citiesForCountry(country, [...gymCities, city]);
-  const withGyms = gymCities.filter(
-    (value, index, all) =>
-      value &&
-      all.findIndex((item) => item.toLowerCase() === value.toLowerCase()) === index,
+  const cities = citiesForCountry(country, [...gymCities, city]).sort((a, b) =>
+    a.localeCompare(b),
   );
+  const withGyms = uniqueNames(gymCities).sort((a, b) => a.localeCompare(b));
 
   return (
     <div className="space-y-3">
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">City</span>
-        <select
-          value={city}
-          onChange={(e) => onCity(e.target.value)}
-          autoComplete="address-level2"
-          className="passport-field"
-        >
-          <option value="" disabled>
-            Select a city
-          </option>
-          {cities.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SearchSelect
+        label="City"
+        value={city}
+        options={cities}
+        placeholder="Search cities"
+        emptyMessage="No cities match that search"
+        onSelect={onCity}
+      />
       {withGyms.length > 0 ? (
         <ChoiceList
           label="Cities with gyms"
@@ -1087,7 +1096,7 @@ function CityStep({
         />
       ) : (
         <p className="text-sm text-pass-muted">
-          Pick a city, then continue to choose or add the gym.
+          Search for a city, then continue to choose or add the gym.
         </p>
       )}
     </div>
