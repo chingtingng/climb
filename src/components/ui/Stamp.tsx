@@ -101,7 +101,6 @@ export function Stamp({
         )}
         style={{ transform: `rotate(${rotation}deg)` }}
       >
-        <span className="stamp-ring-outer" />
         <span className="stamp-ring-inner" />
         <span className="stamp-core">{core}</span>
       </div>
