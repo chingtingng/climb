@@ -80,6 +80,19 @@ function normalize(value: string): string {
 
 export const COUNTRY_NAMES = COUNTRIES.map((country) => country.name);
 
+/** City-states (and similar) where a separate city field is optional. */
+export function cityOptionalForCountry(country: string): boolean {
+  return normalize(country) === "singapore";
+}
+
+/** Resolve the city stored on a visit — Singapore defaults to the country name. */
+export function resolveVisitCity(country: string, city: string): string {
+  const trimmed = city.trim();
+  if (trimmed) return trimmed;
+  if (cityOptionalForCountry(country)) return country.trim() || "Singapore";
+  return "";
+}
+
 export function countryMeta(country: string): CountryMeta {
   const match = LOOKUP.get(normalize(country));
   if (match) {

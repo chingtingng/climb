@@ -146,19 +146,37 @@ export function findKnownGym(name: string, country?: string): CatalogGym | undef
   });
 }
 
-export function searchKnownGyms(query: string): CatalogGym[] {
+export function searchKnownGyms(
+  query: string,
+  filters?: { country?: string; city?: string },
+): CatalogGym[] {
   const q = query.trim().toLowerCase();
-  if (!q) return KNOWN_GYMS.slice(0, 8);
-  return KNOWN_GYMS.filter(
-    (gym) =>
-      gym.name.toLowerCase().includes(q) ||
-      gym.country.toLowerCase().includes(q) ||
-      gym.outlets.some(
-        (outlet) =>
-          outlet.name.toLowerCase().includes(q) ||
-          outlet.city.toLowerCase().includes(q),
-      ),
-  ).slice(0, 8);
+  const country = filters?.country?.trim().toLowerCase();
+  const city = filters?.city?.trim().toLowerCase();
+
+  let list = KNOWN_GYMS;
+  if (country) {
+    list = list.filter((gym) => gym.country.toLowerCase() === country);
+  }
+  if (city && city !== country) {
+    list = list.filter((gym) =>
+      gym.outlets.some((outlet) => outlet.city.toLowerCase().includes(city)),
+    );
+  }
+
+  if (!q) return list.slice(0, 8);
+  return list
+    .filter(
+      (gym) =>
+        gym.name.toLowerCase().includes(q) ||
+        gym.country.toLowerCase().includes(q) ||
+        gym.outlets.some(
+          (outlet) =>
+            outlet.name.toLowerCase().includes(q) ||
+            outlet.city.toLowerCase().includes(q),
+        ),
+    )
+    .slice(0, 8);
 }
 
 export function defaultScaleFor(

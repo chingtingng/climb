@@ -3,7 +3,11 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addVisitAction, type ActionResult } from "@/app/actions";
-import { COUNTRY_NAMES } from "@/lib/countries";
+import {
+  COUNTRY_NAMES,
+  cityOptionalForCountry,
+  resolveVisitCity,
+} from "@/lib/countries";
 import { todayISO } from "@/lib/dates";
 import { formatGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
 import { defaultScaleFor, findKnownGym, mergeOutlets, searchKnownGyms } from "@/lib/gymCatalog";
@@ -23,7 +27,7 @@ import { ScaleSetup } from "./ScaleSetup";
 const initial: ActionResult | null = null;
 const NOTES_MAX = 400;
 
-type Step = "gym" | "location" | "outlet" | "scale" | "grade" | "date" | "notes";
+type Step = "place" | "gym" | "outlet" | "scale" | "grade" | "date" | "notes";
 
 export function LogGymSheet() {
   const router = useRouter();
@@ -111,25 +115,31 @@ function LogGymSheetInner({
       (known?.scale && known.scale.bands.length > 0),
   );
 
+  const resolvedCity = resolveVisitCity(country, city);
+
   const outlets: GymOutlet[] = mergeOutlets(
     catalogMatch?.outlets ?? [],
     known?.outlets ?? [],
-    (userMatch?.outlets ?? []).map((item) => ({ name: item, city: userMatch?.city || city })),
-    outlet && city ? [{ name: outlet, city }] : [],
+    (userMatch?.outlets ?? []).map((item) => ({
+      name: item,
+      city: userMatch?.city || resolvedCity,
+    })),
+    outlet && resolvedCity ? [{ name: outlet, city: resolvedCity }] : [],
   );
 
   const isExistingBrand = Boolean(userMatch || catalogMatch || known);
   const needsOutlet = outlets.length > 1 || Boolean(userMatch && userMatch.outlets.length > 1);
   const isNewGym = !userMatch && !catalogMatch && !known;
   const needsScale = isNewGym && !hasCatalogScale;
+  const cityOptional = cityOptionalForCountry(country);
 
   const activeScale = hasCatalogScale ? resolvedScale : needsScale ? scale : resolvedScale;
   const pickerSystem =
     activeScale && activeScale.bands.length > 0 ? activeScale.kind : system;
 
   const steps: Step[] = [
+    "place",
     "gym",
-    ...(!isExistingBrand ? (["location"] as const) : []),
     ...(needsOutlet ? (["outlet"] as const) : []),
     ...(needsScale ? (["scale"] as const) : []),
     "grade",
@@ -138,7 +148,7 @@ function LogGymSheetInner({
   ];
 
   const [step, setStep] = useState<Step>(
-    prefill?.existing ? (needsOutlet ? "outlet" : "grade") : "gym",
+    prefill?.existing ? (needsOutlet ? "outlet" : "grade") : "place",
   );
   const stepIndex = Math.max(0, steps.indexOf(step));
 
@@ -173,27 +183,30 @@ function LogGymSheetInner({
       setCity(choice.outlets[0].city);
     } else if (choice.city) {
       setCity(choice.city);
+    } else if (cityOptionalForCountry(choice.country) && !city.trim()) {
+      setCity(choice.country);
     }
     setGrade("");
   }
 
   function goNext() {
+    if (step === "place") {
+      if (!country.trim()) return;
+      if (!cityOptional && !city.trim()) return;
+      const nextCity = resolveVisitCity(country, city);
+      if (nextCity !== city) setCity(nextCity);
+      setStep("gym");
+      return;
+    }
     if (step === "gym") {
       if (!name.trim()) return;
       if (!country.trim()) setCountry("Singapore");
-      if (isExistingBrand) {
-        if (needsOutlet) setStep("outlet");
-        else if (needsScale) setStep("scale");
-        else setStep("grade");
-      } else {
-        setStep("location");
-      }
-      return;
-    }
-    if (step === "location") {
-      if (!city.trim() || !country.trim()) return;
-      if (!outlet.trim()) setOutlet(city.trim());
-      setStep(needsScale ? "scale" : "grade");
+      const nextCity = resolveVisitCity(country, city);
+      if (nextCity !== city) setCity(nextCity);
+      if (!isExistingBrand && !outlet.trim()) setOutlet(nextCity);
+      if (needsOutlet) setStep("outlet");
+      else if (needsScale) setStep("scale");
+      else setStep("grade");
       return;
     }
     if (step === "outlet") {
@@ -218,17 +231,19 @@ function LogGymSheetInner({
   }
 
   function goBack() {
-    if (step === "gym") {
+    if (step === "place") {
       onClose();
       return;
     }
     const idx = steps.indexOf(step);
-    setStep(steps[Math.max(0, idx - 1)] ?? "gym");
+    setStep(steps[Math.max(0, idx - 1)] ?? "place");
   }
 
   const canNext =
+    (step === "place" &&
+      country.trim().length > 0 &&
+      (cityOptional || city.trim().length > 0)) ||
     (step === "gym" && name.trim().length > 0) ||
-    (step === "location" && city.trim() && country.trim()) ||
     (step === "outlet" && outlet.trim()) ||
     (step === "scale" &&
       (!isHouseSystem(scale.kind) || (scale.bands.length > 0 && Boolean(chartFile)))) ||
@@ -241,7 +256,7 @@ function LogGymSheetInner({
       <Overlay onClose={onHome}>
         <SuccessState
           name={name}
-          place={[outlet || city, country].filter(Boolean).join(" · ")}
+          place={[outlet || resolvedCity, country].filter(Boolean).join(" · ")}
           gradeLabel={formatGrade(pickerSystem, grade)}
           date={visitedOn}
           onViewGym={() => onViewGym(slug)}
@@ -268,11 +283,11 @@ function LogGymSheetInner({
             <h2 id="log-title" className="passport-mark text-2xl text-pass-navy">
               {titleFor(step)}
             </h2>
-            {step !== "gym" && name ? (
+            {step !== "place" ? (
               <p className="mt-1 text-sm text-pass-muted">
-                {name}
-                {outlet ? ` · ${outlet}` : city ? ` · ${city}` : ""}
-                {country ? ` · ${country}` : ""}
+                {[name, outlet || (resolvedCity !== country ? resolvedCity : ""), country]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             ) : null}
           </div>
@@ -299,9 +314,28 @@ function LogGymSheetInner({
         </ol>
 
         <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+          {step === "place" && (
+            <PlaceStep
+              city={city}
+              country={country}
+              gyms={gyms}
+              cityOptional={cityOptional}
+              onCity={setCity}
+              onCountry={(value) => {
+                setCountry(value);
+                if (cityOptionalForCountry(value)) {
+                  setCity("");
+                }
+              }}
+              onNext={goNext}
+            />
+          )}
+
           {step === "gym" && (
             <GymStep
               query={query}
+              country={country}
+              city={resolvedCity}
               gyms={gyms}
               catalogGyms={catalogGyms}
               onQuery={(value) => {
@@ -323,17 +357,6 @@ function LogGymSheetInner({
                 if (gym.outlets.length > 1) setStep("outlet");
                 else setStep("grade");
               }}
-              onNext={goNext}
-            />
-          )}
-
-          {step === "location" && (
-            <LocationStep
-              city={city}
-              country={country}
-              gyms={gyms}
-              onCity={setCity}
-              onCountry={setCountry}
               onNext={goNext}
             />
           )}
@@ -428,20 +451,20 @@ function LogGymSheetInner({
 
         <div className="flex gap-2 pt-2">
           <button type="button" onClick={goBack} className="passport-btn-ghost min-w-[5.5rem]">
-            {step === "gym" ? "Cancel" : "Back"}
+            {step === "place" ? "Cancel" : "Back"}
           </button>
           {step === "notes" ? (
             <button
               type="button"
-              disabled={pending || !configured || !name || !city || !country || !grade}
+              disabled={pending || !configured || !name || !resolvedCity || !country || !grade}
               onClick={() => {
                 if (pending || submitted.current) return;
                 submitted.current = true;
                 const data = new FormData();
                 data.set("gym_name", name.trim());
-                data.set("city", city.trim());
+                data.set("city", resolvedCity);
                 data.set("country", country.trim());
-                data.set("outlet", (outlet || city).trim());
+                data.set("outlet", (outlet || resolvedCity).trim());
                 data.set("grade_system", pickerSystem);
                 data.set("highest_grade", grade);
                 data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
@@ -495,10 +518,10 @@ function Overlay({
 
 function titleFor(step: Step) {
   switch (step) {
+    case "place":
+      return "Where are you climbing?";
     case "gym":
       return "Which gym?";
-    case "location":
-      return "Where was it?";
     case "outlet":
       return "Which outlet?";
     case "scale":
@@ -514,6 +537,8 @@ function titleFor(step: Step) {
 
 function GymStep({
   query,
+  country,
+  city,
   gyms,
   catalogGyms,
   onQuery,
@@ -522,6 +547,8 @@ function GymStep({
   onNext,
 }: {
   query: string;
+  country: string;
+  city: string;
   gyms: GymGroup[];
   catalogGyms: CatalogGym[];
   onQuery: (value: string) => void;
@@ -530,17 +557,33 @@ function GymStep({
   onNext: () => void;
 }) {
   const q = query.trim().toLowerCase();
+  const countryKey = country.trim().toLowerCase();
+  const cityKey = city.trim().toLowerCase();
+  const filterByCity = Boolean(cityKey && cityKey !== countryKey);
+
+  const inPlace = (gym: { country: string; city?: string; outlets?: GymOutlet[] | string[] }) => {
+    if (gym.country.trim().toLowerCase() !== countryKey) return false;
+    if (!filterByCity) return true;
+    if (gym.city?.toLowerCase().includes(cityKey)) return true;
+    return (gym.outlets ?? []).some((outlet) => {
+      if (typeof outlet === "string") return false;
+      return outlet.city.toLowerCase().includes(cityKey);
+    });
+  };
+
+  const placeGyms = gyms.filter(inPlace);
   const recent = (q
-    ? gyms.filter((gym) =>
+    ? placeGyms.filter((gym) =>
         `${gym.name} ${gym.outlets.join(" ")} ${gym.country}`.toLowerCase().includes(q),
       )
-    : gyms
+    : placeGyms
   ).slice(0, 5);
-  const known = searchKnownGyms(query).filter(
+  const known = searchKnownGyms(query, { country, city }).filter(
     (gym) => !recent.some((item) => item.name.toLowerCase() === gym.name.toLowerCase()),
   );
   const extra = catalogGyms.filter(
     (gym) =>
+      inPlace(gym) &&
       (!q || gym.name.toLowerCase().includes(q)) &&
       !recent.some((item) => item.name.toLowerCase() === gym.name.toLowerCase()) &&
       !known.some((item) => item.name.toLowerCase() === gym.name.toLowerCase()),
@@ -649,10 +692,11 @@ function ChoiceList({
   );
 }
 
-function LocationStep({
+function PlaceStep({
   city,
   country,
   gyms,
+  cityOptional,
   onCity,
   onCountry,
   onNext,
@@ -660,36 +704,22 @@ function LocationStep({
   city: string;
   country: string;
   gyms: GymGroup[];
+  cityOptional: boolean;
   onCity: (value: string) => void;
   onCountry: (value: string) => void;
   onNext: () => void;
 }) {
-  const cities = [...new Set(gyms.map((gym) => gym.city).filter(Boolean))];
+  const cities = [
+    ...new Set(
+      gyms
+        .filter((gym) => gym.country.trim().toLowerCase() === country.trim().toLowerCase())
+        .map((gym) => gym.city)
+        .filter(Boolean),
+    ),
+  ];
 
   return (
     <div className="space-y-3">
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">City</span>
-        <input
-          value={city}
-          onChange={(e) => onCity(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onNext();
-            }
-          }}
-          placeholder="Singapore"
-          list="passport-cities"
-          autoComplete="address-level2"
-          className="passport-field"
-        />
-        <datalist id="passport-cities">
-          {cities.map((item) => (
-            <option key={item} value={item} />
-          ))}
-        </datalist>
-      </label>
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">Country</span>
         <input
@@ -708,6 +738,33 @@ function LocationStep({
         />
         <datalist id="passport-countries">
           {COUNTRY_NAMES.map((item) => (
+            <option key={item} value={item} />
+          ))}
+        </datalist>
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-semibold">
+          City{" "}
+          {cityOptional ? (
+            <span className="font-medium text-pass-muted">(optional)</span>
+          ) : null}
+        </span>
+        <input
+          value={city}
+          onChange={(e) => onCity(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onNext();
+            }
+          }}
+          placeholder={cityOptional ? "Not needed for Singapore" : "Tokyo"}
+          list="passport-cities"
+          autoComplete="address-level2"
+          className="passport-field"
+        />
+        <datalist id="passport-cities">
+          {cities.map((item) => (
             <option key={item} value={item} />
           ))}
         </datalist>
