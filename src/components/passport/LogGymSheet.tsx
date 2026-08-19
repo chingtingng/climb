@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addVisitAction, type ActionResult } from "@/app/actions";
+import { citiesForCountry } from "@/lib/cities";
 import { COUNTRY_NAMES } from "@/lib/countries";
 import { todayISO } from "@/lib/dates";
 import { formatGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
@@ -642,6 +643,20 @@ function titleFor(step: Step) {
   }
 }
 
+function uniqueNames(values: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(trimmed);
+  }
+  return ordered;
+}
+
 function GymStep({
   query,
   outlet,
@@ -825,7 +840,6 @@ function CountryStep({
   catalogGyms,
   onChange,
   onPick,
-  onNext,
 }: {
   country: string;
   catalogGyms: CatalogGym[];
@@ -834,58 +848,42 @@ function CountryStep({
   onNext: () => void;
 }) {
   const featured = catalogCountries(catalogGyms);
-  const extras = COUNTRY_NAMES.filter(
-    (name) => !featured.some((item) => item.toLowerCase() === name.toLowerCase()),
-  );
+  const options = uniqueNames([
+    ...featured,
+    ...COUNTRY_NAMES,
+    country,
+  ]);
 
   return (
     <div className="space-y-3">
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">Country</span>
-        <input
+        <select
           value={country}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onNext();
-            }
-          }}
-          placeholder="Singapore"
-          list="passport-countries"
           autoComplete="country-name"
           className="passport-field"
-        />
-        <datalist id="passport-countries">
-          {COUNTRY_NAMES.map((item) => (
-            <option key={item} value={item} />
+        >
+          <option value="" disabled>
+            Select a country
+          </option>
+          {options.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
           ))}
-        </datalist>
+        </select>
       </label>
-      <ChoiceList
-        label="With known gyms"
-        items={featured.map((item) => ({
-          key: item,
-          title: item,
-          onClick: () => onPick(item),
-        }))}
-      />
-      <div className="flex flex-wrap gap-2">
-        {extras.slice(0, 8).map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onPick(item)}
-            className={`min-h-10 rounded-full border px-3 text-sm font-semibold ${
-              item === country
-                ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                : "border-pass-line bg-white text-pass-navy"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
+      {featured.length > 0 ? (
+        <ChoiceList
+          label="With known gyms"
+          items={featured.map((item) => ({
+            key: item,
+            title: item,
+            onClick: () => onPick(item),
+          }))}
+        />
+      ) : null}
     </div>
   );
 }
@@ -897,7 +895,6 @@ function CityStep({
   gyms,
   onCity,
   onPick,
-  onNext,
 }: {
   city: string;
   country: string;
@@ -907,39 +904,43 @@ function CityStep({
   onPick: (value: string) => void;
   onNext: () => void;
 }) {
-  const cities = [
+  const gymCities = [
     ...catalogCities(catalogGyms, country),
-    ...gyms.filter((gym) => gym.country.toLowerCase() === country.trim().toLowerCase()).map((gym) => gym.city),
-  ].filter((value, index, all) => value && all.findIndex((item) => item.toLowerCase() === value.toLowerCase()) === index);
+    ...gyms
+      .filter((gym) => gym.country.toLowerCase() === country.trim().toLowerCase())
+      .map((gym) => gym.city),
+  ];
+  const cities = citiesForCountry(country, [...gymCities, city]);
+  const withGyms = gymCities.filter(
+    (value, index, all) =>
+      value &&
+      all.findIndex((item) => item.toLowerCase() === value.toLowerCase()) === index,
+  );
 
   return (
     <div className="space-y-3">
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">City</span>
-        <input
+        <select
           value={city}
           onChange={(e) => onCity(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onNext();
-            }
-          }}
-          placeholder="Jakarta"
-          list="passport-cities"
           autoComplete="address-level2"
           className="passport-field"
-        />
-        <datalist id="passport-cities">
+        >
+          <option value="" disabled>
+            Select a city
+          </option>
           {cities.map((item) => (
-            <option key={item} value={item} />
+            <option key={item} value={item}>
+              {item}
+            </option>
           ))}
-        </datalist>
+        </select>
       </label>
-      {cities.length > 0 ? (
+      {withGyms.length > 0 ? (
         <ChoiceList
           label="Cities with gyms"
-          items={cities.map((item) => ({
+          items={withGyms.map((item) => ({
             key: item,
             title: item,
             subtitle: country,
@@ -948,7 +949,7 @@ function CityStep({
         />
       ) : (
         <p className="text-sm text-pass-muted">
-          Type the city, then continue to pick or add the gym.
+          Pick a city, then continue to choose or add the gym.
         </p>
       )}
     </div>
