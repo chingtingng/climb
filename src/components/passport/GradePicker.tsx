@@ -84,21 +84,21 @@ export function GradePicker({
       ) : (
         <p className="text-sm text-pass-muted">
           {locked
-            ? `This gym uses ${labelFor(scale?.kind ?? system)}.`
+            ? `This place uses ${labelFor(scale?.kind ?? system)}.`
             : `Using ${labelFor(system)}.`}
         </p>
       )}
 
       {scale?.chartPath ? (
         <p className="text-xs text-pass-muted">
-          Grades come from this gym’s chart. Pick the highest you sent.
+          Grades come from this place’s chart. Pick the highest you sent.
         </p>
       ) : null}
 
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold">Highest grade</legend>
         {grades.length === 0 ? (
-          <p className="text-sm text-pass-muted">Add this gym’s grades first.</p>
+          <p className="text-sm text-pass-muted">Add this place’s grades first.</p>
         ) : (
           <div
             className={`grid gap-2 ${

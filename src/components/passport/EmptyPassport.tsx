@@ -12,7 +12,7 @@ export function EmptyPassport({
         Your passport is still blank.
       </h2>
       <p className="mt-2 max-w-[16.5rem] text-sm leading-relaxed text-pass-muted">
-        Every climbing adventure starts with one gym.
+        Every climbing adventure starts with one place.
       </p>
       <button
         type="button"

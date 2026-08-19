@@ -72,7 +72,7 @@ function rowToVisit(row: VisitRow): GymVisit {
     profile_id: row.profile_id,
     gym_id: row.gym_id,
     outlet_id: row.outlet_id,
-    gym_name: gym?.name ?? "Unknown gym",
+    gym_name: gym?.name ?? "Unknown place",
     outlet: outlet?.name ?? "",
     city: outlet?.city ?? "",
     country: gym?.country ?? "",
@@ -474,7 +474,7 @@ async function ensureGymCatalog(
   }
 
   if (!gym) {
-    throw new Error("Couldn't save that gym. Please try again.");
+    throw new Error("Couldn't save that place. Please try again.");
   }
 
   // Only ensure the outlet used for this visit. Sibling seed outlets are
@@ -514,7 +514,7 @@ async function ensureGymCatalog(
   }
 
   if (!outlet) {
-    throw new Error("Couldn't save that gym location. Please try again.");
+    throw new Error("Couldn't save that place location. Please try again.");
   }
 
   // Grade scale is committed after the visit insert succeeds (see createVisit /

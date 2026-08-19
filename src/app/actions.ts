@@ -370,7 +370,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
 
   if (!gym_name || !country || !city || !highest_grade || !visited_on) {
-    return "Please fill in gym, place, grade, and date.";
+    return "Please fill in place, grade, and date.";
   }
 
   if (!["v", "font", "french", "number", "color", "custom"].includes(grade_system)) {
@@ -392,7 +392,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     ? climbing_typeRaw
     : climbing_types[0];
   if (!climbing_types.includes(climbing_type)) {
-    return "That climbing type isn’t offered at this gym.";
+    return "That climbing type isn’t offered at this place.";
   }
   if (!(CLIMBING_TYPES as readonly string[]).includes(climbing_type)) {
     return "Pick a valid climbing type.";
@@ -419,7 +419,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     try {
       const parsed = JSON.parse(scaleJson) as GradeScale;
       if (!parsed?.kind || !Array.isArray(parsed.bands)) {
-        return "Couldn’t read that gym’s grade mapping.";
+        return "Couldn’t read that place’s grade mapping.";
       }
       scale = {
         kind: parsed.kind,
@@ -435,13 +435,13 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
           }),
       };
     } catch {
-      return "Couldn’t read that gym’s grade mapping.";
+      return "Couldn’t read that place’s grade mapping.";
     }
   }
 
   if (isNew && !hasCatalogScale && isHouseSystem(grade_system)) {
     if (!scale || scale.bands.length < 1) {
-      return "Add this gym’s grades so the next visit can reuse them.";
+      return "Add this place’s grades so the next visit can reuse them.";
     }
   }
 

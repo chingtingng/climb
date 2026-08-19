@@ -43,7 +43,7 @@ export function ProfileView() {
           aria-label="Passport statistics"
           className="mt-5 grid grid-cols-4 gap-2"
         >
-          <Stat value={stats.gyms} label="Gyms" dim={empty} />
+          <Stat value={stats.gyms} label="Places" dim={empty} />
           <Stat value={stats.cities} label="Cities" dim={empty} />
           <Stat value={stats.countries} label="Countries" dim={empty} />
           <Stat
@@ -70,10 +70,10 @@ export function ProfileView() {
 
       <HighlightCard
         icon={<MountainIcon className="h-5 w-7" />}
-        label="Most visited gym"
+        label="Most visited place"
         empty={
           <>
-            No gym logged yet.{" "}
+            No place logged yet.{" "}
             <button
               type="button"
               onClick={() => openLog()}
@@ -227,7 +227,7 @@ function GymHighlight({ gym }: { gym: GymGroup }) {
 
 function CityHighlight({ city }: { city: FavouriteCity }) {
   const samePlace = city.name.trim().toLowerCase() === city.country.trim().toLowerCase();
-  const gymsLabel = `${city.gymCount} ${city.gymCount === 1 ? "gym" : "gyms"} logged here`;
+  const gymsLabel = `${city.gymCount} ${city.gymCount === 1 ? "place" : "places"} logged here`;
 
   return (
     <div className="mt-1 flex items-center justify-between gap-3">

@@ -41,7 +41,7 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Chalk Passport",
   description:
-    "Track the climbing and bouldering gyms you’ve visited — countries, cities, and your highest grade at each.",
+    "Track the climbing places you’ve visited — countries, cities, and your highest grade at each.",
   applicationName: "Chalk Passport",
   authors: [{ name: "chalkchingup" }],
 };

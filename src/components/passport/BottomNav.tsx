@@ -6,7 +6,7 @@ import { GymsIcon, HomeIcon, ProfileIcon } from "./icons";
 
 const ITEMS = [
   { href: "/passport", label: "Home", match: "home" as const },
-  { href: "/passport/gyms", label: "Gyms", match: "gyms" as const },
+  { href: "/passport/gyms", label: "Places", match: "gyms" as const },
   { href: "/passport/profile", label: "Profile", match: "profile" as const },
 ];
 
