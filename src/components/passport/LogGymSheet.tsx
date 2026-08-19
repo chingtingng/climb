@@ -1000,7 +1000,7 @@ function CountryStep({
     ...featured,
     ...COUNTRY_NAMES,
     country,
-  ]);
+  ]).sort((a, b) => a.localeCompare(b));
 
   return (
     <div className="space-y-3">
