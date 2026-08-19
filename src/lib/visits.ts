@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { canonicalOutletName, findKnownGym, outletLookupNames, resolveCatalogOutlet } from "./gymCatalog";
+import { findKnownGym } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
 import type {
   CatalogGym,
@@ -54,17 +54,13 @@ function unwrapOne<T>(value: T | T[] | null | undefined): T | null {
 function rowToVisit(row: VisitRow): GymVisit {
   const gym = unwrapOne(row.gyms);
   const outlet = unwrapOne(row.gym_outlets);
-  const rawOutlet = outlet?.name ?? "";
   return {
     id: row.id,
     profile_id: row.profile_id,
     gym_id: row.gym_id,
     outlet_id: row.outlet_id,
     gym_name: gym?.name ?? "Unknown gym",
-    outlet:
-      gym && rawOutlet
-        ? canonicalOutletName(gym.name, gym.country, rawOutlet)
-        : rawOutlet,
+    outlet: outlet?.name ?? "",
     city: outlet?.city ?? "",
     country: gym?.country ?? "",
     grade_system: isGradeSystem(row.grade_system) ? row.grade_system : "custom",
@@ -154,7 +150,7 @@ export async function listCatalogGyms(): Promise<CatalogGym[]> {
       country: row.country as string,
       outlets: outlets.map((outlet: GymOutlet) => ({
         id: outlet.id,
-        name: canonicalOutletName(row.name as string, row.country as string, outlet.name),
+        name: outlet.name,
         city: outlet.city,
       })),
       scale: scaleRow
@@ -187,23 +183,16 @@ async function findGymRow(
 async function findOutletRow(
   supabase: SupabaseClient,
   gymId: string,
-  names: string | string[],
-): Promise<{ id: string; name: string } | null> {
-  const wanted = new Set(
-    (Array.isArray(names) ? names : [names])
-      .map((name) => name.trim().toLowerCase())
-      .filter(Boolean),
-  );
-  if (wanted.size === 0) return null;
-
+  outletName: string,
+): Promise<{ id: string } | null> {
   const { data, error } = await supabase
     .from("gym_outlets")
-    .select("id, name")
-    .eq("gym_id", gymId);
+    .select("id")
+    .eq("gym_id", gymId)
+    .ilike("name", escapeIlike(outletName.trim()))
+    .maybeSingle();
   if (error) throw mapDbError(error.message);
-  return (
-    (data ?? []).find((row) => wanted.has(String(row.name).trim().toLowerCase())) ?? null
-  );
+  return data;
 }
 
 async function ensureGymCatalog(
@@ -215,14 +204,11 @@ async function ensureGymCatalog(
   const gymName = known?.name ?? input.gym_name.trim();
   const country = known?.country ?? input.country.trim();
   const scale = input.scale ?? known?.scale ?? null;
-  const resolved = known
-    ? resolveCatalogOutlet(known, input.outlet?.trim() || input.city.trim() || "Main")
-    : {
-        name: (input.outlet?.trim() || input.city.trim() || "Main").trim(),
-        city: input.city.trim(),
-      };
-  const outletName = resolved.name.trim();
-  const city = (resolved.city || input.city.trim() || outletName).trim();
+  const outletName = (input.outlet?.trim() || input.city.trim() || "Main").trim();
+  const knownOutlet = known?.outlets.find(
+    (outlet) => outlet.name.toLowerCase() === outletName.toLowerCase(),
+  );
+  const city = (knownOutlet?.city || input.city.trim() || outletName).trim();
 
   let gym = await findGymRow(supabase, gymName, country);
   if (!gym) {
@@ -253,7 +239,7 @@ async function ensureGymCatalog(
 
   if (known?.outlets) {
     for (const outlet of known.outlets) {
-      const found = await findOutletRow(supabase, gym.id, outletLookupNames(outlet));
+      const found = await findOutletRow(supabase, gym.id, outlet.name);
       if (!found) {
         await supabase.from("gym_outlets").insert({
           gym_id: gym.id,
@@ -265,11 +251,7 @@ async function ensureGymCatalog(
     }
   }
 
-  let outlet = await findOutletRow(
-    supabase,
-    gym.id,
-    known ? outletLookupNames(resolved) : outletName,
-  );
+  let outlet = await findOutletRow(supabase, gym.id, outletName);
   if (!outlet) {
     const createdOutlet = await supabase
       .from("gym_outlets")
@@ -279,7 +261,7 @@ async function ensureGymCatalog(
         city,
         created_by: profileId,
       })
-      .select("id, name")
+      .select("id")
       .single();
 
     if (createdOutlet.error) {

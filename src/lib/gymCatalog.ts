@@ -25,30 +25,23 @@ const BOULDER_PLANET_SCALE: GradeScale = {
   bands: numberBands(4, 12, 1),
 };
 
-type OutletSpec = [outlet: string, city: string, aliases?: string[]];
-
 function gym(
   name: string,
   country: string,
-  outlets: OutletSpec[],
+  outlets: Array<[outlet: string, city: string]>,
   scale: GradeScale | null = null,
 ): CatalogGym {
   return {
     name,
     country,
-    outlets: outlets.map(([outlet, city, aliases]) => ({
-      name: outlet,
-      city,
-      ...(aliases?.length ? { aliases } : {}),
-    })),
+    outlets: outlets.map(([outlet, city]) => ({ name: outlet, city })),
     scale,
   };
 }
 
 /**
  * Indoor climbing / bouldering gyms.
- * Outlet `name` is what the gym calls that location (Bugis, not Bugis+).
- * `city` is the neighbourhood; aliases keep older mall labels matching.
+ * Outlet `name` is what the gym calls that location (Bugis, Bendemeer).
  */
 export const KNOWN_GYMS: CatalogGym[] = [
   gym(
@@ -68,17 +61,17 @@ export const KNOWN_GYMS: CatalogGym[] = [
     BOULDER_PLANET_SCALE,
   ),
   gym("Boulder Movement", "Singapore", [
-    ["Bugis", "Bugis", ["Bugis+"]],
-    ["Rochor", "Rochor", ["Tekka Place"]],
-    ["Downtown", "Downtown", ["Downtown Gallery"]],
+    ["Bugis", "Bugis"],
+    ["Rochor", "Rochor"],
+    ["Downtown", "Downtown"],
     ["Tai Seng", "Tai Seng"],
   ]),
   gym(
     "Boulder+",
     "Singapore",
     [
-      ["Aperia", "Kallang", ["Aperia Mall"]],
-      ["Chevrons", "Jurong East", ["The Chevrons"]],
+      ["Aperia", "Kallang"],
+      ["Chevrons", "Jurong East"],
     ],
     {
       kind: "color",
@@ -98,9 +91,9 @@ export const KNOWN_GYMS: CatalogGym[] = [
     "BFF Climbing",
     "Singapore",
     [
-      ["Bendemeer", "Bendemeer", ["CT Hub", "CT Hub 2"]],
-      ["Tampines Yoha", "Tampines", ["yo:HA Commercial", "Yoha"]],
-      ["Tampines Hub", "Tampines", ["Our Tampines Hub"]],
+      ["Bendemeer", "Bendemeer"],
+      ["Tampines Yoha", "Tampines"],
+      ["Tampines Hub", "Tampines"],
     ],
     {
       kind: "number",
@@ -124,18 +117,18 @@ export const KNOWN_GYMS: CatalogGym[] = [
     },
   ),
   gym("Climb Central", "Singapore", [
-    ["The Kallang", "Kallang", ["Kallang Wave Mall"]],
-    ["Funan", "Funan", ["Funan Mall"]],
-    ["Novena", "Novena", ["Novena Square"]],
-    ["SAFRA Choa Chu Kang", "Choa Chu Kang", ["SAFRA CCK"]],
+    ["The Kallang", "Kallang"],
+    ["Funan", "Funan"],
+    ["Novena", "Novena"],
+    ["SAFRA Choa Chu Kang", "Choa Chu Kang"],
   ]),
   gym(
     "Fit Bloc",
     "Singapore",
     [
-      ["Kent Ridge", "Kent Ridge", ["Oasis"]],
-      ["Depot Heights", "Depot Heights", ["Depot Heights Shopping Centre"]],
-      ["Telok Ayer", "Telok Ayer", ["MND Building"]],
+      ["Kent Ridge", "Kent Ridge"],
+      ["Depot Heights", "Depot Heights"],
+      ["Telok Ayer", "Telok Ayer"],
     ],
     { kind: "number", bands: numberBands(1, 8, 1) },
   ),
@@ -144,7 +137,7 @@ export const KNOWN_GYMS: CatalogGym[] = [
     kind: "number",
     bands: numberBands(1, 9, 1),
   }),
-  gym("Climba", "Singapore", [["Robinson", "CBD", ["Robinson Centre"]]], {
+  gym("Climba", "Singapore", [["Robinson", "CBD"]], {
     kind: "color",
     bands: colorBands([
       { label: "Blue", v: 2 },
@@ -160,15 +153,15 @@ export const KNOWN_GYMS: CatalogGym[] = [
       v_equiv: label,
     })),
   }),
-  gym("OYEYO Boulder Home", "Singapore", [["Mackenzie", "Rochor", ["Mackenzie Road"]]]),
-  gym("ClimbUp", "Singapore", [["Katong", "Katong", ["i12 Katong"]]]),
-  gym("Z-Vertigo", "Singapore", [["Bukit Timah", "Bukit Timah", ["Bukit Timah Shopping Centre"]]]),
-  gym("Outpost Climbing", "Singapore", [["Lavender", "Lavender", ["Crawford Lane"]]]),
+  gym("OYEYO Boulder Home", "Singapore", [["Mackenzie", "Rochor"]]),
+  gym("ClimbUp", "Singapore", [["Katong", "Katong"]]),
+  gym("Z-Vertigo", "Singapore", [["Bukit Timah", "Bukit Timah"]]),
+  gym("Outpost Climbing", "Singapore", [["Lavender", "Lavender"]]),
   gym("Upwall Climbing", "Singapore", [["Downtown East", "Pasir Ris"]]),
-  gym("Project Send", "Singapore", [["Esplanade", "Esplanade", ["Esplanade Mall"]]]),
-  gym("Climb@T3", "Singapore", [["T3", "Changi", ["Changi Airport T3", "Changi Airport Terminal 3"]]]),
+  gym("Project Send", "Singapore", [["Esplanade", "Esplanade"]]),
+  gym("Climb@T3", "Singapore", [["T3", "Changi"]]),
   gym("The Cliff", "Singapore", [["Snow City", "Jurong East"]]),
-  gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun", ["Adventure Centre"]]]),
+  gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun"]]),
   gym("Boruda", "Singapore", [["Boruda", "Singapore"]], {
     kind: "custom",
     bands: [
@@ -292,8 +285,7 @@ export function searchKnownGyms(
       gym.outlets.some(
         (outlet) =>
           outlet.name.toLowerCase().includes(q) ||
-          outlet.city.toLowerCase().includes(q) ||
-          (outlet.aliases ?? []).some((alias) => alias.toLowerCase().includes(q)),
+          outlet.city.toLowerCase().includes(q),
       )
     );
   });
@@ -334,87 +326,20 @@ export function defaultScaleFor(
 }
 
 export function mergeOutlets(...lists: GymOutlet[][]): GymOutlet[] {
-  const aliasToCanonical = new Map<string, string>();
-
-  for (const list of lists) {
-    for (const outlet of list) {
-      const canonical = outlet.name.trim();
-      if (!canonical) continue;
-      const existing = aliasToCanonical.get(normalizeKey(canonical));
-      if (existing && existing.toLowerCase() !== canonical.toLowerCase()) {
-        continue;
-      }
-      if (!existing) aliasToCanonical.set(normalizeKey(canonical), canonical);
-      for (const alias of outlet.aliases ?? []) {
-        const trimmed = alias.trim();
-        if (!trimmed) continue;
-        if (!aliasToCanonical.has(normalizeKey(trimmed))) {
-          aliasToCanonical.set(normalizeKey(trimmed), canonical);
-        }
-      }
-    }
-  }
-
   const map = new Map<string, GymOutlet>();
   for (const list of lists) {
     for (const outlet of list) {
-      const raw = outlet.name.trim();
-      if (!raw) continue;
-      const canonical = aliasToCanonical.get(normalizeKey(raw)) ?? raw;
-      const key = normalizeKey(canonical);
+      const key = outlet.name.trim().toLowerCase();
+      if (!key) continue;
       const prev = map.get(key);
-      const aliases = unique([
-        ...(prev?.aliases ?? []),
-        ...(outlet.aliases ?? []),
-        raw !== canonical ? raw : "",
-      ]).filter((alias) => alias.toLowerCase() !== canonical.toLowerCase());
       map.set(key, {
         id: prev?.id ?? outlet.id,
-        name: prev?.name ?? canonical,
+        name: prev?.name ?? outlet.name.trim(),
         city: (prev?.city || outlet.city).trim(),
-        ...(aliases.length ? { aliases } : {}),
       });
     }
   }
   return [...map.values()];
-}
-
-/** Map a typed or stored label onto the gym's own outlet name. */
-export function resolveCatalogOutlet(gym: CatalogGym, name: string): GymOutlet {
-  const n = name.trim().toLowerCase();
-  const match = gym.outlets.find(
-    (outlet) =>
-      outlet.name.toLowerCase() === n ||
-      (outlet.aliases ?? []).some((alias) => alias.toLowerCase() === n),
-  );
-  return match ?? { name: name.trim(), city: name.trim() };
-}
-
-export function canonicalOutletName(
-  gymName: string,
-  country: string,
-  outletName: string,
-): string {
-  const known = findKnownGym(gymName, country);
-  if (!known || !outletName.trim()) return outletName;
-  return resolveCatalogOutlet(known, outletName).name || outletName;
-}
-
-export function outletLookupNames(outlet: Pick<GymOutlet, "name" | "aliases">): string[] {
-  return [outlet.name, ...(outlet.aliases ?? [])].map((item) => item.trim()).filter(Boolean);
-}
-
-export function findOutletByLabel(outlets: GymOutlet[], name: string): GymOutlet | undefined {
-  const n = name.trim().toLowerCase();
-  return outlets.find(
-    (outlet) =>
-      outlet.name.toLowerCase() === n ||
-      (outlet.aliases ?? []).some((alias) => alias.toLowerCase() === n),
-  );
-}
-
-function normalizeKey(value: string): string {
-  return value.trim().toLowerCase();
 }
 
 function unique(values: string[]): string[] {

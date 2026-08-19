@@ -16,8 +16,6 @@ export type GymOutlet = {
   id?: string;
   name: string;
   city: string;
-  /** Older mall / building labels that should fold into `name`. */
-  aliases?: string[];
 };
 
 export type Profile = {
