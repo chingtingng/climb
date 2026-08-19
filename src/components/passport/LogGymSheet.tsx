@@ -842,6 +842,7 @@ function SearchSelect({
   placeholder,
   emptyMessage = "No matches",
   onSelect,
+  onOpenChange,
 }: {
   label: string;
   value: string;
@@ -849,6 +850,7 @@ function SearchSelect({
   placeholder?: string;
   emptyMessage?: string;
   onSelect: (value: string) => void;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const listId = useId();
   const [query, setQuery] = useState(value);
@@ -856,7 +858,13 @@ function SearchSelect({
   const [highlight, setHighlight] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const showClear = query.length > 0 || value.length > 0;
+
+  function setOpenState(next: boolean) {
+    setOpen(next);
+    onOpenChange?.(next);
+  }
 
   useEffect(() => {
     setQuery(value);
@@ -866,12 +874,13 @@ function SearchSelect({
     function onPointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
+        onOpenChange?.(false);
         setQuery(value);
       }
     }
     window.addEventListener("pointerdown", onPointerDown);
     return () => window.removeEventListener("pointerdown", onPointerDown);
-  }, [value]);
+  }, [value, onOpenChange]);
 
   const filtered = (() => {
     const q = query.trim().toLowerCase();
@@ -888,17 +897,22 @@ function SearchSelect({
     setHighlight(0);
   }, [query, open]);
 
+  useEffect(() => {
+    if (!open) return;
+    listRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [open]);
+
   function commit(item: string) {
     onSelect(item);
     setQuery(item);
-    setOpen(false);
+    setOpenState(false);
     inputRef.current?.blur();
   }
 
   function clear() {
     setQuery("");
     onSelect("");
-    setOpen(false);
+    setOpenState(false);
     inputRef.current?.focus();
   }
 
@@ -921,15 +935,15 @@ function SearchSelect({
             autoCapitalize="words"
             placeholder={placeholder}
             className={`passport-field${showClear ? " passport-field-clearable" : ""}`}
-            onFocus={() => setOpen(true)}
+            onFocus={() => setOpenState(true)}
             onChange={(e) => {
               setQuery(e.target.value);
-              setOpen(true);
+              setOpenState(true);
             }}
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setOpen(true);
+                setOpenState(true);
                 setHighlight((index) =>
                   filtered.length === 0 ? 0 : Math.min(index + 1, filtered.length - 1),
                 );
@@ -937,7 +951,7 @@ function SearchSelect({
               }
               if (e.key === "ArrowUp") {
                 e.preventDefault();
-                setOpen(true);
+                setOpenState(true);
                 setHighlight((index) => Math.max(index - 1, 0));
                 return;
               }
@@ -952,7 +966,7 @@ function SearchSelect({
               }
               if (e.key === "Escape") {
                 e.preventDefault();
-                setOpen(false);
+                setOpenState(false);
                 setQuery(value);
               }
             }}
@@ -972,9 +986,10 @@ function SearchSelect({
       </label>
       {open ? (
         <ul
+          ref={listRef}
           id={listId}
           role="listbox"
-          className="absolute z-20 mt-1.5 max-h-56 w-full overflow-y-auto rounded-2xl border border-pass-line bg-white py-1.5 shadow-[0_12px_28px_rgba(27,58,82,0.12)]"
+          className="mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-2xl border border-pass-line bg-white py-1.5 shadow-[0_12px_28px_rgba(27,58,82,0.12)]"
         >
           {filtered.length === 0 ? (
             <li className="px-4 py-2.5 text-sm text-pass-muted">{emptyMessage}</li>
@@ -1016,6 +1031,7 @@ function CountryStep({
   onPick: (value: string) => void;
   onNext: () => void;
 }) {
+  const [searchOpen, setSearchOpen] = useState(false);
   const featured = catalogCountries(catalogGyms);
   const options = uniqueNames([
     ...featured,
@@ -1032,8 +1048,9 @@ function CountryStep({
         placeholder="Search countries"
         emptyMessage="No countries match that search"
         onSelect={onChange}
+        onOpenChange={setSearchOpen}
       />
-      {featured.length > 0 ? (
+      {!searchOpen && featured.length > 0 ? (
         <ChoiceList
           label="With known gyms"
           items={featured.map((item) => ({
@@ -1063,6 +1080,7 @@ function CityStep({
   onPick: (value: string) => void;
   onNext: () => void;
 }) {
+  const [searchOpen, setSearchOpen] = useState(false);
   const gymCities = [
     ...catalogCities(catalogGyms, country),
     ...gyms
@@ -1083,8 +1101,9 @@ function CityStep({
         placeholder="Search cities"
         emptyMessage="No cities match that search"
         onSelect={onCity}
+        onOpenChange={setSearchOpen}
       />
-      {withGyms.length > 0 ? (
+      {searchOpen ? null : withGyms.length > 0 ? (
         <ChoiceList
           label="Cities with gyms"
           items={withGyms.map((item) => ({
