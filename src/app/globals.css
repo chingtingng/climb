@@ -323,28 +323,30 @@ textarea {
   font-weight: 600;
 }
 
-.passport-field {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  border: 1px solid var(--color-pass-line);
-  background: #fff;
-  padding: 0.75rem 1rem;
-  color: var(--color-pass-navy);
-  font-size: 16px;
-  outline: none;
-}
+@layer components {
+  .passport-field {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 999px;
+    border: 1px solid var(--color-pass-line);
+    background: #fff;
+    padding: 0.75rem 1rem;
+    color: var(--color-pass-navy);
+    font-size: 16px;
+    outline: none;
+  }
 
-.passport-field:focus {
-  border-color: var(--color-pass-primary);
-  box-shadow: 0 0 0 3px rgba(52, 126, 168, 0.18);
-}
+  .passport-field:focus {
+    border-color: var(--color-pass-primary);
+    box-shadow: 0 0 0 3px rgba(52, 126, 168, 0.18);
+  }
 
-textarea.passport-field {
-  min-height: 7.5rem;
-  border-radius: 1.15rem;
-  resize: none;
-  line-height: 1.45;
+  textarea.passport-field {
+    min-height: 7.5rem;
+    border-radius: 1.15rem;
+    resize: none;
+    line-height: 1.45;
+  }
 }
 
 .stamp-row {
