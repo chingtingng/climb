@@ -5,17 +5,21 @@ import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
 import { formatStampDayMonth } from "@/lib/dates";
-import { gymSlug } from "@/lib/gyms";
+import { formatGymPlace, gymSlug } from "@/lib/gyms";
 import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { DisciplineMark } from "@/components/ui/Marks";
-import { ChevronIcon, GymsIcon, MountainIcon } from "./icons";
+import { cx } from "@/components/ui/cx";
+import { ChevronIcon, GymsIcon, PeakIcon, PlusIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
 const FEEDBACK_URL = "https://www.instagram.com/chalkchingup";
+
+const ACCOUNT_ROW =
+  "flex min-h-14 w-full items-center gap-3 px-4 text-left text-base font-semibold";
 
 export function ProfileView() {
   const { username, stats, visits, configured, openLog } = usePassport();
@@ -30,14 +34,16 @@ export function ProfileView() {
       </header>
 
       <Card className="px-4 py-5">
-        <h1 className="mark text-2xl leading-none text-ink">My climbing passport</h1>
-        <p className="mt-2 text-sm text-ink-soft">
+        <h1 className="text-md font-bold leading-tight text-ink">
+          My climbing passport
+        </h1>
+        <p className="mt-1 text-sm text-ink-soft">
           {empty
             ? "Log your first visit to start filling this in."
-            : "Here’s where you’ve been climbing."}
+            : "Nice work — here’s where you’ve been climbing."}
         </p>
 
-        <div aria-label="Passport statistics" className="mt-5 grid grid-cols-4 gap-2">
+        <div aria-label="Passport statistics" className="mt-5 grid grid-cols-4 gap-1.5">
           <Stat value={stats.gyms} label="Places" dim={empty} />
           <Stat value={stats.cities} label="Cities" dim={empty} />
           <Stat value={stats.countries} label="Countries" dim={empty} />
@@ -48,11 +54,6 @@ export function ProfileView() {
             accent={Boolean(stats.bestSend)}
           />
         </div>
-        {stats.bestSend && stats.mostVisitedGym ? (
-          <p className="mt-2 text-xs text-ink-soft">
-            Best send across every scale — ranked by V-equivalent.
-          </p>
-        ) : null}
 
         <Button
           type="button"
@@ -61,24 +62,33 @@ export function ProfileView() {
           disabled={!configured}
           className="mt-5"
         >
-          {empty ? "+ Log your first visit" : "+ Log a visit"}
+          <PlusIcon />
+          {empty ? "Log your first visit" : "Log a visit"}
         </Button>
       </Card>
 
       <HighlightCard
-        icon={<MountainIcon className="h-5 w-7" />}
+        icon={<PeakIcon className="size-5" />}
         label="Most visited place"
+        href={
+          stats.mostVisitedGym
+            ? `/passport/gyms/${stats.mostVisitedGym.slug || gymSlug(stats.mostVisitedGym.name, stats.mostVisitedGym.country)}`
+            : undefined
+        }
+        count={
+          stats.mostVisitedGym
+            ? {
+                value: stats.mostVisitedGym.visitCount,
+                label: stats.mostVisitedGym.visitCount === 1 ? "Visit" : "Visits",
+              }
+            : undefined
+        }
         empty={
           <>
             No place logged yet.{" "}
-            <button
-              type="button"
-              onClick={() => openLog()}
-              disabled={!configured}
-              className="font-semibold text-sky-600"
-            >
+            <LogVisitLink disabled={!configured} onClick={() => openLog()}>
               Log a visit
-            </button>{" "}
+            </LogVisitLink>{" "}
             to fill this in.
           </>
         }
@@ -89,9 +99,25 @@ export function ProfileView() {
       </HighlightCard>
 
       <HighlightCard
-        icon={<GymsIcon />}
+        icon={<GymsIcon className="size-5" />}
         label="Favourite climbing city"
-        empty="Your top city shows up here after a few logged sessions."
+        count={
+          stats.favouriteCity
+            ? {
+                value: stats.favouriteCity.sessionCount,
+                label: stats.favouriteCity.sessionCount === 1 ? "Session" : "Sessions",
+              }
+            : undefined
+        }
+        empty={
+          <>
+            No favourite city yet.{" "}
+            <LogVisitLink disabled={!configured} onClick={() => openLog()}>
+              Log a visit
+            </LogVisitLink>{" "}
+            to fill this in.
+          </>
+        }
       >
         {stats.favouriteCity ? <CityHighlight city={stats.favouriteCity} /> : null}
       </HighlightCard>
@@ -99,7 +125,7 @@ export function ProfileView() {
       {recent.length > 0 ? (
         <section>
           <h2 className="label-micro mb-2 px-0.5">Recent</h2>
-          <Card className="overflow-hidden p-0">
+          <Card className="overflow-hidden px-4 py-1">
             <ul>
               {recent.map((visit) => (
                 <RecentRow key={visit.id} visit={visit} />
@@ -116,11 +142,11 @@ export function ProfileView() {
             href={FEEDBACK_URL}
             target="_blank"
             rel="noreferrer"
-            className="flex min-h-14 items-center gap-3 px-4 text-sm font-semibold"
+            className={ACCOUNT_ROW}
           >
             <HelpIcon />
-            Help & feedback
-            <span className="ml-auto text-sky-300">
+            <span>Help & feedback</span>
+            <span className="ml-auto text-ink-faint">
               <ChevronIcon />
             </span>
           </a>
@@ -133,6 +159,27 @@ export function ProfileView() {
   );
 }
 
+function LogVisitLink({
+  disabled,
+  onClick,
+  children,
+}: {
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline font-semibold text-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {children}
+    </button>
+  );
+}
+
 function LogoutButton() {
   const { pending } = useFormStatus();
 
@@ -141,11 +188,14 @@ function LogoutButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="flex min-h-14 w-full items-center gap-3 border-t border-sky-200 px-4 text-sm font-semibold text-danger-ink disabled:cursor-not-allowed disabled:opacity-60"
+      className={cx(
+        ACCOUNT_ROW,
+        "border-0 border-t border-solid border-sky-200 bg-transparent text-danger-ink disabled:cursor-not-allowed disabled:opacity-60",
+      )}
     >
       <LogoutIcon />
       <ActionButtonLabel pending={pending} idle="Log out" busy="Logging out…" />
-      <span className="ml-auto text-sky-300">
+      <span className="ml-auto text-ink-faint">
         <ChevronIcon />
       </span>
     </button>
@@ -166,13 +216,17 @@ function Stat({
   return (
     <div className="min-w-0">
       <p
-        className={`mark truncate text-2xl leading-none ${
-          accent ? "text-sky-600" : dim ? "text-ink-faint" : "text-ink"
-        }`}
+        className={cx(
+          "mark truncate text-2xl leading-none",
+          !dim && "mark-heavy",
+          accent ? "text-sky-600" : dim ? "text-ink-faint" : "text-ink",
+        )}
       >
         {value}
       </p>
-      <p className="label-micro mt-1">{label}</p>
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.04em] text-ink-soft">
+        {label}
+      </p>
     </div>
   );
 }
@@ -182,37 +236,52 @@ function HighlightCard({
   label,
   empty,
   children,
+  count,
+  href,
 }: {
   icon: ReactNode;
   label: string;
   empty: ReactNode;
   children: ReactNode;
+  count?: { value: number; label: string };
+  href?: string;
 }) {
-  return (
-    <Card className="flex items-center gap-3.5 px-4 py-4">
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-sky-100 text-sky-700">
+  const inner = (
+    <>
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-sm bg-sky-100 text-sky-600">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
         <p className="label-micro">{label}</p>
-        {children ? children : <p className="mt-1 text-sm leading-relaxed text-ink-soft">{empty}</p>}
+        {children ? (
+          children
+        ) : (
+          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{empty}</p>
+        )}
       </div>
-    </Card>
+      {count ? <Count value={count.value} label={count.label} /> : null}
+    </>
   );
+
+  if (href) {
+    return (
+      <Card className="p-0">
+        <Link href={href} className="flex items-center gap-3.5 px-4 py-4">
+          {inner}
+        </Link>
+      </Card>
+    );
+  }
+
+  return <Card className="flex items-center gap-3.5 px-4 py-4">{inner}</Card>;
 }
 
 function GymHighlight({ gym }: { gym: GymGroup }) {
   return (
-    <Link
-      href={`/passport/gyms/${gym.slug || gymSlug(gym.name, gym.country)}`}
-      className="mt-1 flex items-center justify-between gap-3"
-    >
-      <div className="min-w-0">
-        <p className="truncate font-semibold leading-tight">{gym.name}</p>
-        <p className="truncate text-sm text-ink-soft">{gym.country}</p>
-      </div>
-      <Count value={gym.visitCount} label={gym.visitCount === 1 ? "Visit" : "Visits"} />
-    </Link>
+    <div className="mt-0.5 min-w-0">
+      <p className="truncate text-md font-bold leading-tight">{gym.name}</p>
+      <p className="truncate text-sm text-ink-soft">{formatGymPlace(gym)}</p>
+    </div>
   );
 }
 
@@ -221,17 +290,11 @@ function CityHighlight({ city }: { city: FavouriteCity }) {
   const gymsLabel = `${city.gymCount} ${city.gymCount === 1 ? "place" : "places"} logged here`;
 
   return (
-    <div className="mt-1 flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="truncate font-semibold leading-tight">{city.name}</p>
-        <p className="truncate text-sm text-ink-soft">
-          {samePlace ? gymsLabel : `${city.country} · ${gymsLabel}`}
-        </p>
-      </div>
-      <Count
-        value={city.sessionCount}
-        label={city.sessionCount === 1 ? "Session" : "Sessions"}
-      />
+    <div className="mt-0.5 min-w-0">
+      <p className="truncate text-md font-bold leading-tight">{city.name}</p>
+      <p className="truncate text-sm text-ink-soft">
+        {samePlace ? gymsLabel : `${city.country} · ${gymsLabel}`}
+      </p>
     </div>
   );
 }
@@ -239,8 +302,10 @@ function CityHighlight({ city }: { city: FavouriteCity }) {
 function Count({ value, label }: { value: number; label: string }) {
   return (
     <div className="shrink-0 text-right">
-      <p className="mark text-2xl leading-none">{value}</p>
-      <p className="label-micro mt-0.5">{label}</p>
+      <p className="mark mark-heavy text-xl leading-none">{value}</p>
+      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-ink-soft">
+        {label}
+      </p>
     </div>
   );
 }
@@ -256,11 +321,11 @@ function RecentRow({ visit }: { visit: GymVisit }) {
     <li className="border-b border-sky-200 last:border-b-0">
       <Link
         href={`/passport/gyms/${gymSlug(visit.gym_name, visit.country)}`}
-        className="flex min-h-16 items-center gap-3 px-4 py-2.5"
+        className="flex min-h-16 items-center gap-3 py-2.5"
       >
-        <span className="label-micro w-9 shrink-0 text-center leading-tight">
-          <span className="block text-base font-bold tracking-tight text-ink normal-case">
-            {stamp.day}
+        <span className="w-9 shrink-0 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.04em] text-ink-soft">
+          <span className="mark block text-md tracking-tight text-ink normal-case">
+            {stamp.day.padStart(2, "0")}
           </span>
           {stamp.month}
         </span>
