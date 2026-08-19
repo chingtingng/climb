@@ -47,6 +47,9 @@ export type GymVisitInput = {
   country: string;
   city: string;
   outlet?: string;
+  /** When set with outlet_id, save path can skip name-based catalog resolution. */
+  gym_id?: string;
+  outlet_id?: string;
   grade_system: GradeSystem;
   highest_grade: string;
   v_equiv?: string;
