@@ -594,14 +594,31 @@ textarea.passport-field {
   place-items: center;
 }
 
+.stamp-ring-outer,
 .stamp-ring-inner {
   position: absolute;
-  inset: 0;
   border-radius: var(--r-full);
   pointer-events: none;
+}
+
+.stamp-ring-outer {
+  inset: 0;
+  border: 1.5px dashed color-mix(in srgb, currentColor 38%, var(--sky-300));
+}
+
+.stamp-ink-clay .stamp-ring-outer {
+  border-color: color-mix(in srgb, currentColor 38%, var(--clay-300));
+}
+
+.stamp-ring-inner {
+  inset: 4px;
   border: 1px solid color-mix(in srgb, currentColor 55%, var(--sky-300));
   background: var(--surface);
   box-shadow: var(--elev-soft);
+}
+
+.stamp-hero .stamp-ring-inner {
+  inset: 8px;
 }
 
 .stamp-ink-sky {
