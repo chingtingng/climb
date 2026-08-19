@@ -160,6 +160,11 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const country = String(formData.get("country") ?? "").trim();
   const city = String(formData.get("city") ?? "").trim();
   const outlet = String(formData.get("outlet") ?? "").trim();
+  const gym_idRaw = String(formData.get("gym_id") ?? "").trim();
+  const outlet_idRaw = String(formData.get("outlet_id") ?? "").trim();
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const gym_id = uuid.test(gym_idRaw) ? gym_idRaw : "";
+  const outlet_id = uuid.test(outlet_idRaw) ? outlet_idRaw : "";
   const grade_system = String(formData.get("grade_system") ?? "") as GradeSystem;
   const highest_grade = String(formData.get("highest_grade") ?? "").trim();
   const v_equiv = String(formData.get("v_equiv") ?? "").trim();
@@ -226,6 +231,8 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     country,
     city,
     outlet: outlet || undefined,
+    gym_id: gym_id || undefined,
+    outlet_id: outlet_id || undefined,
     grade_system,
     highest_grade,
     v_equiv: normalizeVEquiv(v_equiv),

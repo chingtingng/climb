@@ -24,8 +24,10 @@ export default async function PassportLayout({
 
   if (configured) {
     try {
-      visits = await listVisitsForProfile(session.id);
-      catalogGyms = await loadPassportCatalog(session.id);
+      [visits, catalogGyms] = await Promise.all([
+        listVisitsForProfile(session.id),
+        loadPassportCatalog(session.id),
+      ]);
     } catch (error) {
       loadError =
         error instanceof Error

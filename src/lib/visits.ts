@@ -129,8 +129,7 @@ export async function listVisitsForProfile(profileId: string): Promise<GymVisit[
   return ((data ?? []) as VisitRow[]).map(rowToVisit);
 }
 
-export async function listCatalogGyms(): Promise<CatalogGym[]> {
-  const supabase = await createClient();
+async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]> {
   const { data, error } = await supabase
     .from("gyms")
     .select(
@@ -165,6 +164,10 @@ export async function listCatalogGyms(): Promise<CatalogGym[]> {
   });
 }
 
+export async function listCatalogGyms(): Promise<CatalogGym[]> {
+  return fetchCatalogGyms(await createClient());
+}
+
 function catalogKey(name: string, country: string): string {
   return `${name.trim().toLowerCase()}\u001f${country.trim().toLowerCase()}`;
 }
@@ -172,7 +175,7 @@ function catalogKey(name: string, country: string): string {
 /** Insert any seed gyms/outlets that are not in Supabase yet, then return the picker catalog. */
 export async function loadPassportCatalog(profileId: string): Promise<CatalogGym[]> {
   const supabase = await createClient();
-  let gyms = await listCatalogGyms();
+  let gyms = await fetchCatalogGyms(supabase);
   const have = new Set(gyms.map((gym) => catalogKey(gym.name, gym.country)));
   const missingGyms = KNOWN_GYMS.filter(
     (gym) => !isClosedGym(gym.name) && !have.has(catalogKey(gym.name, gym.country)),
@@ -189,7 +192,7 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
     if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
       throw mapDbError(inserted.error.message);
     }
-    gyms = await listCatalogGyms();
+    gyms = await fetchCatalogGyms(supabase);
   }
 
   const outletRows: { gym_id: string; name: string; city: string; created_by: string }[] = [];
@@ -247,41 +250,47 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
   }
 
   if (outletRows.length > 0 || scaleRows.length > 0) {
-    gyms = await listCatalogGyms();
+    gyms = await fetchCatalogGyms(supabase);
   }
 
   return mergeCatalogGyms(gyms);
 }
 
-async function findGymRow(
+type GymCatalogRow = {
+  id: string;
+  gym_outlets:
+    | { id: string; name: string; city: string }[]
+    | { id: string; name: string; city: string }
+    | null;
+  gym_grade_scales: { id: string }[] | { id: string } | null;
+};
+
+async function findGymCatalogRow(
   supabase: SupabaseClient,
   name: string,
   country: string,
-): Promise<{ id: string } | null> {
+): Promise<GymCatalogRow | null> {
   const { data, error } = await supabase
     .from("gyms")
-    .select("id")
+    .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
     .ilike("name", escapeIlike(name.trim()))
     .ilike("country", escapeIlike(country.trim()))
     .limit(1)
     .maybeSingle();
   if (error) throw mapDbError(error.message);
-  return data;
+  return data as GymCatalogRow | null;
 }
 
-async function findOutletRow(
-  supabase: SupabaseClient,
-  gymId: string,
-  outletName: string,
-): Promise<{ id: string } | null> {
-  const { data, error } = await supabase
-    .from("gym_outlets")
-    .select("id")
-    .eq("gym_id", gymId)
-    .ilike("name", escapeIlike(outletName.trim()))
-    .maybeSingle();
-  if (error) throw mapDbError(error.message);
-  return data;
+function outletList(
+  value: GymCatalogRow["gym_outlets"],
+): { id: string; name: string; city: string }[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function hasGradeScale(value: GymCatalogRow["gym_grade_scales"]): boolean {
+  if (!value) return false;
+  return Array.isArray(value) ? value.length > 0 : Boolean(value.id);
 }
 
 async function ensureGymCatalog(
@@ -307,7 +316,21 @@ async function ensureGymCatalog(
   ).trim();
   const city = (resolvedOutlet?.city || input.city.trim() || outletName).trim();
 
-  let gym = await findGymRow(supabase, gymName, country);
+  // Fast path: client already resolved catalog IDs (still verify FK pairing).
+  if (input.gym_id && input.outlet_id) {
+    const { data: linked, error: linkedError } = await supabase
+      .from("gym_outlets")
+      .select("id, gym_id")
+      .eq("id", input.outlet_id)
+      .eq("gym_id", input.gym_id)
+      .maybeSingle();
+    if (linkedError) throw mapDbError(linkedError.message);
+    if (linked) {
+      return { gymId: linked.gym_id, outletId: linked.id };
+    }
+  }
+
+  let gym = await findGymCatalogRow(supabase, gymName, country);
   if (!gym) {
     const inserted = await supabase
       .from("gyms")
@@ -316,17 +339,17 @@ async function ensureGymCatalog(
         country,
         created_by: profileId,
       })
-      .select("id")
+      .select("id, gym_outlets(id, name, city), gym_grade_scales(id)")
       .single();
 
     if (inserted.error) {
       if (/duplicate|unique/i.test(inserted.error.message)) {
-        gym = await findGymRow(supabase, gymName, country);
+        gym = await findGymCatalogRow(supabase, gymName, country);
       } else {
         throw mapDbError(inserted.error.message);
       }
     } else {
-      gym = inserted.data;
+      gym = inserted.data as GymCatalogRow;
     }
   }
 
@@ -334,21 +357,12 @@ async function ensureGymCatalog(
     throw new Error("Couldn't save that gym. Please try again.");
   }
 
-  if (knownOutlets.length > 0) {
-    for (const outlet of knownOutlets) {
-      const found = await findOutletRow(supabase, gym.id, outlet.name);
-      if (!found) {
-        await supabase.from("gym_outlets").insert({
-          gym_id: gym.id,
-          name: outlet.name,
-          city: outlet.city,
-          created_by: profileId,
-        });
-      }
-    }
-  }
+  // Only ensure the outlet used for this visit. Sibling seed outlets are
+  // backfilled by loadPassportCatalog on passport load, not on every stamp.
+  const outlets = outletList(gym.gym_outlets);
+  let outlet =
+    outlets.find((row) => row.name.toLowerCase() === outletName.toLowerCase()) ?? null;
 
-  let outlet = await findOutletRow(supabase, gym.id, outletName);
   if (!outlet) {
     const createdOutlet = await supabase
       .from("gym_outlets")
@@ -363,12 +377,19 @@ async function ensureGymCatalog(
 
     if (createdOutlet.error) {
       if (/duplicate|unique/i.test(createdOutlet.error.message)) {
-        outlet = await findOutletRow(supabase, gym.id, outletName);
+        const { data: raced, error } = await supabase
+          .from("gym_outlets")
+          .select("id")
+          .eq("gym_id", gym.id)
+          .ilike("name", escapeIlike(outletName))
+          .maybeSingle();
+        if (error) throw mapDbError(error.message);
+        outlet = raced ? { id: raced.id, name: outletName, city } : null;
       } else {
         throw mapDbError(createdOutlet.error.message);
       }
     } else {
-      outlet = createdOutlet.data;
+      outlet = { id: createdOutlet.data.id, name: outletName, city };
     }
   }
 
@@ -377,33 +398,43 @@ async function ensureGymCatalog(
   }
 
   if (scale) {
-    const existingScale = await supabase
-      .from("gym_grade_scales")
-      .select("id")
-      .eq("gym_id", gym.id)
-      .maybeSingle();
-
-    if (existingScale.error) throw mapDbError(existingScale.error.message);
-
-    if (!existingScale.data) {
-      let chartPath: string | null = scale.chartPath ?? null;
-      if (input.chartFile) {
-        chartPath = await uploadGradeChart(supabase, profileId, gym.id, input.chartFile);
-      }
-      const { error } = await supabase.from("gym_grade_scales").insert({
-        gym_id: gym.id,
-        kind: scale.kind,
-        bands: scale.bands,
-        chart_path: chartPath,
-        created_by: profileId,
-      });
-      if (error && !/duplicate|unique/i.test(error.message)) {
-        throw mapDbError(error.message);
-      }
-    }
+    await ensureGradeScale(
+      supabase,
+      profileId,
+      gym.id,
+      scale,
+      input.chartFile ?? null,
+      hasGradeScale(gym.gym_grade_scales),
+    );
   }
 
   return { gymId: gym.id, outletId: outlet.id };
+}
+
+async function ensureGradeScale(
+  supabase: SupabaseClient,
+  profileId: string,
+  gymId: string,
+  scale: GradeScale,
+  chartFile: File | null,
+  alreadyPresent: boolean,
+): Promise<void> {
+  if (alreadyPresent) return;
+
+  let chartPath: string | null = scale.chartPath ?? null;
+  if (chartFile) {
+    chartPath = await uploadGradeChart(supabase, profileId, gymId, chartFile);
+  }
+  const { error } = await supabase.from("gym_grade_scales").insert({
+    gym_id: gymId,
+    kind: scale.kind,
+    bands: scale.bands,
+    chart_path: chartPath,
+    created_by: profileId,
+  });
+  if (error && !/duplicate|unique/i.test(error.message)) {
+    throw mapDbError(error.message);
+  }
 }
 
 async function uploadGradeChart(

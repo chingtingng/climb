@@ -90,7 +90,6 @@ function LogGymSheetInner({
   onViewGym: (slug: string) => void;
   onHome: () => void;
 }) {
-  const router = useRouter();
   const [state, formAction, actionPending] = useActionState(addVisitAction, initial);
   const [isPending, startTransition] = useTransition();
   const pending = actionPending || isPending;
@@ -192,10 +191,6 @@ function LogGymSheetInner({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-
-  useEffect(() => {
-    if (state?.ok) router.refresh();
-  }, [state, router]);
 
   function applyGym(choice: { name: string; country: string; city?: string; outlets?: GymOutlet[] }) {
     const locations = visibleOutlets({ name: choice.name, outlets: choice.outlets ?? [] });
@@ -568,7 +563,15 @@ function LogGymSheetInner({
                 data.set("gym_name", name.trim());
                 data.set("city", (city.trim() || (skipCity ? "Singapore" : "")).trim());
                 data.set("country", country.trim());
-                data.set("outlet", (outlet || city).trim());
+                const outletValue = (outlet || city).trim();
+                data.set("outlet", outletValue);
+                if (catalogMatch?.id) {
+                  data.set("gym_id", catalogMatch.id);
+                  const matchedOutlet = catalogMatch.outlets.find(
+                    (item) => item.name.toLowerCase() === outletValue.toLowerCase(),
+                  );
+                  if (matchedOutlet?.id) data.set("outlet_id", matchedOutlet.id);
+                }
                 data.set("grade_system", pickerSystem);
                 data.set("highest_grade", grade);
                 data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
