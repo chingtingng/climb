@@ -13,6 +13,17 @@
 --   gym_grade_scales  one grade chart per gym (+ optional photo path)
 --   visits            private stamps (gym_id + outlet_id + grade + date)
 --
+-- Number / colour → V mapping lives on each band in gym_grade_scales.bands
+-- and is copied onto visits.v_equiv when you stamp. Band JSON shape (ordered
+-- easy → hard):
+--   [
+--     {"label":"4","v_equiv":"V1"},
+--     {"label":"White","color":"#f4f1ea","v_equiv":"V1"}
+--   ]
+--   label     required house-grade label (number, colour name, custom, …)
+--   v_equiv   optional V-scale: VB | V0 … V16
+--   color     optional hex, for colour systems
+--
 -- After running:
 -- 1) Authentication → Providers → Email: enabled
 -- 2) Turn OFF “Confirm email” (usernames map to you@chalk.local)
@@ -132,7 +143,63 @@ create unique index gym_outlets_gym_name_idx
 
 -- ---------------------------------------------------------------------------
 -- Grade scale per gym (numbers, colours, V-scale, custom, …)
+-- bands: ordered easy→hard JSON array; each object maps label → v_equiv
 -- ---------------------------------------------------------------------------
+create or replace function public.is_v_grade(value text)
+returns boolean
+language sql
+immutable
+as $$
+  select value is null
+    or value ~ '^(VB|V([0-9]|1[0-6]))$';$$;
+
+create or replace function public.grade_bands_valid(bands jsonb)
+returns boolean
+language plpgsql
+immutable
+as $$
+declare
+  el jsonb;
+  v text;
+begin
+  if jsonb_typeof(bands) <> 'array' then
+    return false;
+  end if;
+
+  for el in select value from jsonb_array_elements(bands) as t(value)
+  loop
+    if jsonb_typeof(el) <> 'object' then
+      return false;
+    end if;
+    if length(trim(coalesce(el->>'label', ''))) = 0 then
+      return false;
+    end if;
+    if length(coalesce(el->>'label', '')) > 40 then
+      return false;
+    end if;
+
+    v := nullif(trim(coalesce(el->>'v_equiv', '')), '');
+    if v is not null and not public.is_v_grade(v) then
+      return false;
+    end if;
+
+    if el ? 'color'
+      and el->>'color' is not null
+      and el->>'color' !~ '^#[0-9A-Fa-f]{3,8}$'
+    then
+      return false;
+    end if;
+  end loop;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.is_v_grade(text) from public, anon, authenticated;
+revoke all on function public.grade_bands_valid(jsonb) from public, anon, authenticated;
+grant execute on function public.is_v_grade(text) to authenticated, service_role;
+grant execute on function public.grade_bands_valid(jsonb) to authenticated, service_role;
+
 create table public.gym_grade_scales (
   id uuid primary key default gen_random_uuid(),
   gym_id uuid not null unique references public.gyms (id) on delete cascade,
@@ -140,11 +207,13 @@ create table public.gym_grade_scales (
   bands jsonb not null default '[]'::jsonb,
   chart_path text,
   created_by uuid references public.profiles (id) on delete set null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint gym_grade_scales_bands_valid check (public.grade_bands_valid(bands))
 );
 
 -- ---------------------------------------------------------------------------
 -- Visits (private stamps)
+-- v_equiv: denormalised V-scale from the gym’s band map at stamp time
 -- ---------------------------------------------------------------------------
 create table public.visits (
   id uuid primary key default gen_random_uuid(),
@@ -158,7 +227,8 @@ create table public.visits (
   visited_on date not null default current_date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint visits_grade_len check (char_length(highest_grade) between 1 and 40)
+  constraint visits_grade_len check (char_length(highest_grade) between 1 and 40),
+  constraint visits_v_equiv_format check (public.is_v_grade(v_equiv))
 );
 
 create index visits_profile_id_idx on public.visits (profile_id);
@@ -414,6 +484,8 @@ join (
 ) as o(gym_name, country, name, city)
   on o.gym_name = s.name and o.country = s.country;
 
+-- Approximate community V-equivalents (Singapore gyms). House grades are not
+-- official V grades — these let “best send” compare across gyms.
 insert into public.gym_grade_scales (gym_id, kind, bands)
 select g.id, s.kind, s.bands::jsonb
 from public.gyms g
@@ -422,16 +494,19 @@ join (
     (
       'Boulder Planet',
       'number',
-      '[{"label":"4","v_equiv":"V1"},{"label":"5","v_equiv":"V2"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V5"},{"label":"9","v_equiv":"V6"},{"label":"10","v_equiv":"V7"},{"label":"11","v_equiv":"V8"},{"label":"12","v_equiv":"V9"}]'
+      -- BP grades 1–12; 4≈V1 … 12≈V9 (1–3 below V1)
+      '[{"label":"1","v_equiv":"VB"},{"label":"2","v_equiv":"VB"},{"label":"3","v_equiv":"V0"},{"label":"4","v_equiv":"V1"},{"label":"5","v_equiv":"V2"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V5"},{"label":"9","v_equiv":"V6"},{"label":"10","v_equiv":"V7"},{"label":"11","v_equiv":"V8"},{"label":"12","v_equiv":"V9"}]'
     ),
     (
       'BFF Climbing',
       'number',
+      -- 1–15 with two house grades per V step; 15≈V8
       '[{"label":"1","v_equiv":"V1"},{"label":"2","v_equiv":"V1"},{"label":"3","v_equiv":"V2"},{"label":"4","v_equiv":"V2"},{"label":"5","v_equiv":"V3"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V4"},{"label":"9","v_equiv":"V5"},{"label":"10","v_equiv":"V5"},{"label":"11","v_equiv":"V6"},{"label":"12","v_equiv":"V6"},{"label":"13","v_equiv":"V7"},{"label":"14","v_equiv":"V7"},{"label":"15","v_equiv":"V8"}]'
     ),
     (
       'Boulder+',
       'color',
+      -- White→Black; black≈V8
       '[{"label":"White","color":"#f4f1ea","v_equiv":"V1"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V2"},{"label":"Red","color":"#eb5757","v_equiv":"V3"},{"label":"Blue","color":"#2f80ed","v_equiv":"V4"},{"label":"Purple","color":"#9b51e0","v_equiv":"V5"},{"label":"Green","color":"#27ae60","v_equiv":"V6"},{"label":"Pink","color":"#e86ba8","v_equiv":"V7"},{"label":"Black","color":"#1b1b1b","v_equiv":"V8"}]'
     ),
     (
@@ -452,6 +527,7 @@ join (
     (
       'Climba',
       'color',
-      '[{"label":"Blue","color":"#2f80ed","v_equiv":"V2"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V4"},{"label":"Red","color":"#eb5757","v_equiv":"V6"}]'
+      -- Blue / Yellow / Red ladders; red≈V7
+      '[{"label":"Blue","color":"#2f80ed","v_equiv":"V1"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V3"},{"label":"Red","color":"#eb5757","v_equiv":"V7"}]'
     )
 ) as s(gym_name, kind, bands) on s.gym_name = g.name;
