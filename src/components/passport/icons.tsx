@@ -12,9 +12,15 @@ export function HomeIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-export function GymsIcon({ filled }: { filled?: boolean }) {
+export function GymsIcon({
+  filled,
+  className,
+}: {
+  filled?: boolean;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none">
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-6"} fill="none">
       <path
         d="M12 21s6.4-5.3 6.4-10.1A6.4 6.4 0 0 0 5.6 10.9C5.6 15.7 12 21 12 21Z"
         stroke="currentColor"
@@ -105,21 +111,35 @@ export function TrashIcon() {
   );
 }
 
-export function MountainIcon({ className }: { className?: string }) {
+/** Square peak — same stroke language as GymsIcon (map pin). */
+export function PeakIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 48 32" aria-hidden className={className} fill="none">
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-6"} fill="none">
       <path
-        d="M8 28 20.5 10l6.2 8.5L32 12l8 16H8Z"
+        d="M4 19.5 12 5l8 14.5"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="1.7"
         strokeLinejoin="round"
+        strokeLinecap="round"
       />
       <path
-        d="m18.8 12.4 3.2-2.4 2.6 2.1"
+        d="M8.2 14.2h7.6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-4"} fill="none">
+      <path
+        d="M12 5v14M5 12h14"
         stroke="currentColor"
         strokeWidth="2.2"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
