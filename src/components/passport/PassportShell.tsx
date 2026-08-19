@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { GymVisit } from "@/lib/types";
+import type { CatalogGym, GymVisit } from "@/lib/types";
 import { BottomNav } from "./BottomNav";
 import { LogGymSheet } from "./LogGymSheet";
 import { PassportProvider } from "./PassportContext";
@@ -9,12 +9,14 @@ import { PassportProvider } from "./PassportContext";
 export function PassportShell({
   username,
   visits,
+  catalogGyms,
   configured,
   loadError,
   children,
 }: {
   username: string;
   visits: GymVisit[];
+  catalogGyms: CatalogGym[];
   configured: boolean;
   loadError: string | null;
   children: ReactNode;
@@ -23,6 +25,7 @@ export function PassportShell({
     <PassportProvider
       username={username}
       visits={visits}
+      catalogGyms={catalogGyms}
       configured={configured}
       loadError={loadError}
     >

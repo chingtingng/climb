@@ -1,6 +1,7 @@
 "use client";
 
 import { logoutAction } from "@/app/actions";
+import { formatGymPlace } from "@/lib/gyms";
 import { CountryStamp } from "./CountryStamp";
 import { usePassport } from "./PassportContext";
 
@@ -39,7 +40,7 @@ export function ProfileView() {
                 <p className="truncate text-sm text-pass-muted">
                   {stats.mostVisitedGym.visitCount}{" "}
                   {stats.mostVisitedGym.visitCount === 1 ? "visit" : "visits"} ·{" "}
-                  {stats.mostVisitedGym.city}
+                  {formatGymPlace(stats.mostVisitedGym)}
                 </p>
               </div>
             </div>

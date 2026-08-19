@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatStampDate } from "@/lib/dates";
-import { formatGrade, gradeSortValue } from "@/lib/grades";
-import { uniqueCountries } from "@/lib/gyms";
+import { gradeSortValue } from "@/lib/grades";
+import { formatGymPlace, uniqueCountries } from "@/lib/gyms";
 import type { GymGroup } from "@/lib/types";
 import { CountryStamp } from "./CountryStamp";
+import { GradeLabel } from "./GradePicker";
 import { SearchIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
@@ -24,7 +25,7 @@ export function GymsView() {
     const list = gyms.filter((gym) => {
       const matchesQuery =
         !q ||
-        `${gym.name} ${gym.city} ${gym.country}`.toLowerCase().includes(q);
+        `${gym.name} ${gym.city} ${gym.country} ${gym.outlets.join(" ")}`.toLowerCase().includes(q);
       const matchesCountry =
         country === "All" ||
         gym.country.trim().toLowerCase() === country.trim().toLowerCase();
@@ -135,7 +136,7 @@ export function GymsView() {
                     {gym.name}
                   </span>
                   <span className="block truncate text-sm text-pass-muted">
-                    {gym.city} · {gym.country}
+                    {formatGymPlace(gym)}
                   </span>
                   <span className="mt-0.5 block text-xs text-pass-muted">
                     {gym.visitCount} {gym.visitCount === 1 ? "visit" : "visits"} ·{" "}
@@ -143,7 +144,10 @@ export function GymsView() {
                   </span>
                 </span>
                 <span className="shrink-0 text-sm font-semibold">
-                  {formatGrade(gym.bestGradeSystem, gym.bestGrade)}
+                  <GradeLabel
+                    system={gym.bestGradeSystem}
+                    grade={gym.bestGrade}
+                  />
                 </span>
               </Link>
             </li>

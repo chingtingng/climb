@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { formatStampDate } from "@/lib/dates";
-import { formatGrade } from "@/lib/grades";
 import type { GymVisit } from "@/lib/types";
-import { gymSlug } from "@/lib/gyms";
+import { formatVisitPlace, gymSlug } from "@/lib/gyms";
 import { AddStampButton, CountryStamp } from "./CountryStamp";
 import { EmptyPassport } from "./EmptyPassport";
+import { GradeLabel } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 
 export function HomeView() {
@@ -69,7 +69,7 @@ export function HomeView() {
               {visits.slice(0, 12).map((visit) => (
                 <li key={visit.id}>
                   <Link
-                    href={`/passport/gyms/${gymSlug(visit.gym_name, visit.city, visit.country)}`}
+                    href={`/passport/gyms/${gymSlug(visit.gym_name, visit.country)}`}
                     className="flex min-h-16 items-center gap-3 rounded-[1.25rem] border border-white bg-white px-3 py-3 shadow-[0_8px_20px_rgba(52,126,168,0.08)]"
                   >
                     <CountryStamp country={visit.country} size="sm" />
@@ -78,12 +78,15 @@ export function HomeView() {
                         {visit.gym_name}
                       </span>
                       <span className="block truncate text-sm text-pass-muted">
-                        {visit.city} · {visit.country}
+                        {formatVisitPlace(visit)}
                       </span>
                     </span>
                     <span className="shrink-0 text-right">
                       <span className="block text-sm font-semibold">
-                        {formatGrade(visit.grade_system, visit.highest_grade)}
+                        <GradeLabel
+                          system={visit.grade_system}
+                          grade={visit.highest_grade}
+                        />
                       </span>
                       <span className="block text-xs text-pass-muted">
                         {formatStampDate(visit.visited_on)}

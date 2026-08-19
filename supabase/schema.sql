@@ -180,3 +180,155 @@ grant select, insert, update, delete on table public.gym_visits to authenticated
 
 revoke all on table public.profiles from anon;
 revoke all on table public.gym_visits from anon;
+
+-- ---------------------------------------------------------------------------
+-- Gym catalog, outlets, and house grade systems
+-- Re-run this file after pulling. Existing visits stay intact.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.gyms (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  country text not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  constraint gyms_name_len check (char_length(name) between 1 and 120),
+  constraint gyms_country_len check (char_length(country) between 1 and 80)
+);
+
+create unique index if not exists gyms_name_country_idx
+  on public.gyms (lower(name), lower(country));
+
+create table if not exists public.gym_outlets (
+  id uuid primary key default gen_random_uuid(),
+  gym_id uuid not null references public.gyms (id) on delete cascade,
+  name text not null,
+  city text not null,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  constraint gym_outlets_name_len check (char_length(name) between 1 and 80),
+  constraint gym_outlets_city_len check (char_length(city) between 1 and 80)
+);
+
+create unique index if not exists gym_outlets_gym_name_idx
+  on public.gym_outlets (gym_id, lower(name));
+
+create table if not exists public.gym_grade_scales (
+  id uuid primary key default gen_random_uuid(),
+  gym_id uuid not null unique references public.gyms (id) on delete cascade,
+  kind text not null check (kind in ('v', 'font', 'french', 'number', 'color', 'custom')),
+  bands jsonb not null default '[]'::jsonb,
+  chart_path text,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.gym_visits add column if not exists outlet text;
+alter table public.gym_visits add column if not exists v_equiv text;
+alter table public.gym_visits add column if not exists gym_id uuid references public.gyms (id) on delete set null;
+alter table public.gym_visits add column if not exists outlet_id uuid references public.gym_outlets (id) on delete set null;
+
+alter table public.gym_visits drop constraint if exists gym_visits_grade_system_check;
+alter table public.gym_visits add constraint gym_visits_grade_system_check
+  check (grade_system in ('v', 'font', 'french', 'number', 'color', 'custom'));
+
+alter table public.gym_visits drop constraint if exists gym_visits_grade_len;
+alter table public.gym_visits add constraint gym_visits_grade_len
+  check (char_length(highest_grade) between 1 and 40);
+
+alter table public.gyms enable row level security;
+alter table public.gym_outlets enable row level security;
+alter table public.gym_grade_scales enable row level security;
+
+drop policy if exists "Authenticated can view gyms" on public.gyms;
+drop policy if exists "Authenticated can create gyms" on public.gyms;
+drop policy if exists "Creators can update gyms" on public.gyms;
+drop policy if exists "Authenticated can view outlets" on public.gym_outlets;
+drop policy if exists "Authenticated can create outlets" on public.gym_outlets;
+drop policy if exists "Authenticated can view grade scales" on public.gym_grade_scales;
+drop policy if exists "Authenticated can create grade scales" on public.gym_grade_scales;
+drop policy if exists "Creators can update grade scales" on public.gym_grade_scales;
+
+create policy "Authenticated can view gyms"
+  on public.gyms for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated can create gyms"
+  on public.gyms for insert
+  to authenticated
+  with check (created_by = auth.uid());
+
+create policy "Creators can update gyms"
+  on public.gyms for update
+  to authenticated
+  using (created_by = auth.uid())
+  with check (created_by = auth.uid());
+
+create policy "Authenticated can view outlets"
+  on public.gym_outlets for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated can create outlets"
+  on public.gym_outlets for insert
+  to authenticated
+  with check (created_by = auth.uid());
+
+create policy "Authenticated can view grade scales"
+  on public.gym_grade_scales for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated can create grade scales"
+  on public.gym_grade_scales for insert
+  to authenticated
+  with check (created_by = auth.uid());
+
+create policy "Creators can update grade scales"
+  on public.gym_grade_scales for update
+  to authenticated
+  using (created_by = auth.uid())
+  with check (created_by = auth.uid());
+
+grant all on table public.gyms to service_role;
+grant all on table public.gym_outlets to service_role;
+grant all on table public.gym_grade_scales to service_role;
+
+grant select, insert, update on table public.gyms to authenticated;
+grant select, insert, update on table public.gym_outlets to authenticated;
+grant select, insert, update on table public.gym_grade_scales to authenticated;
+
+revoke all on table public.gyms from anon;
+revoke all on table public.gym_outlets from anon;
+revoke all on table public.gym_grade_scales from anon;
+
+-- Shared grade-chart photos. Public read: these are gym wall charts, not personal logs.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'gym-grade-charts',
+  'gym-grade-charts',
+  true,
+  8388608,
+  array['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Authenticated can upload grade charts" on storage.objects;
+drop policy if exists "Anyone can view grade charts" on storage.objects;
+
+create policy "Authenticated can upload grade charts"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'gym-grade-charts'
+    and name like auth.uid()::text || '/%'
+  );
+
+create policy "Anyone can view grade charts"
+  on storage.objects for select
+  using (bucket_id = 'gym-grade-charts');
+

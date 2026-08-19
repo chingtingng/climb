@@ -1,10 +1,15 @@
-import type { GradeSystem } from "./types";
+import type { GradeBand, GradeScale, GradeSystem } from "./types";
 
 export const GRADE_SYSTEMS: { value: GradeSystem; label: string }[] = [
   { value: "v", label: "V-scale" },
   { value: "font", label: "Font" },
   { value: "french", label: "French" },
+  { value: "number", label: "Numbers" },
+  { value: "color", label: "Colours" },
+  { value: "custom", label: "Custom" },
 ];
+
+export const STANDARD_SYSTEMS: GradeSystem[] = ["v", "font", "french"];
 
 export const V_GRADES = [
   "VB",
@@ -81,7 +86,47 @@ export const FRENCH_GRADES = [
   "9a",
 ];
 
-export function gradesForSystem(system: GradeSystem): string[] {
+export const NUMBER_GRADES = Array.from({ length: 21 }, (_, i) => String(i));
+
+export const COLOR_GRADES: { label: string; color: string }[] = [
+  { label: "White", color: "#f4f1ea" },
+  { label: "Yellow", color: "#f2c94c" },
+  { label: "Orange", color: "#f2994a" },
+  { label: "Red", color: "#eb5757" },
+  { label: "Pink", color: "#e86ba8" },
+  { label: "Purple", color: "#9b51e0" },
+  { label: "Blue", color: "#2f80ed" },
+  { label: "Green", color: "#27ae60" },
+  { label: "Black", color: "#1b1b1b" },
+  { label: "Grey", color: "#828282" },
+  { label: "Brown", color: "#8b5e3c" },
+];
+
+export function colorHex(label: string, fallback?: string): string {
+  const match = COLOR_GRADES.find(
+    (item) => item.label.toLowerCase() === label.trim().toLowerCase(),
+  );
+  return match?.color ?? fallback ?? "#c3d7e5";
+}
+
+export function numberRange(from: number, to: number): string[] {
+  const start = Math.max(0, Math.min(99, Math.trunc(from)));
+  const end = Math.max(0, Math.min(99, Math.trunc(to)));
+  const [lo, hi] = start <= end ? [start, end] : [end, start];
+  return Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i));
+}
+
+export function bandsFromScale(scale: GradeScale | null | undefined): GradeBand[] {
+  return scale?.bands ?? [];
+}
+
+export function gradesForSystem(
+  system: GradeSystem,
+  scale?: GradeScale | null,
+): string[] {
+  if (scale && scale.kind === system && scale.bands.length > 0) {
+    return scale.bands.map((band) => band.label);
+  }
   switch (system) {
     case "v":
       return V_GRADES;
@@ -89,19 +134,55 @@ export function gradesForSystem(system: GradeSystem): string[] {
       return FONT_GRADES;
     case "french":
       return FRENCH_GRADES;
+    case "number":
+      return NUMBER_GRADES;
+    case "color":
+      return COLOR_GRADES.map((item) => item.label);
+    case "custom":
+      return scale?.bands.map((band) => band.label) ?? [];
   }
 }
 
 export function formatGrade(system: GradeSystem, grade: string): string {
-  if (system === "v") return grade;
   if (system === "font") return `Font ${grade}`;
   return grade;
 }
 
+export function vEquivFor(
+  system: GradeSystem,
+  grade: string,
+  scale?: GradeScale | null,
+): string | undefined {
+  const band = scale?.bands.find(
+    (item) => item.label.toLowerCase() === grade.trim().toLowerCase(),
+  );
+  if (band?.v_equiv) return band.v_equiv;
+  if (system === "v") return grade;
+  return undefined;
+}
+
 /** Rough 0–100 rank so mixed grade systems can still pick a “best send”. */
-export function gradeSortValue(system: GradeSystem, grade: string): number {
+export function gradeSortValue(
+  system: GradeSystem,
+  grade: string,
+  vEquiv?: string | null,
+): number {
+  if (vEquiv) {
+    const idx = V_GRADES.indexOf(vEquiv);
+    if (idx >= 0) return (idx / Math.max(1, V_GRADES.length - 1)) * 100;
+  }
+  if (system === "number") {
+    const n = Number.parseInt(grade, 10);
+    if (Number.isFinite(n)) return Math.min(100, (n / 20) * 100);
+  }
   const list = gradesForSystem(system);
-  const idx = list.indexOf(grade);
+  const idx = list.findIndex(
+    (item) => item.toLowerCase() === grade.trim().toLowerCase(),
+  );
   if (idx < 0) return 0;
   return (idx / Math.max(1, list.length - 1)) * 100;
+}
+
+export function isHouseSystem(system: GradeSystem): boolean {
+  return system === "number" || system === "color" || system === "custom";
 }

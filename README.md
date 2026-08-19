@@ -53,5 +53,7 @@ Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 w
 
 - **Create account** / **Sign in** use a username and a required password
 - After login: **Home**, **Gyms**, and **Profile**, with a stepped **+ Log a gym** flow
-- Repeat visits to the same gym (name + city + country) add another stamp, not a duplicate gym
-- Grade systems: V-scale, Font, French
+- Repeat visits to the same gym add another stamp, not a duplicate gym. Multi-location gyms (e.g. Boulder Planet Sembawang / Tai Seng) use an **outlet** selector.
+- Grade systems: V-scale, Font, French, **Numbers**, **Colours**, and custom house scales
+- The first person to add a gym with a house scale uploads a photo of the grade chart plus a V-scale mapping
+- After pulling this version, re-run [`supabase/schema.sql`](./supabase/schema.sql) so gym catalog tables, extra visit columns, and the `gym-grade-charts` storage bucket exist

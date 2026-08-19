@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { formatStampDate } from "@/lib/dates";
-import { formatGrade } from "@/lib/grades";
-import { findGymBySlug } from "@/lib/gyms";
+import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
 import { BackIcon } from "./icons";
 import { CountryStamp } from "./CountryStamp";
 import { DeleteStampDialog } from "./DeleteStampDialog";
+import { GradeLabel } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 
 export function GymDetailView({ slug }: { slug: string }) {
@@ -50,11 +50,27 @@ export function GymDetailView({ slug }: { slug: string }) {
             {gym.name}
           </h1>
           <p className="mt-1 text-sm text-pass-muted">
-            {gym.city} · {gym.country}
+            {formatGymPlace(gym)}
           </p>
         </div>
         <CountryStamp country={gym.country} />
       </header>
+
+      {gym.outlets.length > 1 ? (
+        <section>
+          <h2 className="passport-mark text-xl">Outlets</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {gym.outlets.map((outlet) => (
+              <span
+                key={outlet}
+                className="inline-flex min-h-10 items-center rounded-full bg-white px-3 text-sm font-semibold"
+              >
+                {outlet}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid grid-cols-2 gap-2.5">
         <div className="rounded-[1.2rem] bg-white px-4 py-4">
@@ -62,7 +78,7 @@ export function GymDetailView({ slug }: { slug: string }) {
             Highest grade
           </p>
           <p className="passport-mark mt-1 text-3xl leading-none">
-            {formatGrade(gym.bestGradeSystem, gym.bestGrade)}
+            <GradeLabel system={gym.bestGradeSystem} grade={gym.bestGrade} />
           </p>
         </div>
         <div className="rounded-[1.2rem] bg-white px-4 py-4">
@@ -84,7 +100,11 @@ export function GymDetailView({ slug }: { slug: string }) {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
                 <p className="text-sm break-words text-pass-muted">
-                  {formatGrade(visit.grade_system, visit.highest_grade)}
+                  {formatVisitPlace(visit)} ·{" "}
+                  <GradeLabel
+                    system={visit.grade_system}
+                    grade={visit.highest_grade}
+                  />
                   {visit.notes ? ` · ${visit.notes}` : ""}
                 </p>
               </div>

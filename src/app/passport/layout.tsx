@@ -4,8 +4,8 @@ import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import { PassportShell } from "@/components/passport/PassportShell";
 import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import type { GymVisit } from "@/lib/types";
-import { listVisitsForProfile } from "@/lib/visits";
+import type { CatalogGym, GymVisit } from "@/lib/types";
+import { listCatalogGyms, listVisitsForProfile } from "@/lib/visits";
 
 const dmSerif = DM_Serif_Display({
   variable: "--font-dm-serif",
@@ -30,11 +30,13 @@ export default async function PassportLayout({
 
   const configured = isSupabaseConfigured();
   let visits: GymVisit[] = [];
+  let catalogGyms: CatalogGym[] = [];
   let loadError: string | null = null;
 
   if (configured) {
     try {
       visits = await listVisitsForProfile(session.id);
+      catalogGyms = await listCatalogGyms();
     } catch {
       loadError = "Couldn't load your stamps right now. Try again in a moment.";
     }
@@ -45,6 +47,7 @@ export default async function PassportLayout({
       <PassportShell
         username={session.username}
         visits={visits}
+        catalogGyms={catalogGyms}
         configured={configured}
         loadError={loadError}
       >

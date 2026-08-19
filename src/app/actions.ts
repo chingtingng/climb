@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import type { GradeSystem, GymVisitInput } from "@/lib/types";
+import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
+import { isHouseSystem } from "@/lib/grades";
 import {
   createVisit,
   deleteVisit,
@@ -158,16 +159,22 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const gym_name = String(formData.get("gym_name") ?? "").trim();
   const country = String(formData.get("country") ?? "").trim();
   const city = String(formData.get("city") ?? "").trim();
+  const outlet = String(formData.get("outlet") ?? "").trim();
   const grade_system = String(formData.get("grade_system") ?? "") as GradeSystem;
   const highest_grade = String(formData.get("highest_grade") ?? "").trim();
+  const v_equiv = String(formData.get("v_equiv") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const visited_on = String(formData.get("visited_on") ?? "").trim();
+  const isNew = String(formData.get("is_new_gym") ?? "") === "1";
+  const hasCatalogScale = String(formData.get("has_catalog_scale") ?? "") === "1";
+  const chart = formData.get("grade_chart");
+  const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
 
   if (!gym_name || !country || !city || !highest_grade || !visited_on) {
     return "Please fill in gym, place, grade, and date.";
   }
 
-  if (!["v", "font", "french"].includes(grade_system)) {
+  if (!["v", "font", "french", "number", "color", "custom"].includes(grade_system)) {
     return "Pick a valid grade system.";
   }
 
@@ -175,14 +182,54 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     return "Keep notes under 400 characters.";
   }
 
+  if (highest_grade.length > 40) {
+    return "That grade is too long.";
+  }
+
+  let scale: GradeScale | undefined;
+  const scaleJson = String(formData.get("scale_json") ?? "").trim();
+  if (scaleJson) {
+    try {
+      const parsed = JSON.parse(scaleJson) as GradeScale;
+      if (!parsed?.kind || !Array.isArray(parsed.bands)) {
+        return "Couldn’t read that gym’s grade mapping.";
+      }
+      scale = {
+        kind: parsed.kind,
+        bands: parsed.bands
+          .filter((band) => band?.label)
+          .map((band) => ({
+            label: String(band.label).slice(0, 40),
+            v_equiv: band.v_equiv ? String(band.v_equiv).slice(0, 8) : undefined,
+            color: band.color ? String(band.color).slice(0, 16) : undefined,
+          })),
+      };
+    } catch {
+      return "Couldn’t read that gym’s grade mapping.";
+    }
+  }
+
+  if (isNew && !hasCatalogScale && isHouseSystem(grade_system)) {
+    if (!scale || scale.bands.length < 1) {
+      return "Add this gym’s grades so the next visit can reuse them.";
+    }
+    if (!chartFile) {
+      return "Add a photo of this gym’s grade chart so others can use the same scale.";
+    }
+  }
+
   return {
     gym_name,
     country,
     city,
+    outlet: outlet || undefined,
     grade_system,
     highest_grade,
+    v_equiv: v_equiv || undefined,
     notes: notes || undefined,
     visited_on,
+    scale,
+    chartFile,
   };
 }
 

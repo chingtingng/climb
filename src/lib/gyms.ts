@@ -1,10 +1,12 @@
 import { formatGrade, gradeSortValue } from "./grades";
 import type { GymGroup, GymVisit, PassportStats } from "./types";
 
-export function gymSlug(name: string, city: string, country: string): string {
-  return [name, city, country]
-    .map((part) => slugPart(part))
-    .join("--");
+export function gymSlug(name: string, country: string): string {
+  return `${slugPart(name)}--${slugPart(country)}`;
+}
+
+export function legacyGymSlug(name: string, city: string, country: string): string {
+  return [name, city, country].map((part) => slugPart(part)).join("--");
 }
 
 function slugPart(value: string): string {
@@ -19,16 +21,31 @@ function slugPart(value: string): string {
   );
 }
 
-export function gymKey(name: string, city: string, country: string): string {
-  return [name, city, country].map((part) => part.trim().toLowerCase()).join("\u001f");
+export function gymKey(name: string, country: string): string {
+  return [name, country].map((part) => part.trim().toLowerCase()).join("\u001f");
+}
+
+export function visitOutlet(visit: GymVisit): string {
+  return visit.outlet?.trim() || visit.city;
+}
+
+export function formatVisitPlace(visit: GymVisit): string {
+  const outlet = visitOutlet(visit);
+  if (outlet.toLowerCase() === visit.country.trim().toLowerCase()) {
+    return visit.country;
+  }
+  if (outlet.toLowerCase() === visit.city.trim().toLowerCase()) {
+    return `${visit.city} · ${visit.country}`;
+  }
+  return `${outlet} · ${visit.country}`;
 }
 
 export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
   const map = new Map<string, GymVisit[]>();
-  const labels = new Map<string, { name: string; city: string; country: string }>();
+  const labels = new Map<string, { name: string; country: string }>();
 
   for (const visit of visits) {
-    const key = gymKey(visit.gym_name, visit.city, visit.country);
+    const key = gymKey(visit.gym_name, visit.country);
     const list = map.get(key);
     if (list) {
       list.push(visit);
@@ -36,7 +53,6 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
       map.set(key, [visit]);
       labels.set(key, {
         name: visit.gym_name,
-        city: visit.city,
         country: visit.country,
       });
     }
@@ -53,15 +69,26 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
     });
     const best = [...gymVisits].sort(
       (a, b) =>
-        gradeSortValue(b.grade_system, b.highest_grade) -
-        gradeSortValue(a.grade_system, a.highest_grade),
+        gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
+        gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv),
     )[0];
 
+    const outlets: string[] = [];
+    const seen = new Set<string>();
+    for (const visit of sorted) {
+      const outlet = visitOutlet(visit);
+      const outletKey = outlet.toLowerCase();
+      if (seen.has(outletKey)) continue;
+      seen.add(outletKey);
+      outlets.push(outlet);
+    }
+
     gyms.push({
-      slug: gymSlug(label.name, label.city, label.country),
+      slug: gymSlug(label.name, label.country),
       name: label.name,
-      city: label.city,
+      city: sorted[0] ? visitOutlet(sorted[0]) : "",
       country: label.country,
+      outlets,
       visits: sorted,
       visitCount: sorted.length,
       lastVisited: sorted[0]?.visited_on ?? "",
@@ -74,17 +101,25 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
 }
 
 export function findGymBySlug(gyms: GymGroup[], slug: string): GymGroup | undefined {
-  return gyms.find((gym) => gym.slug === slug);
+  const exact = gyms.find((gym) => gym.slug === slug);
+  if (exact) return exact;
+  return gyms.find((gym) =>
+    gym.visits.some(
+      (visit) => legacyGymSlug(visit.gym_name, visit.city, visit.country) === slug,
+    ),
+  );
 }
 
 export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStats {
-  const cities = new Set(gyms.map((gym) => gymKey(gym.city, gym.country, "")));
+  const cities = new Set(
+    visits.map((visit) => `${visit.city.trim().toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`),
+  );
   const countries = new Set(gyms.map((gym) => gym.country.trim().toLowerCase()));
 
   const bestVisit = [...visits].sort(
     (a, b) =>
-      gradeSortValue(b.grade_system, b.highest_grade) -
-      gradeSortValue(a.grade_system, a.highest_grade),
+      gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
+      gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv),
   )[0];
 
   const mostVisitedGym =
@@ -94,17 +129,17 @@ export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStat
     })[0] ?? null;
 
   const cityCounts = new Map<string, { label: string; count: number; last: string }>();
-  for (const gym of gyms) {
-    const key = gymKey(gym.city, gym.country, "");
+  for (const visit of visits) {
+    const key = `${visit.city.trim().toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`;
     const current = cityCounts.get(key);
     if (current) {
-      current.count += gym.visitCount;
-      if (gym.lastVisited > current.last) current.last = gym.lastVisited;
+      current.count += 1;
+      if (visit.visited_on > current.last) current.last = visit.visited_on;
     } else {
       cityCounts.set(key, {
-        label: gym.city,
-        count: gym.visitCount,
-        last: gym.lastVisited,
+        label: visit.city,
+        count: 1,
+        last: visit.visited_on,
       });
     }
   }
@@ -137,4 +172,12 @@ export function uniqueCountries(gyms: GymGroup[]): string[] {
     ordered.push(gym.country);
   }
   return ordered;
+}
+
+export function formatGymPlace(gym: GymGroup): string {
+  if (gym.outlets.length > 1) {
+    return `${gym.outlets.join(" · ")} · ${gym.country}`;
+  }
+  if (gym.city) return `${gym.city} · ${gym.country}`;
+  return gym.country;
 }

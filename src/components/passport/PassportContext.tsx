@@ -9,12 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import { computeStats, groupVisitsByGym } from "@/lib/gyms";
-import type { GymGroup, GymVisit, PassportStats } from "@/lib/types";
+import type { CatalogGym, GymGroup, GymVisit, PassportStats } from "@/lib/types";
 
 export type LogPrefill = {
   name?: string;
   city?: string;
   country?: string;
+  outlet?: string;
   existing?: boolean;
 };
 
@@ -22,6 +23,7 @@ type PassportContextValue = {
   username: string;
   visits: GymVisit[];
   gyms: GymGroup[];
+  catalogGyms: CatalogGym[];
   stats: PassportStats;
   configured: boolean;
   loadError: string | null;
@@ -36,12 +38,14 @@ const PassportContext = createContext<PassportContextValue | null>(null);
 export function PassportProvider({
   username,
   visits,
+  catalogGyms,
   configured,
   loadError,
   children,
 }: {
   username: string;
   visits: GymVisit[];
+  catalogGyms: CatalogGym[];
   configured: boolean;
   loadError: string | null;
   children: ReactNode;
@@ -67,6 +71,7 @@ export function PassportProvider({
       username,
       visits,
       gyms,
+      catalogGyms,
       stats,
       configured,
       loadError,
@@ -79,6 +84,7 @@ export function PassportProvider({
       username,
       visits,
       gyms,
+      catalogGyms,
       stats,
       configured,
       loadError,
