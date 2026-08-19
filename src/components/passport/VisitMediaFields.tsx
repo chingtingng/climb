@@ -92,16 +92,22 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
     }
     try {
       setStatus("Checking video…");
+      let sawCompressProgress = false;
       const result = await compressVideoTo1080p(file, (ratio) => {
-        setProgress(ratio);
-        setStatus(`Compressing video to 1080p… ${Math.round(ratio * 100)}%`);
+        if (ratio > 0 && ratio < 1) {
+          sawCompressProgress = true;
+          setProgress(ratio);
+          setStatus(`Compressing video to 1080p… ${Math.round(ratio * 100)}%`);
+        } else if (ratio >= 1 && sawCompressProgress) {
+          setProgress(1);
+        }
       });
       onVideo(result.file);
       setProgress(null);
       setStatus(
         result.compressed
           ? "Video compressed to 1080p — quality may be a bit lower than 2K/4K."
-          : "Video ready (already within 1080p / size limits).",
+          : "Video ready.",
       );
     } catch (err) {
       onVideo(null);
@@ -116,8 +122,8 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
       <div>
         <p className="text-sm font-semibold">Media (optional)</p>
         <p className="mt-1 text-xs leading-relaxed text-pass-muted">
-          Up to 1 photo and 1 video (under {MAX_VIDEO_SECONDS}s). Prefer 1080p — we’ll compress
-          higher resolutions (quality may drop).
+          Up to 1 photo and 1 video (under {MAX_VIDEO_SECONDS}s). Large videos are compressed
+          when needed so uploads stay light.
         </p>
       </div>
 

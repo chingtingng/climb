@@ -35,6 +35,7 @@ import {
   PLACE_KINDS,
   PLACE_KIND_HELP,
   PLACE_KIND_LABELS,
+  defaultGradeSystemForPlaceKind,
   normalizePlaceKind,
   type PlaceKind,
 } from "@/lib/placeKinds";
@@ -622,7 +623,21 @@ function LogGymSheetInner({
           )}
 
           {step === "kind" && (
-            <PlaceKindStep selected={placeKind} onSelect={setPlaceKind} />
+            <PlaceKindStep
+              selected={placeKind}
+              onSelect={(kind) => {
+                setPlaceKind(kind);
+                const gradeSystem = defaultGradeSystemForPlaceKind(kind);
+                const nextScale =
+                  gradeSystem === "number"
+                    ? defaultScaleFor("number", 1, 12)
+                    : defaultScaleFor(gradeSystem);
+                setScale(nextScale);
+                setScaleDraft(nextScale);
+                setSystem(gradeSystem);
+                setGrade("");
+              }}
+            />
           )}
 
           {step === "offer" && (

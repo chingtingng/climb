@@ -1,3 +1,5 @@
+import type { GradeSystem } from "./types";
+
 export const PLACE_KINDS = ["gym", "rock"] as const;
 
 export type PlaceKind = (typeof PLACE_KINDS)[number];
@@ -24,4 +26,9 @@ export function normalizePlaceKind(
 
 export function formatPlaceKind(value: string | null | undefined): string {
   return PLACE_KIND_LABELS[normalizePlaceKind(value)];
+}
+
+/** Default grade system when first setting up a new place’s chart. */
+export function defaultGradeSystemForPlaceKind(kind: PlaceKind): GradeSystem {
+  return kind === "rock" ? "french" : "number";
 }
