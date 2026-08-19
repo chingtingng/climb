@@ -66,7 +66,7 @@ export function GymsView() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search gyms, cities or countries"
-          className="passport-field pl-11"
+          className="passport-field passport-field-icon"
         />
       </label>
 

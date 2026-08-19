@@ -824,7 +824,6 @@ function CountryStep({
         items={featured.map((item) => ({
           key: item,
           title: item,
-          subtitle: skipsCityStep(item) ? "Outlet names the place" : "Then pick a city",
           onClick: () => onPick(item),
         }))}
       />

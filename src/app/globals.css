@@ -269,6 +269,12 @@ textarea {
   outline-offset: 2px;
 }
 
+/* Inputs already use a border change; outer rings clip inside overflow containers. */
+.passport-root :is(input, textarea, select):focus,
+.passport-root :is(input, textarea, select):focus-visible {
+  outline: none;
+}
+
 .passport-frame {
   width: min(100%, 480px);
   margin: 0 auto;
@@ -329,15 +335,20 @@ textarea {
   border-radius: 999px;
   border: 1px solid var(--color-pass-line);
   background: #fff;
-  padding: 0.75rem 1rem;
+  /* Separate axes so utilities / .passport-field-icon can set inline-start. */
+  padding-block: 0.75rem;
+  padding-inline: 1rem;
   color: var(--color-pass-navy);
   font-size: 16px;
   outline: none;
 }
 
+.passport-field-icon {
+  padding-inline-start: 3rem;
+}
+
 .passport-field:focus {
   border-color: var(--color-pass-primary);
-  box-shadow: 0 0 0 3px rgba(52, 126, 168, 0.18);
 }
 
 textarea.passport-field {
