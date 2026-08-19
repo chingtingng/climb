@@ -130,27 +130,44 @@ export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStat
       return b.lastVisited.localeCompare(a.lastVisited);
     })[0] ?? null;
 
-  const cityCounts = new Map<string, { label: string; count: number; last: string }>();
+  const cityCounts = new Map<
+    string,
+    { label: string; country: string; count: number; last: string; gyms: Set<string> }
+  >();
   for (const visit of visits) {
-    const key = `${visit.city.trim().toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`;
+    const cityLabel = visit.city.trim() || visit.country.trim();
+    const key = `${cityLabel.toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`;
     const current = cityCounts.get(key);
+    const gymId = visit.gym_id || visit.gym_name.trim().toLowerCase();
     if (current) {
       current.count += 1;
+      current.gyms.add(gymId);
       if (visit.visited_on > current.last) current.last = visit.visited_on;
     } else {
       cityCounts.set(key, {
-        label: visit.city,
+        label: cityLabel,
+        country: visit.country.trim(),
         count: 1,
         last: visit.visited_on,
+        gyms: new Set([gymId]),
       });
     }
   }
 
-  const favouriteCity =
+  const favourite =
     [...cityCounts.values()].sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return b.last.localeCompare(a.last);
-    })[0]?.label ?? null;
+    })[0] ?? null;
+
+  const favouriteCity = favourite
+    ? {
+        name: favourite.label,
+        country: favourite.country,
+        gymCount: favourite.gyms.size,
+        sessionCount: favourite.count,
+      }
+    : null;
 
   return {
     gyms: gyms.length,
