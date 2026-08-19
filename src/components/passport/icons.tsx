@@ -84,9 +84,9 @@ export function BackIcon() {
   );
 }
 
-export function CloseIcon() {
+export function CloseIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden className="size-5" fill="none">
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-5"} fill="none">
       <path
         d="M7 7l10 10M17 7 7 17"
         stroke="currentColor"
