@@ -17,6 +17,7 @@ import {
   gymsInCountry,
   hasMultipleOutlets,
   mergeOutlets,
+  sameCountry,
   searchKnownGyms,
   skipsCityStep,
   visibleOutlets,
@@ -114,12 +115,12 @@ function LogGymSheetInner({
   const catalogMatch = catalogGyms.find(
     (gym) =>
       gym.name.toLowerCase() === name.trim().toLowerCase() &&
-      gym.country.toLowerCase() === country.trim().toLowerCase(),
+      sameCountry(gym.country, country),
   );
   const userMatch = gyms.find(
     (gym) =>
       gym.name.toLowerCase() === name.trim().toLowerCase() &&
-      gym.country.toLowerCase() === country.trim().toLowerCase(),
+      sameCountry(gym.country, country),
   );
 
   const resolvedScale: GradeScale | null =
@@ -418,7 +419,7 @@ function LogGymSheetInner({
                 const catalog = catalogGyms.find(
                   (item) =>
                     item.name.toLowerCase() === gym.name.toLowerCase() &&
-                    item.country.toLowerCase() === gym.country.toLowerCase(),
+                    sameCountry(item.country, gym.country),
                 );
                 applyGym(
                   catalog ?? {
@@ -686,8 +687,7 @@ function GymStep({
   onNext: () => void;
 }) {
   const q = query.trim().toLowerCase();
-  const countryKey = country.trim().toLowerCase();
-  const inCountry = gyms.filter((gym) => gym.country.toLowerCase() === countryKey);
+  const inCountry = gyms.filter((gym) => sameCountry(gym.country, country));
   const recent = (q
     ? inCountry.filter((gym) =>
         `${gym.name} ${gym.outlets.join(" ")} ${gym.country}`.toLowerCase().includes(q),
@@ -1087,7 +1087,7 @@ function CityStep({
   const gymCities = [
     ...catalogCities(catalogGyms, country),
     ...gyms
-      .filter((gym) => gym.country.toLowerCase() === country.trim().toLowerCase())
+      .filter((gym) => sameCountry(gym.country, country))
       .map((gym) => gym.city),
   ];
   const cities = citiesForCountry(country, [...gymCities, city]).sort((a, b) =>
