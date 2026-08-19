@@ -235,11 +235,17 @@ function LogGymSheetInner({
       if (!name.trim()) return;
       if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
       if (isExistingBrand) {
-        if (outlets.length === 1) {
+        if (outlets.length === 1 && !outlet.trim()) {
           setOutlet(outlets[0].name);
           setCity(outlets[0].city);
+        } else if (outlet.trim()) {
+          const match = outlets.find(
+            (item) => item.name.toLowerCase() === outlet.trim().toLowerCase(),
+          );
+          if (match) setCity(match.city);
         }
-        if (needsOutlet) setStep("outlet");
+        // Optional outlet on this step can skip the dedicated picker.
+        if (needsOutlet && !outlet.trim()) setStep("outlet");
         else if (needsScale) setStep("scale");
         else setStep("grade");
       } else if (!skipsCityStep(country) && !city.trim()) {
@@ -402,6 +408,7 @@ function LogGymSheetInner({
           {step === "gym" && (
             <GymStep
               query={query}
+              outlet={outlet}
               country={country}
               city={skipCity ? "" : city}
               gyms={gyms}
@@ -410,6 +417,7 @@ function LogGymSheetInner({
                 setQuery(value);
                 setName(value);
               }}
+              onOutlet={setOutlet}
               onSelectUser={(gym) => {
                 const catalog = catalogGyms.find(
                   (item) =>
@@ -636,21 +644,25 @@ function titleFor(step: Step) {
 
 function GymStep({
   query,
+  outlet,
   country,
   city,
   gyms,
   catalogGyms,
   onQuery,
+  onOutlet,
   onSelectUser,
   onSelectCatalog,
   onNext,
 }: {
   query: string;
+  outlet: string;
   country: string;
   city: string;
   gyms: GymGroup[];
   catalogGyms: CatalogGym[];
   onQuery: (value: string) => void;
+  onOutlet: (value: string) => void;
   onSelectUser: (gym: GymGroup) => void;
   onSelectCatalog: (gym: CatalogGym) => void;
   onNext: () => void;
@@ -692,6 +704,26 @@ function GymStep({
             }
           }}
           placeholder="Boulder Planet"
+          autoComplete="off"
+          autoCapitalize="words"
+          enterKeyHint="next"
+          className="passport-field"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-semibold">
+          Outlet <span className="font-medium text-pass-muted">(optional)</span>
+        </span>
+        <input
+          value={outlet}
+          onChange={(e) => onOutlet(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onNext();
+            }
+          }}
+          placeholder="Leave blank if only one location"
           autoComplete="off"
           autoCapitalize="words"
           enterKeyHint="next"
@@ -741,7 +773,10 @@ function GymStep({
       {query.trim() && (
         <p className="text-sm text-pass-muted">
           New gym? Continue to add{" "}
-          <span className="font-semibold text-pass-navy">{query.trim()}</span>.
+          <span className="font-semibold text-pass-navy">
+            {[query.trim(), outlet.trim()].filter(Boolean).join(" · ")}
+          </span>
+          .
         </p>
       )}
     </div>
