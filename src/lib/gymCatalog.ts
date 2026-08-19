@@ -168,6 +168,29 @@ export const KNOWN_GYMS: CatalogGym[] = [
   gym("Project Send", "Singapore", [["Esplanade", "Esplanade"]]),
   gym("Climb@T3", "Singapore", [["T3", "Changi"]]),
   gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun"]]),
+  gym(
+    "BUMP Bouldering",
+    "Malaysia",
+    [["Jaya One", "Petaling Jaya"]],
+    {
+      kind: "number",
+      // Dot pairs share a V range; stamp the house number, rank by high end.
+      bands: [
+        { label: "1", v_equiv: "VB" },
+        { label: "2", v_equiv: "VB" },
+        { label: "3", v_equiv: "V0", v_max: "V1" },
+        { label: "4", v_equiv: "V0", v_max: "V1" },
+        { label: "5", v_equiv: "V1", v_max: "V2" },
+        { label: "6", v_equiv: "V1", v_max: "V2" },
+        { label: "7", v_equiv: "V3", v_max: "V4" },
+        { label: "8", v_equiv: "V3", v_max: "V4" },
+        { label: "9", v_equiv: "V5", v_max: "V6" },
+        { label: "10", v_equiv: "V5", v_max: "V6" },
+        { label: "11", v_equiv: "V7", v_max: "V9" },
+        { label: "12", v_equiv: "V7", v_max: "V9" },
+      ],
+    },
+  ),
 ];
 
 const CLOSED_GYMS = new Set(["boruda", "the cliff"]);

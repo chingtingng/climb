@@ -148,41 +148,6 @@ export function formatGrade(system: GradeSystem, grade: string): string {
   return grade;
 }
 
-export function vEquivFor(
-  system: GradeSystem,
-  grade: string,
-  scale?: GradeScale | null,
-): string | undefined {
-  const band = scale?.bands.find(
-    (item) => item.label.toLowerCase() === grade.trim().toLowerCase(),
-  );
-  if (band?.v_equiv) return band.v_equiv;
-  if (system === "v") return grade;
-  return undefined;
-}
-
-/** Rough 0–100 rank so mixed grade systems can still pick a “best send”. */
-export function gradeSortValue(
-  system: GradeSystem,
-  grade: string,
-  vEquiv?: string | null,
-): number {
-  if (vEquiv) {
-    const idx = V_GRADES.indexOf(vEquiv);
-    if (idx >= 0) return (idx / Math.max(1, V_GRADES.length - 1)) * 100;
-  }
-  if (system === "number") {
-    const n = Number.parseInt(grade, 10);
-    if (Number.isFinite(n)) return Math.min(100, (n / 20) * 100);
-  }
-  const list = gradesForSystem(system);
-  const idx = list.findIndex(
-    (item) => item.toLowerCase() === grade.trim().toLowerCase(),
-  );
-  if (idx < 0) return 0;
-  return (idx / Math.max(1, list.length - 1)) * 100;
-}
-
 export function isHouseSystem(system: GradeSystem): boolean {
   return system === "number" || system === "color" || system === "custom";
 }
@@ -201,4 +166,104 @@ export function normalizeVEquiv(value: unknown): string | undefined {
   const trimmed = String(value).trim();
   if (!trimmed || !isVGrade(trimmed)) return undefined;
   return trimmed;
+}
+
+export function vGradeIndex(value: string | undefined | null): number {
+  if (!value) return -1;
+  const high = canonicalVGrade(value);
+  return high ? V_GRADES.indexOf(high) : -1;
+}
+
+/** Prefer the high end of a range for stamps / best-send ranking. */
+export function canonicalVGrade(value: string | undefined | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (isVGrade(trimmed)) return trimmed;
+  const range = trimmed.match(
+    /^(VB|V(?:[0-9]|1[0-6]))\s*[-–—]\s*(VB|V(?:[0-9]|1[0-6]))$/i,
+  );
+  if (range) {
+    const a = normalizeVEquiv(range[1]);
+    const b = normalizeVEquiv(range[2]);
+    if (!a || !b) return undefined;
+    return V_GRADES.indexOf(a) >= V_GRADES.indexOf(b) ? a : b;
+  }
+  const open = trimmed.match(/^(VB|V(?:[0-9]|1[0-6]))\+$/i);
+  if (open) return normalizeVEquiv(open[1]);
+  return undefined;
+}
+
+export function bandVMin(band: Pick<GradeBand, "v_equiv" | "v_max">): string | undefined {
+  return normalizeVEquiv(band.v_equiv);
+}
+
+export function bandVMax(band: Pick<GradeBand, "v_equiv" | "v_max">): string | undefined {
+  const max = normalizeVEquiv(band.v_max);
+  const min = bandVMin(band);
+  if (!max) return min;
+  if (!min) return max;
+  return V_GRADES.indexOf(max) >= V_GRADES.indexOf(min) ? max : min;
+}
+
+/** Single grade, a range (V3–V4), or empty. */
+export function formatBandV(band: Pick<GradeBand, "v_equiv" | "v_max">): string {
+  const lo = bandVMin(band);
+  const hi = bandVMax(band);
+  if (!lo) return "";
+  if (!hi || hi === lo) return lo;
+  return `${lo}–${hi}`;
+}
+
+export function normalizeBandVRange(
+  v_equiv: unknown,
+  v_max: unknown,
+): Pick<GradeBand, "v_equiv" | "v_max"> {
+  const a = normalizeVEquiv(v_equiv);
+  const b = normalizeVEquiv(v_max);
+  if (!a && !b) return {};
+  if (!a) return { v_equiv: b };
+  if (!b || b === a) return { v_equiv: a };
+  if (V_GRADES.indexOf(b) < V_GRADES.indexOf(a)) {
+    return { v_equiv: b, v_max: a };
+  }
+  return { v_equiv: a, v_max: b };
+}
+
+export function vEquivFor(
+  system: GradeSystem,
+  grade: string,
+  scale?: GradeScale | null,
+): string | undefined {
+  const band = scale?.bands.find(
+    (item) => item.label.toLowerCase() === grade.trim().toLowerCase(),
+  );
+  if (band) {
+    const high = bandVMax(band);
+    if (high) return high;
+  }
+  if (system === "v") return normalizeVEquiv(grade);
+  return undefined;
+}
+
+/** Rough 0–100 rank so mixed grade systems can still pick a “best send”. */
+export function gradeSortValue(
+  system: GradeSystem,
+  grade: string,
+  vEquiv?: string | null,
+): number {
+  if (vEquiv) {
+    const idx = vGradeIndex(vEquiv);
+    if (idx >= 0) return (idx / Math.max(1, V_GRADES.length - 1)) * 100;
+  }
+  if (system === "number") {
+    const n = Number.parseInt(grade, 10);
+    if (Number.isFinite(n)) return Math.min(100, (n / 20) * 100);
+  }
+  const list = gradesForSystem(system);
+  const idx = list.findIndex(
+    (item) => item.toLowerCase() === grade.trim().toLowerCase(),
+  );
+  if (idx < 0) return 0;
+  return (idx / Math.max(1, list.length - 1)) * 100;
 }
