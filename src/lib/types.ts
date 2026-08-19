@@ -79,11 +79,18 @@ export type CatalogGym = {
   scale: GradeScale | null;
 };
 
+export type FavouriteCity = {
+  name: string;
+  country: string;
+  gymCount: number;
+  sessionCount: number;
+};
+
 export type PassportStats = {
   gyms: number;
   cities: number;
   countries: number;
   bestSend: string | null;
   mostVisitedGym: GymGroup | null;
-  favouriteCity: string | null;
+  favouriteCity: FavouriteCity | null;
 };

@@ -16,3 +16,17 @@ export function formatStampDate(iso: string): string {
     return iso;
   }
 }
+
+export function formatStampDayMonth(iso: string): { day: string; month: string } {
+  try {
+    const date = new Date(`${iso}T00:00:00`);
+    return {
+      day: String(date.getDate()),
+      month: new Intl.DateTimeFormat("en-GB", { month: "short" })
+        .format(date)
+        .toUpperCase(),
+    };
+  } catch {
+    return { day: iso.slice(8, 10) || "—", month: "" };
+  }
+}

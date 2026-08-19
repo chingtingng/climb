@@ -1,113 +1,310 @@
 "use client";
 
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { logoutAction } from "@/app/actions";
-import { formatGymPlace } from "@/lib/gyms";
-import { CountryStamp } from "./CountryStamp";
+import { formatStampDayMonth } from "@/lib/dates";
+import { gymSlug } from "@/lib/gyms";
+import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
+import { GradeLabel } from "./GradePicker";
+import { ChevronIcon, GymsIcon, MountainIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
+const FEEDBACK_URL = "https://www.instagram.com/chalkchingup";
+
 export function ProfileView() {
-  const { username, stats, gyms } = usePassport();
+  const { username, stats, visits, configured, openLog } = usePassport();
+  const empty = visits.length === 0;
+  const recent = visits.slice(0, 4);
 
   return (
-    <div className="space-y-6">
-      <header>
-        <p className="text-[0.72rem] font-semibold tracking-[0.08em] text-pass-muted">
-          @{username}
+    <div className="space-y-3">
+      <header className="pb-1">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
+          Profile
         </p>
-        <h1 className="passport-mark mt-1 text-[2rem] leading-none">
-          My climbing passport
-        </h1>
+        <p className="mt-2 text-[0.95rem] font-semibold text-pass-navy">@{username}</p>
       </header>
 
-      <section aria-label="Passport statistics" className="grid grid-cols-4 gap-1 text-center">
-        <Stat value={stats.gyms} label="Gyms" />
-        <Stat value={stats.cities} label="Cities" />
-        <Stat value={stats.countries} label="Countries" />
-        <Stat value={stats.bestSend ?? "—"} label="Best send" />
-      </section>
+      <section className="rounded-[1.25rem] bg-white px-4 py-5">
+        <h1 className="passport-mark text-[1.65rem] leading-none text-pass-navy">
+          My climbing passport
+        </h1>
+        <p className="mt-2 text-sm text-pass-muted">
+          {empty
+            ? "Log your first gym to start filling this in."
+            : "Here’s where you’ve been climbing."}
+        </p>
 
-      <section className="space-y-2.5">
-        <h2 className="passport-mark text-xl">Highlights</h2>
-        <div className="rounded-[1.25rem] bg-white px-4 py-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Most visited gym
-          </p>
-          {stats.mostVisitedGym ? (
-            <div className="mt-2 flex items-center gap-3">
-              <CountryStamp country={stats.mostVisitedGym.country} size="sm" />
-              <div className="min-w-0">
-                <p className="truncate font-semibold">{stats.mostVisitedGym.name}</p>
-                <p className="truncate text-sm text-pass-muted">
-                  {stats.mostVisitedGym.visitCount}{" "}
-                  {stats.mostVisitedGym.visitCount === 1 ? "visit" : "visits"} ·{" "}
-                  {formatGymPlace(stats.mostVisitedGym)}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-pass-muted">Log a gym to fill this in.</p>
-          )}
+        <div
+          aria-label="Passport statistics"
+          className="mt-5 grid grid-cols-4 gap-2"
+        >
+          <Stat value={stats.gyms} label="Gyms" dim={empty} />
+          <Stat value={stats.cities} label="Cities" dim={empty} />
+          <Stat value={stats.countries} label="Countries" dim={empty} />
+          <Stat
+            value={stats.bestSend ?? "—"}
+            label="Best send"
+            dim={!stats.bestSend}
+            accent={Boolean(stats.bestSend)}
+          />
         </div>
 
-        <div className="overflow-hidden rounded-[1.25rem] bg-white px-4 py-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Favourite climbing city
-          </p>
-          {stats.favouriteCity ? (
-            <div className="mt-2 flex items-end justify-between gap-3">
-              <p className="passport-mark text-2xl leading-none">{stats.favouriteCity}</p>
-              <Skyline />
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-pass-muted">Your favourite city will show up here.</p>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => openLog()}
+          disabled={!configured}
+          className={
+            empty
+              ? "passport-btn mt-5"
+              : "mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-pass-soft text-[0.95rem] font-semibold text-pass-primary disabled:cursor-not-allowed disabled:opacity-55"
+          }
+        >
+          {empty ? "+ Log your first gym" : "+ Log a gym"}
+        </button>
       </section>
 
-      {gyms.length > 0 ? (
+      <HighlightCard
+        icon={<MountainIcon className="h-5 w-7" />}
+        label="Most visited gym"
+        empty={
+          <>
+            No gym logged yet.{" "}
+            <button
+              type="button"
+              onClick={() => openLog()}
+              disabled={!configured}
+              className="font-semibold text-pass-primary"
+            >
+              Log a gym
+            </button>{" "}
+            to fill this in.
+          </>
+        }
+      >
+        {stats.mostVisitedGym ? (
+          <GymHighlight gym={stats.mostVisitedGym} />
+        ) : null}
+      </HighlightCard>
+
+      <HighlightCard
+        icon={<GymsIcon />}
+        label="Favourite climbing city"
+        empty="Your top city shows up here after a few logged sessions."
+      >
+        {stats.favouriteCity ? <CityHighlight city={stats.favouriteCity} /> : null}
+      </HighlightCard>
+
+      {recent.length > 0 ? (
         <section>
-          <h2 className="passport-mark text-xl">Countries</h2>
-          <div className="stamp-row mt-3">
-            {[...new Set(gyms.map((gym) => gym.country))].map((country) => (
-              <CountryStamp key={country} country={country} />
+          <h2 className="mb-2 px-0.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
+            Recent
+          </h2>
+          <ul className="overflow-hidden rounded-[1.25rem] bg-white">
+            {recent.map((visit) => (
+              <RecentRow key={visit.id} visit={visit} />
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
 
-      <form action={logoutAction} className="pt-4 text-center">
-        <button
-          type="submit"
-          className="min-h-11 px-4 text-sm font-semibold text-[#b42318]"
-        >
-          Log out
-        </button>
-      </form>
+      <section>
+        <h2 className="mb-2 px-0.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
+          Account
+        </h2>
+        <div className="overflow-hidden rounded-[1.25rem] bg-white">
+          <a
+            href={FEEDBACK_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="flex min-h-14 items-center gap-3 px-4 text-sm font-semibold"
+          >
+            <HelpIcon />
+            Help & feedback
+            <span className="ml-auto text-pass-line">
+              <ChevronIcon />
+            </span>
+          </a>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex min-h-14 w-full items-center gap-3 border-t border-pass-line px-4 text-sm font-semibold text-[#b42318]"
+            >
+              <LogoutIcon />
+              Log out
+              <span className="ml-auto text-pass-line">
+                <ChevronIcon />
+              </span>
+            </button>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }
 
-function Stat({ value, label }: { value: string | number; label: string }) {
+function Stat({
+  value,
+  label,
+  dim,
+  accent,
+}: {
+  value: string | number;
+  label: string;
+  dim?: boolean;
+  accent?: boolean;
+}) {
   return (
     <div className="min-w-0">
-      <p className="passport-mark truncate text-[1.55rem] leading-none">{value}</p>
-      <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
+      <p
+        className={`passport-mark truncate text-[1.7rem] leading-none ${
+          accent ? "text-pass-primary" : dim ? "text-pass-line" : "text-pass-navy"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-pass-muted">
         {label}
       </p>
     </div>
   );
 }
 
-function Skyline() {
+function HighlightCard({
+  icon,
+  label,
+  empty,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  empty: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <svg
-      viewBox="0 0 88 36"
-      className="h-9 w-[5.5rem] text-pass-line"
-      aria-hidden
+    <section className="flex items-center gap-3.5 rounded-[1.25rem] bg-white px-4 py-4">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-pass-soft text-pass-primary">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-pass-muted">
+          {label}
+        </p>
+        {children ? children : <p className="mt-1 text-sm leading-relaxed text-pass-muted">{empty}</p>}
+      </div>
+    </section>
+  );
+}
+
+function GymHighlight({ gym }: { gym: GymGroup }) {
+  return (
+    <Link
+      href={`/passport/gyms/${gym.slug || gymSlug(gym.name, gym.country)}`}
+      className="mt-1 flex items-center justify-between gap-3"
     >
+      <div className="min-w-0">
+        <p className="truncate font-semibold leading-tight">{gym.name}</p>
+        <p className="truncate text-sm text-pass-muted">{gym.country}</p>
+      </div>
+      <Count value={gym.visitCount} label={gym.visitCount === 1 ? "Visit" : "Visits"} />
+    </Link>
+  );
+}
+
+function CityHighlight({ city }: { city: FavouriteCity }) {
+  const samePlace = city.name.trim().toLowerCase() === city.country.trim().toLowerCase();
+  const gymsLabel = `${city.gymCount} ${city.gymCount === 1 ? "gym" : "gyms"} logged here`;
+
+  return (
+    <div className="mt-1 flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate font-semibold leading-tight">{city.name}</p>
+        <p className="truncate text-sm text-pass-muted">
+          {samePlace ? gymsLabel : `${city.country} · ${gymsLabel}`}
+        </p>
+      </div>
+      <Count
+        value={city.sessionCount}
+        label={city.sessionCount === 1 ? "Session" : "Sessions"}
+      />
+    </div>
+  );
+}
+
+function Count({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="shrink-0 text-right">
+      <p className="passport-mark text-2xl leading-none">{value}</p>
+      <p className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-pass-muted">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function RecentRow({ visit }: { visit: GymVisit }) {
+  const stamp = formatStampDayMonth(visit.visited_on);
+  const place =
+    visit.outlet && visit.outlet.toLowerCase() !== visit.country.toLowerCase()
+      ? `${visit.outlet} · ${visit.country}`
+      : visit.country;
+
+  return (
+    <li className="border-b border-pass-line last:border-b-0">
+      <Link
+        href={`/passport/gyms/${gymSlug(visit.gym_name, visit.country)}`}
+        className="flex min-h-16 items-center gap-3 px-4 py-2.5"
+      >
+        <span className="w-9 shrink-0 text-center text-[0.65rem] font-semibold uppercase leading-tight text-pass-muted">
+          <span className="block text-[0.95rem] font-bold tracking-tight text-pass-navy">
+            {stamp.day}
+          </span>
+          {stamp.month}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-tight">
+            {visit.gym_name}
+          </span>
+          <span className="block truncate text-xs text-pass-muted">{place}</span>
+        </span>
+        <span className="shrink-0 rounded-full bg-pass-soft px-2.5 py-1 text-xs font-semibold text-pass-primary">
+          <GradeLabel system={visit.grade_system} grade={visit.highest_grade} />
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+function HelpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0" fill="none">
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.7" />
       <path
-        fill="currentColor"
-        d="M4 36V20h8v16H4Zm12 0V10l10 6v20H16Zm14 0V16h7v20h-7Zm11 0V8h4v6h6V8h4v28H41Zm18 0V14h10v22H59Zm14 0V18h8v18h-8Z"
+        d="M12 16.2v-4.1M12 8.4h.01"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0" fill="none">
+      <path
+        d="M9.5 20H6.2A1.7 1.7 0 0 1 4.5 18.3V5.7A1.7 1.7 0 0 1 6.2 4h3.3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="m15 16 5-4-5-4M20 12H9.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
