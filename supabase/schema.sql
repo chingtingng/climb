@@ -448,8 +448,7 @@ with seeded as (
     ('Upwall Climbing', 'Singapore'),
     ('Project Send', 'Singapore'),
     ('Climb@T3', 'Singapore'),
-    ('SAFRA Yishun', 'Singapore'),
-    ('BUMP Bouldering', 'Malaysia')
+    ('SAFRA Yishun', 'Singapore')
   returning id, name, country
 )
 insert into public.gym_outlets (gym_id, name, city)
@@ -490,8 +489,7 @@ join (
     ('Upwall Climbing', 'Singapore', 'Downtown East', 'Pasir Ris'),
     ('Project Send', 'Singapore', 'Esplanade', 'Esplanade'),
     ('Climb@T3', 'Singapore', 'T3', 'Changi'),
-    ('SAFRA Yishun', 'Singapore', 'Yishun', 'Yishun'),
-    ('BUMP Bouldering', 'Malaysia', 'Jaya One', 'Petaling Jaya')
+    ('SAFRA Yishun', 'Singapore', 'Yishun', 'Yishun')
 ) as o(gym_name, country, name, city)
   on o.gym_name = s.name and o.country = s.country;
 
@@ -540,11 +538,5 @@ join (
       'color',
       -- Blue / Yellow / Red ladders; red≈V7
       '[{"label":"Blue","color":"#2f80ed","v_equiv":"V1"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V3"},{"label":"Red","color":"#eb5757","v_equiv":"V7"}]'
-    ),
-    (
-      'BUMP Bouldering',
-      'number',
-      -- House numbers 1–12; pairs share a V range (chart’s “dots”)
-      '[{"label":"1","v_equiv":"VB"},{"label":"2","v_equiv":"VB"},{"label":"3","v_equiv":"V0","v_max":"V1"},{"label":"4","v_equiv":"V0","v_max":"V1"},{"label":"5","v_equiv":"V1","v_max":"V2"},{"label":"6","v_equiv":"V1","v_max":"V2"},{"label":"7","v_equiv":"V3","v_max":"V4"},{"label":"8","v_equiv":"V3","v_max":"V4"},{"label":"9","v_equiv":"V5","v_max":"V6"},{"label":"10","v_equiv":"V5","v_max":"V6"},{"label":"11","v_equiv":"V7","v_max":"V9"},{"label":"12","v_equiv":"V7","v_max":"V9"}]'
     )
 ) as s(gym_name, kind, bands) on s.gym_name = g.name;
