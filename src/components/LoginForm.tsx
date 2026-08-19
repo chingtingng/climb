@@ -154,7 +154,7 @@ export function LoginForm({
         Chalk Passport
       </h1>
       <p className="auth-subtitle">
-        Stamp the gyms you’ve sent — by country, city, and highest grade.
+        Stamp the places you’ve sent — by country, city, and highest grade.
       </p>
 
       <form onSubmit={handleSubmit} className="auth-form">

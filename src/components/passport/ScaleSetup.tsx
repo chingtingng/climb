@@ -80,11 +80,11 @@ export function ScaleSetup({
   return (
     <div className="space-y-4">
       <p className="text-sm leading-relaxed text-pass-muted">
-        You’re the first to add this gym. Save how it grades so the next visit can reuse it.
+        You’re the first to add this place. Save how it grades so the next visit can reuse it.
       </p>
 
       <fieldset>
-        <legend className="mb-1.5 text-sm font-semibold">How does this gym grade?</legend>
+        <legend className="mb-1.5 text-sm font-semibold">How does this place grade?</legend>
         <div className="grid grid-cols-3 gap-2">
           {GRADE_SYSTEMS.map((item) => {
             const selected = item.value === scale.kind;
@@ -310,7 +310,7 @@ export function ScaleSetup({
             className="block w-full text-sm text-pass-muted file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-pass-soft file:px-4 file:font-semibold file:text-pass-navy"
           />
           <span className="mt-1.5 block text-xs text-pass-muted">
-            Optional — a photo helps the next visit reuse this gym’s scale.
+            Optional — a photo helps the next visit reuse this place’s scale.
           </span>
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element

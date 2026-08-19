@@ -46,7 +46,7 @@ export function GymsView() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="passport-mark text-[2rem] leading-none text-pass-navy">
-            Your gyms
+            Your places
           </h1>
           <p className="mt-1.5 text-sm text-pass-muted">
             Every place you’ve left some chalk.
@@ -64,14 +64,14 @@ export function GymsView() {
       </header>
 
       <label className="relative block">
-        <span className="sr-only">Search gyms, cities or countries</span>
+        <span className="sr-only">Search places, cities or countries</span>
         <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-pass-muted">
           <SearchIcon />
         </span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search gyms, cities or countries"
+          placeholder="Search places, cities or countries"
           className="passport-field passport-field-icon"
         />
       </label>
@@ -100,21 +100,21 @@ export function GymsView() {
 
       <div className="relative z-20 flex items-center justify-between gap-3">
         <p className="text-sm text-pass-muted">
-          {filtered.length} {filtered.length === 1 ? "gym" : "gyms"}
+          {filtered.length} {filtered.length === 1 ? "place" : "places"}
         </p>
         <SortMenu value={sort} onChange={setSort} />
       </div>
 
       {gyms.length === 0 ? (
         <div className="rounded-[1.4rem] bg-white px-5 py-10 text-center">
-          <p className="passport-mark text-2xl">No gyms yet</p>
+          <p className="passport-mark text-2xl">No places yet</p>
           <p className="mt-2 text-sm text-pass-muted">
             Log a visit and it’ll appear in your collection.
           </p>
         </div>
       ) : filtered.length === 0 ? (
         <p className="rounded-[1.4rem] bg-white px-5 py-8 text-center text-sm text-pass-muted">
-          No gyms match that search.
+          No places match that search.
         </p>
       ) : (
         <ul className="relative z-0 space-y-2.5">
@@ -211,7 +211,7 @@ function SortMenu({
         <ul
           id={menuId}
           role="listbox"
-          aria-label="Sort gyms"
+          aria-label="Sort places"
           className={`absolute right-0 z-40 min-w-[12.5rem] rounded-2xl border border-pass-line bg-white py-1.5 shadow-[0_16px_40px_rgba(27,58,82,0.16)] ${
             placeAbove ? "bottom-[calc(100%+0.4rem)]" : "top-[calc(100%+0.4rem)]"
           }`}

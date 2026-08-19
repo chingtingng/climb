@@ -802,7 +802,7 @@ function titleFor(step: Step) {
     case "city":
       return "Which city?";
     case "gym":
-      return "Which gym?";
+      return "Which place?";
     case "outlet":
       return "Which outlet?";
     case "offer":
@@ -844,7 +844,7 @@ function ClimbOfferStep({
   return (
     <div className="space-y-3">
       <p className="text-sm text-pass-muted">
-        Pick every discipline this gym has. If there’s only one, you won’t be asked again when
+        Pick every discipline this place has. If there’s only one, you won’t be asked again when
         logging.
       </p>
       <div className="grid gap-2">
@@ -882,7 +882,7 @@ function ClimbTypeStep({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-pass-muted">This gym offers more than one style — which was today?</p>
+      <p className="text-sm text-pass-muted">This place offers more than one style — which was today?</p>
       <div className="grid gap-2">
         {options.map((type) => {
           const active = selected === type;
@@ -957,7 +957,7 @@ function GymStep({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">Gym name</span>
+        <span className="mb-1.5 block text-sm font-semibold">Place name</span>
         <input
           value={query}
           onChange={(e) => onQuery(e.target.value)}
@@ -996,7 +996,7 @@ function GymStep({
       </label>
       {recent.length > 0 && (
         <ChoiceList
-          label={q ? "Your gyms" : "Recent gyms"}
+          label={q ? "Your places" : "Recent places"}
           items={recent.map((gym) => {
             const places = gym.outlets.filter(
               (item) => item.toLowerCase() !== gym.name.toLowerCase(),
@@ -1013,7 +1013,7 @@ function GymStep({
       )}
       {known.length > 0 && (
         <ChoiceList
-          label="Known gyms"
+          label="Known places"
           items={known.map((gym) => ({
             key: `${gym.name}-${gym.country}`,
             title: gym.name,
@@ -1036,7 +1036,7 @@ function GymStep({
       )}
       {query.trim() && (
         <p className="text-sm text-pass-muted">
-          New gym? Continue to add{" "}
+          New place? Continue to add{" "}
           <span className="font-semibold text-pass-navy">
             {[query.trim(), outlet.trim()].filter(Boolean).join(" · ")}
           </span>
@@ -1301,7 +1301,7 @@ function CountryStep({
       />
       {!searchOpen && featured.length > 0 ? (
         <ChoiceList
-          label="With known gyms"
+          label="With known places"
           items={featured.map((item) => ({
             key: item,
             title: item,
@@ -1354,7 +1354,7 @@ function CityStep({
       />
       {searchOpen ? null : withGyms.length > 0 ? (
         <ChoiceList
-          label="Cities with gyms"
+          label="Cities with places"
           items={withGyms.map((item) => ({
             key: item,
             title: item,
@@ -1364,7 +1364,7 @@ function CityStep({
         />
       ) : (
         <p className="text-sm text-pass-muted">
-          Search for a city, then continue to choose or add the gym.
+          Search for a city, then continue to choose or add the place.
         </p>
       )}
     </div>
@@ -1524,7 +1524,7 @@ function SuccessState({
       <p className="mt-1 text-xl font-semibold text-pass-navy">{gradeLabel}</p>
       <p className="mt-1 text-sm text-pass-muted">Added to your passport</p>
       <button type="button" onClick={onViewGym} className="passport-btn mt-6">
-        View gym
+        View place
       </button>
       <button type="button" onClick={onHome} className="passport-btn-ghost mt-1">
         Back to home

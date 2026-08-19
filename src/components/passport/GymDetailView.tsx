@@ -30,7 +30,7 @@ export function GymDetailView({ slug }: { slug: string }) {
           onClick={() => router.push("/passport/gyms")}
           className="passport-btn mt-6"
         >
-          Back to gyms
+          Back to places
         </button>
       </div>
     );

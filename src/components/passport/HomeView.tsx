@@ -46,7 +46,7 @@ export function HomeView() {
       ) : (
         <>
           <section aria-label="Passport statistics" className="grid grid-cols-4 gap-1 text-center">
-            <Stat value={stats.gyms} label="Gyms" />
+            <Stat value={stats.gyms} label="Places" />
             <Stat value={stats.cities} label="Cities" />
             <Stat value={stats.countries} label="Countries" />
             <Stat value={stats.bestSend ?? "—"} label="Best send" />
