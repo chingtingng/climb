@@ -11,6 +11,7 @@
 --   gyms              shared brand (name + country + place_kind + climbing_types)
 --   gym_outlets       locations of that brand
 --   gym_grade_scales  one grade chart per gym (+ optional photo path)
+--                     kind: v | font | french | yds | number | color | custom
 --   visits            private stamps (gym + outlet + climbing_type + grade + date)
 --
 -- Place kind: gym | rock
@@ -268,7 +269,7 @@ create unique index gym_outlets_gym_name_idx
   on public.gym_outlets (gym_id, lower(name));
 
 -- ---------------------------------------------------------------------------
--- Grade scale per gym (numbers, colours, V-scale, custom, …)
+-- Grade scale per gym (V-scale, Font, French, YDS, numbers, colours, custom)
 -- bands: ordered easy→hard JSON array; each object maps label → v_equiv
 -- ---------------------------------------------------------------------------
 create or replace function public.is_v_grade(value text)
@@ -334,7 +335,8 @@ grant execute on function public.grade_bands_valid(jsonb) to authenticated, serv
 create table public.gym_grade_scales (
   id uuid primary key default gen_random_uuid(),
   gym_id uuid not null unique references public.gyms (id) on delete cascade,
-  kind text not null check (kind in ('v', 'font', 'french', 'number', 'color', 'custom')),
+  kind text not null constraint gym_grade_scales_kind_check
+    check (kind in ('v', 'font', 'french', 'yds', 'number', 'color', 'custom')),
   bands jsonb not null default '[]'::jsonb,
   chart_path text,
   created_by uuid references public.profiles (id) on delete set null,
@@ -352,7 +354,8 @@ create table public.visits (
   gym_id uuid not null references public.gyms (id) on delete restrict,
   outlet_id uuid not null references public.gym_outlets (id) on delete restrict,
   climbing_type text not null,
-  grade_system text not null check (grade_system in ('v', 'font', 'french', 'number', 'color', 'custom')),
+  grade_system text not null constraint visits_grade_system_check
+    check (grade_system in ('v', 'font', 'french', 'yds', 'number', 'color', 'custom')),
   highest_grade text not null,
   v_equiv text,
   notes text,

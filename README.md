@@ -37,7 +37,7 @@ When creating the project, use these **Security** checkboxes:
 Then:
 
 1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops old stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `visits`. Profiles and Auth users are kept. Re-run it whenever the schema changes.
-   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/visit-media.sql`](./supabase/visit-media.sql), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), and [`supabase/place-kind.sql`](./supabase/place-kind.sql) instead of a full reset.
+   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/visit-media.sql`](./supabase/visit-media.sql), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), [`supabase/place-kind.sql`](./supabase/place-kind.sql), and [`supabase/yds-grades.sql`](./supabase/yds-grades.sql) instead of a full reset.
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:
@@ -91,6 +91,6 @@ Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 w
 - After login: **Home**, **Places**, and **Profile**, with a stepped **+ Log a visit** flow
 - New places ask **Gym or Rock** (with help text). Catalog places keep that mapping on `gyms.place_kind`.
 - Repeat visits to the same place add another stamp, not a duplicate place. Multi-location gyms (e.g. Boulder Planet Sembawang / Tai Seng) use an **outlet** selector.
-- Grade systems: V-scale, Font, French, **Numbers**, **Colours**, and custom house scales
+- Grade systems: V-scale, Font, French, YDS, **Numbers**, **Colours**, and custom house scales
 - The first person to add a gym with a house scale uploads a photo of the grade chart plus a V-scale mapping
 - After pulling this version, run [`supabase/email-auth.sql`](./supabase/email-auth.sql) (or the full [`supabase/schema.sql`](./supabase/schema.sql)) in the SQL Editor

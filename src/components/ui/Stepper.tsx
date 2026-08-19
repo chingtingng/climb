@@ -13,6 +13,20 @@ function phaseFor(step: string) {
   return index < 0 ? 2 : index;
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5" fill="none">
+      <path
+        d="M3.5 8.2 6.4 11.2 12.5 4.8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function Stepper({
   step,
   steps,
@@ -30,16 +44,16 @@ export function Stepper({
 
   return (
     <div className="mb-4">
-      <div className="flex items-center justify-center gap-3" aria-hidden>
+      <div className="grid grid-cols-3" aria-hidden>
         {PHASES.map((phase, index) => {
           const done = index < currentPhase;
           const active = index === currentPhase;
           const rotation = (index - 1) * 4;
           return (
-            <div key={phase.id} className="flex flex-col items-center gap-1">
+            <div key={phase.id} className="flex min-w-0 flex-col items-center gap-1">
               <span
                 className={cx(
-                  "flex size-7 items-center justify-center rounded-full border text-micro font-bold",
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border text-micro font-bold",
                   done && "border-sky-600 bg-sky-600 text-surface",
                   active && "border-sky-600 bg-surface text-sky-700",
                   !done && !active && "border-sky-300 bg-sky-50 text-ink-faint",
@@ -48,11 +62,11 @@ export function Stepper({
                   done ? { transform: `rotate(${rotation}deg)` } : undefined
                 }
               >
-                {done ? "" : index + 1}
+                {done ? <CheckIcon /> : index + 1}
               </span>
               <span
                 className={cx(
-                  "text-micro font-semibold",
+                  "w-full text-center text-micro font-semibold leading-tight",
                   active || done ? "text-sky-700" : "text-ink-faint",
                 )}
               >

@@ -7,7 +7,6 @@ import { gradeSortValue } from "@/lib/grades";
 import { formatGymPlace, uniqueCountries } from "@/lib/gyms";
 import type { GymGroup } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
-import { Chip } from "@/components/ui/Chip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
 import { GradeBadge } from "@/components/ui/GradeBadge";
@@ -15,7 +14,7 @@ import { PlaceKindMark } from "@/components/ui/Marks";
 import { placeInk } from "@/components/ui/Stamp";
 import { cx } from "@/components/ui/cx";
 import { CountryStamp } from "./CountryStamp";
-import { SearchIcon } from "./icons";
+import { ChevronIcon, GymsIcon, SearchIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
 type SortKey = "recent" | "grade" | "az" | "country";
@@ -55,38 +54,58 @@ export function GymsView() {
         </p>
       </header>
 
-      <label className="relative block">
-        <span className="sr-only">Search places, cities or countries</span>
-        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft">
-          <SearchIcon />
-        </span>
-        <Field
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search places, cities or countries"
-          icon
-        />
-      </label>
+      <div className="space-y-2.5">
+        <label className="relative block">
+          <span className="sr-only">Search places, cities or countries</span>
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft">
+            <SearchIcon className="size-[1.125rem]" />
+          </span>
+          <Field
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search places, cities or countries"
+            icon
+            className="!text-base"
+          />
+        </label>
 
-      {countries.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {["All", ...countries].map((item) => (
-            <Chip
-              key={item}
-              selected={item === country}
-              onClick={() => setCountry(item)}
-            >
-              {item}
-            </Chip>
-          ))}
+        {countries.length > 0 ? (
+          <div
+            role="group"
+            aria-label="Filter by country"
+            className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {["All", ...countries].map((item) => {
+              const selected = item === country;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setCountry(item)}
+                  className={cx(
+                    "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold",
+                    selected
+                      ? "border-sky-300 bg-sky-300 text-ink"
+                      : "border-sky-300 bg-surface text-ink active:bg-sky-50",
+                  )}
+                >
+                  {item}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <div className="relative z-20 flex items-center justify-between gap-3">
+          <p className="flex shrink-0 items-center gap-1.5 text-sm text-ink-soft">
+            <GymsIcon className="size-3.5 shrink-0" />
+            <span>
+              {filtered.length} {filtered.length === 1 ? "place" : "places"}
+            </span>
+          </p>
+          <SortMenu value={sort} onChange={setSort} />
         </div>
-      ) : null}
-
-      <div className="relative z-20 flex items-center justify-between gap-3">
-        <p className="text-sm text-ink-soft">
-          {filtered.length} {filtered.length === 1 ? "place" : "places"}
-        </p>
-        <SortMenu value={sort} onChange={setSort} />
       </div>
 
       {gyms.length === 0 ? (
@@ -185,54 +204,60 @@ function SortMenu({
   }
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={menuId}
-        onClick={toggle}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-sky-300 bg-surface px-3 text-sm font-semibold text-ink"
-      >
-        <span className="text-ink-soft">Sort</span>
-        <span>{label}</span>
-        <span className="text-ink-soft" aria-hidden>
-          {placeAbove && open ? "▴" : "▾"}
-        </span>
-      </button>
-      {open ? (
-        <ul
-          id={menuId}
-          role="listbox"
-          aria-label="Sort places"
-          className={cx(
-            "absolute right-0 z-40 min-w-50 rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted",
-            placeAbove ? "bottom-[calc(100%+0.4rem)]" : "top-[calc(100%+0.4rem)]",
-          )}
+    <div ref={rootRef} className="flex min-w-0 items-center gap-1.5">
+      <span className="shrink-0 text-sm text-ink-soft">Sort by</span>
+      <div className="relative min-w-0">
+        <button
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={menuId}
+          aria-label={`Sort: ${label}`}
+          onClick={toggle}
+          className="inline-flex h-8 min-w-0 max-w-full items-center gap-1 rounded-full border border-sky-300 bg-surface py-0 pl-2.5 pr-2 text-sm"
         >
-          {SORT_OPTIONS.map((item) => {
-            const selected = item.value === value;
-            return (
-              <li key={item.value} role="option" aria-selected={selected}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onChange(item.value);
-                    setOpen(false);
-                  }}
-                  className={cx(
-                    "flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-semibold",
-                    selected ? "bg-sky-100 text-ink" : "text-ink hover:bg-sky-50",
-                  )}
-                >
-                  {item.label}
-                  {selected ? <span aria-hidden>✓</span> : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+          <span className="truncate font-semibold text-ink">{label}</span>
+          <ChevronIcon
+            className={cx(
+              "size-3.5 shrink-0 text-ink transition-transform duration-150",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+        {open ? (
+          <ul
+            id={menuId}
+            role="listbox"
+            aria-label="Sort places"
+            className={cx(
+              "absolute right-0 z-40 min-w-50 overflow-hidden rounded-xl border border-sky-300 bg-surface py-1 shadow-lifted",
+              placeAbove ? "bottom-[calc(100%+0.4rem)]" : "top-[calc(100%+0.4rem)]",
+            )}
+          >
+            {SORT_OPTIONS.map((item) => {
+              const selected = item.value === value;
+              return (
+                <li key={item.value} role="option" aria-selected={selected}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(item.value);
+                      setOpen(false);
+                    }}
+                    className={cx(
+                      "flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-semibold",
+                      selected ? "bg-sky-100 text-ink" : "text-ink hover:bg-sky-50",
+                    )}
+                  >
+                    {item.label}
+                    {selected ? <span aria-hidden>✓</span> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </div>
     </div>
   );
 }

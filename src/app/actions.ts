@@ -14,7 +14,12 @@ import {
   normalizeClimbingTypes,
   type ClimbingType,
 } from "@/lib/climbingTypes";
-import { isHouseSystem, normalizeBandVRange, normalizeVEquiv } from "@/lib/grades";
+import {
+  isGradeSystem,
+  isHouseSystem,
+  normalizeBandVRange,
+  normalizeVEquiv,
+} from "@/lib/grades";
 import { isPlaceKind, normalizePlaceKind } from "@/lib/placeKinds";
 import {
   createVisit,
@@ -375,7 +380,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     return "Please fill in place, grade, and date.";
   }
 
-  if (!["v", "font", "french", "number", "color", "custom"].includes(grade_system)) {
+  if (!isGradeSystem(grade_system)) {
     return "Pick a valid grade system.";
   }
 

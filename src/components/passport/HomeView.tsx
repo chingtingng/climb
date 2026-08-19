@@ -56,8 +56,15 @@ export function HomeView() {
               <Stat value={stats.bestSend ?? "—"} label="Best send" />
             </div>
             {bestVisit ? (
-              <p className="mt-3 text-center text-xs text-ink-soft">
-                Best send at {bestVisit.gym_name}
+              <p className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-center text-xs text-ink-soft">
+                <span>
+                  Best send at {bestVisit.gym_name} {bestVisit.city}
+                </span>
+                <GradeBadge
+                  system={bestVisit.grade_system}
+                  grade={bestVisit.highest_grade}
+                  vEquiv={bestVisit.v_equiv}
+                />
               </p>
             ) : null}
           </section>

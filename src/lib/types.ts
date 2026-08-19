@@ -3,7 +3,14 @@ import type { PlaceKind } from "./placeKinds";
 
 export type { ClimbingType, PlaceKind };
 
-export type GradeSystem = "v" | "font" | "french" | "number" | "color" | "custom";
+export type GradeSystem =
+  | "v"
+  | "font"
+  | "french"
+  | "yds"
+  | "number"
+  | "color"
+  | "custom";
 
 export type GradeBand = {
   label: string;

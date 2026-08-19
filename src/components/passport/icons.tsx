@@ -12,9 +12,15 @@ export function HomeIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-export function GymsIcon({ filled }: { filled?: boolean }) {
+export function GymsIcon({
+  filled,
+  className,
+}: {
+  filled?: boolean;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none">
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-6"} fill="none">
       <path
         d="M12 21s6.4-5.3 6.4-10.1A6.4 6.4 0 0 0 5.6 10.9C5.6 15.7 12 21 12 21Z"
         stroke="currentColor"
@@ -29,6 +35,43 @@ export function GymsIcon({ filled }: { filled?: boolean }) {
         fill={filled ? "white" : "none"}
         stroke={filled ? "white" : "currentColor"}
         strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+export function GradesIcon({ filled }: { filled?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none">
+      <rect
+        x="4.4"
+        y="4.2"
+        width="15.2"
+        height="4.4"
+        rx="2.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        fill={filled ? "currentColor" : "none"}
+      />
+      <rect
+        x="4.4"
+        y="9.8"
+        width="11.4"
+        height="4.4"
+        rx="2.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        fill={filled ? "currentColor" : "none"}
+      />
+      <rect
+        x="4.4"
+        y="15.4"
+        width="7.6"
+        height="4.4"
+        rx="2.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        fill={filled ? "currentColor" : "none"}
       />
     </svg>
   );
@@ -56,14 +99,14 @@ export function ProfileIcon({ filled }: { filled?: boolean }) {
   );
 }
 
-export function SearchIcon() {
+export function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden className="size-5" fill="none">
-      <circle cx="11" cy="11" r="6.25" stroke="currentColor" strokeWidth="1.8" />
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-5"} fill="none">
+      <circle cx="11" cy="11" r="6.25" stroke="currentColor" strokeWidth="1.6" />
       <path
         d="m16 16 4 4"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.6"
         strokeLinecap="round"
       />
     </svg>
@@ -151,14 +194,60 @@ export function SpinnerIcon({ className }: { className?: string }) {
   );
 }
 
-export function ChevronIcon() {
+export function ChevronIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden className="size-4" fill="none">
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-4"} fill="none">
       <path
-        d="m9 6 6 6-6 6"
+        d="m6 9 6 6 6-6"
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none">
+      <path
+        d="M4.5 7h15M4.5 12h15M4.5 17h15"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-4"} fill="none">
+      <path
+        d="M12 5.5v13M5.5 12h13"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function GlobeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className ?? "size-5"} fill="none">
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M3.75 12h16.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 3.75c2.35 2.25 3.55 5.05 3.55 8.25s-1.2 6-3.55 8.25c-2.35-2.25-3.55-5.05-3.55-8.25s1.2-6 3.55-8.25Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
         strokeLinejoin="round"
       />
     </svg>

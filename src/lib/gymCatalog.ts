@@ -1,4 +1,10 @@
-import { COLOR_GRADES, FRENCH_GRADES, FONT_GRADES, numberRange } from "./grades";
+import {
+  COLOR_GRADES,
+  FRENCH_GRADES,
+  FONT_GRADES,
+  YDS_GRADES,
+  numberRange,
+} from "./grades";
 import { countryMeta } from "./countries";
 import {
   DEFAULT_CLIMBING_TYPES,
@@ -394,6 +400,12 @@ export function defaultScaleFor(
     return {
       kind,
       bands: FRENCH_GRADES.map((label) => ({ label })),
+    };
+  }
+  if (kind === "yds") {
+    return {
+      kind,
+      bands: YDS_GRADES.map((label) => ({ label })),
     };
   }
   return { kind, bands: [] };

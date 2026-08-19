@@ -314,7 +314,7 @@ export function ScaleSetup({
       ) : (
         <p className="text-sm text-ink-soft">
           {STANDARD_SYSTEMS.includes(scale.kind)
-            ? "Standard V-scale, Font, and French don’t need a chart photo."
+            ? "Standard V-scale, Font, French, and YDS don’t need a chart photo."
             : "This grade system doesn’t need a chart photo."}
         </p>
       )}

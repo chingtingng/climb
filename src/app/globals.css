@@ -48,7 +48,7 @@
   --elev-sheet: 0 18px 50px rgba(22, 48, 67, 0.18);
 
   /* Type scale */
-  --fs-micro: 11px;
+  --fs-micro: 10px;
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-base: 14px;
@@ -61,8 +61,8 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-jakarta);
-  --font-display: var(--font-poppins);
+  --font-sans: "Twemoji Country Flags", var(--font-jakarta);
+  --font-display: "Twemoji Country Flags", var(--font-poppins);
 
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -145,11 +145,13 @@ a {
   text-decoration: none;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 :focus-visible {
@@ -375,6 +377,11 @@ textarea {
   outline: none;
 }
 
+.field::placeholder,
+.passport-field::placeholder {
+  color: var(--ink-soft);
+}
+
 .field-clearable,
 .passport-field-clearable {
   padding-inline-end: 2.75rem;
@@ -535,8 +542,8 @@ textarea.passport-field {
   width: min(calc(100% - 1.6rem), 22.75rem);
   transform: translateX(-50%);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.15rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--sky-200);
   border-radius: var(--r-full);
@@ -560,6 +567,15 @@ textarea.passport-field {
 
 .passport-fab > * {
   pointer-events: auto;
+}
+
+.passport-fab .stamp {
+  width: 52px;
+  height: 52px;
+}
+
+.passport-fab .stamp-plus {
+  font-size: 1.35rem;
 }
 
 .stamp {
@@ -662,6 +678,8 @@ textarea.passport-field {
 }
 
 .stamp-flag {
+  font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji",
+    sans-serif;
   font-size: 0.7em;
   line-height: 1;
   opacity: 0.9;

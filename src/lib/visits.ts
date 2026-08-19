@@ -106,7 +106,12 @@ function mapDbError(message: string): Error {
       "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.",
     );
   }
-  if (isMissingRelation(message) || /grade_system|visits_grade|climbing_type|climbing_types/i.test(message)) {
+  if (/grade_system|gym_grade_scales_kind|visits_grade/i.test(message)) {
+    return new Error(
+      "YDS isn’t set up yet. Run supabase/yds-grades.sql (or supabase/schema.sql) in the Supabase SQL Editor, then try again.",
+    );
+  }
+  if (isMissingRelation(message) || /climbing_type|climbing_types/i.test(message)) {
     return new Error(
       "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
@@ -650,6 +655,12 @@ export async function createVisit(
     );
   }
 
+  if (error && /grade_system|gym_grade_scales_kind/i.test(error.message)) {
+    throw new Error(
+      "YDS isn’t set up yet. Run supabase/yds-grades.sql (or supabase/schema.sql) in the Supabase SQL Editor, then try again.",
+    );
+  }
+
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
       throw new Error(
@@ -757,6 +768,11 @@ export async function updateVisit(
   if (error && /climbing_type/i.test(error.message)) {
     throw new Error(
       "Climbing types aren’t set up yet. Run supabase/schema.sql (or supabase/climbing-types.sql) in the Supabase SQL Editor, then try again.",
+    );
+  }
+  if (error && /grade_system|gym_grade_scales_kind/i.test(error.message)) {
+    throw new Error(
+      "YDS isn’t set up yet. Run supabase/yds-grades.sql (or supabase/schema.sql) in the Supabase SQL Editor, then try again.",
     );
   }
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {

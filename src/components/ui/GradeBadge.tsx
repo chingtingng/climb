@@ -1,11 +1,10 @@
-import { GRADE_SYSTEMS, colorHex, displayGrade } from "@/lib/grades";
+import { colorHex, displayGrade } from "@/lib/grades";
 import type { GradeSystem } from "@/lib/types";
 import { cx } from "./cx";
 
+/** Prefix only when the grade string is not self-identifying. Font is already "Font 6A". */
 function systemTag(system: GradeSystem): string | null {
-  if (system === "v") return null;
-  if (system === "font") return null;
-  return GRADE_SYSTEMS.find((item) => item.value === system)?.label ?? system;
+  return system === "french" ? "French" : null;
 }
 
 export function GradeBadge({
@@ -23,7 +22,7 @@ export function GradeBadge({
 }) {
   const shown = displayGrade(system, grade, vEquiv);
   const tag = systemTag(shown.system);
-  const isColor = shown.system === "color" || (system === "color" && !vEquiv);
+  const isColor = shown.system === "color";
 
   return (
     <span

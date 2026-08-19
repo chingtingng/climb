@@ -89,7 +89,7 @@ export function GradePicker({
               "grid gap-2",
               isColor
                 ? "grid-cols-2 min-[380px]:grid-cols-3"
-                : locked && grades.some((g) => g.length > 4)
+                : system === "yds" || (locked && grades.some((g) => g.length > 4))
                   ? "grid-cols-2 min-[380px]:grid-cols-3"
                   : "grid-cols-4 min-[380px]:grid-cols-5",
             )}
@@ -130,7 +130,9 @@ export function GradePicker({
                 >
                   <span className="grade-text max-w-full truncate">{item}</span>
                   {vHint ? (
-                    <span className="text-micro font-medium text-ink-soft">{vHint}</span>
+                    <span className="w-full text-center text-micro font-medium text-ink-soft">
+                      {vHint}
+                    </span>
                   ) : null}
                 </ChoiceTile>
               );

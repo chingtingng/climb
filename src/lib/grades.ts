@@ -4,12 +4,17 @@ export const GRADE_SYSTEMS: { value: GradeSystem; label: string }[] = [
   { value: "v", label: "V-scale" },
   { value: "font", label: "Font" },
   { value: "french", label: "French" },
+  { value: "yds", label: "YDS" },
   { value: "number", label: "Numbers" },
   { value: "color", label: "Colours" },
   { value: "custom", label: "Custom" },
 ];
 
-export const STANDARD_SYSTEMS: GradeSystem[] = ["v", "font", "french"];
+export function gradeSystemLabel(system: GradeSystem): string {
+  return GRADE_SYSTEMS.find((item) => item.value === system)?.label ?? system;
+}
+
+export const STANDARD_SYSTEMS: GradeSystem[] = ["v", "font", "french", "yds"];
 
 export const V_GRADES = [
   "VB",
@@ -86,6 +91,39 @@ export const FRENCH_GRADES = [
   "9a",
 ];
 
+/** Yosemite Decimal System — 5.4 through 5.15c. */
+export const YDS_GRADES = [
+  "5.4",
+  "5.5",
+  "5.6",
+  "5.7",
+  "5.8",
+  "5.9",
+  "5.10a",
+  "5.10b",
+  "5.10c",
+  "5.10d",
+  "5.11a",
+  "5.11b",
+  "5.11c",
+  "5.11d",
+  "5.12a",
+  "5.12b",
+  "5.12c",
+  "5.12d",
+  "5.13a",
+  "5.13b",
+  "5.13c",
+  "5.13d",
+  "5.14a",
+  "5.14b",
+  "5.14c",
+  "5.14d",
+  "5.15a",
+  "5.15b",
+  "5.15c",
+];
+
 export const NUMBER_GRADES = Array.from({ length: 21 }, (_, i) => String(i));
 
 export const COLOR_GRADES: { label: string; color: string }[] = [
@@ -100,6 +138,71 @@ export const COLOR_GRADES: { label: string; color: string }[] = [
   { label: "Black", color: "#1b1b1b" },
   { label: "Grey", color: "#828282" },
   { label: "Brown", color: "#8b5e3c" },
+];
+
+/**
+ * Gym-poster conversions with V as the spine (how this passport compares sends).
+ * Font is bouldering. YDS and French are sport/trad — a feel comparison, not 1:1.
+ */
+export type GradeComparisonRow = {
+  v: string;
+  font: string;
+  yds: string;
+  french: string;
+};
+
+export const GRADE_COMPARISON: GradeComparisonRow[] = [
+  { v: "VB", font: "3–4", yds: "5.8–5.9", french: "5a–5c" },
+  { v: "V0", font: "4+", yds: "5.10a–b", french: "6a–6a+" },
+  { v: "V1", font: "5–5+", yds: "5.10c–d", french: "6b–6b+" },
+  { v: "V2", font: "6A", yds: "5.11a–b", french: "6c–6c+" },
+  { v: "V3", font: "6A+", yds: "5.11c–d", french: "7a–7a+" },
+  { v: "V4", font: "6B–6B+", yds: "5.12a", french: "7b" },
+  { v: "V5", font: "6C–6C+", yds: "5.12b–c", french: "7b+–7c" },
+  { v: "V6", font: "7A", yds: "5.12d", french: "7c+" },
+  { v: "V7", font: "7A+", yds: "5.13a", french: "8a" },
+  { v: "V8", font: "7B–7B+", yds: "5.13b", french: "8a+" },
+  { v: "V9", font: "7C", yds: "5.13c", french: "8b" },
+  { v: "V10", font: "7C+", yds: "5.13d", french: "8b+" },
+  { v: "V11", font: "8A", yds: "5.14a", french: "8c" },
+  { v: "V12", font: "8A+", yds: "5.14b", french: "8c+" },
+  { v: "V13", font: "8B", yds: "5.14c", french: "9a" },
+  { v: "V14", font: "8B+", yds: "5.14d", french: "9a+" },
+  { v: "V15", font: "8C", yds: "5.15a", french: "9b" },
+  { v: "V16", font: "8C+", yds: "5.15b–c", french: "9b+" },
+];
+
+/** 1:1-ish sport/trad conversion. More agreed-upon than boulder ↔ route. */
+export const SPORT_GRADE_COMPARISON: { yds: string; french: string }[] = [
+  { yds: "5.4", french: "4a" },
+  { yds: "5.5", french: "4b" },
+  { yds: "5.6", french: "4c" },
+  { yds: "5.7", french: "5a" },
+  { yds: "5.8", french: "5b" },
+  { yds: "5.9", french: "5c" },
+  { yds: "5.10a", french: "6a" },
+  { yds: "5.10b", french: "6a+" },
+  { yds: "5.10c", french: "6b" },
+  { yds: "5.10d", french: "6b+" },
+  { yds: "5.11a", french: "6c" },
+  { yds: "5.11b", french: "6c+" },
+  { yds: "5.11c", french: "7a" },
+  { yds: "5.11d", french: "7a+" },
+  { yds: "5.12a", french: "7b" },
+  { yds: "5.12b", french: "7b+" },
+  { yds: "5.12c", french: "7c" },
+  { yds: "5.12d", french: "7c+" },
+  { yds: "5.13a", french: "8a" },
+  { yds: "5.13b", french: "8a+" },
+  { yds: "5.13c", french: "8b" },
+  { yds: "5.13d", french: "8b+" },
+  { yds: "5.14a", french: "8c" },
+  { yds: "5.14b", french: "8c+" },
+  { yds: "5.14c", french: "9a" },
+  { yds: "5.14d", french: "9a+" },
+  { yds: "5.15a", french: "9b" },
+  { yds: "5.15b", french: "9b+" },
+  { yds: "5.15c", french: "9c" },
 ];
 
 export function colorHex(label: string, fallback?: string): string {
@@ -134,6 +237,8 @@ export function gradesForSystem(
       return FONT_GRADES;
     case "french":
       return FRENCH_GRADES;
+    case "yds":
+      return YDS_GRADES;
     case "number":
       return NUMBER_GRADES;
     case "color":
@@ -148,12 +253,14 @@ export function formatGrade(system: GradeSystem, grade: string): string {
   return grade;
 }
 
-/** Prefer mapped V-grade for stamps / best-send display (e.g. house “6” → “V3”). */
+/** Show the gym’s own grade (e.g. house “6”, “Yellow”). V-equiv is only a fallback. */
 export function displayGrade(
   system: GradeSystem,
   grade: string,
   vEquiv?: string | null,
 ): { system: GradeSystem; grade: string } {
+  const label = grade.trim();
+  if (label) return { system, grade: formatGrade(system, label) };
   const v = canonicalVGrade(vEquiv);
   if (v) return { system: "v", grade: v };
   return { system, grade: formatGrade(system, grade) };
@@ -239,6 +346,70 @@ export function normalizeBandVRange(
     return { v_equiv: b, v_max: a };
   }
   return { v_equiv: a, v_max: b };
+}
+
+/** True when a gym chart can be lined up against V rows. */
+export function hasVMapping(scale: GradeScale | null | undefined): boolean {
+  if (!scale?.bands.length) return false;
+  if (scale.kind === "v" || scale.kind === "font" || scale.kind === "french" || scale.kind === "yds") {
+    return true;
+  }
+  return scale.bands.some((band) => bandVMin(band) || bandVMax(band));
+}
+
+/** House (or standard) grades at this V — a colour/number may span a V range. */
+export function bandsForVGrade(scale: GradeScale, v: string): GradeBand[] {
+  return scale.bands.filter((band) => bandCoversVGrade(scale.kind, band, v));
+}
+
+function bandCoversVGrade(kind: GradeSystem, band: GradeBand, v: string): boolean {
+  const idx = vGradeIndex(v);
+  if (idx < 0) return false;
+  const lo = vGradeIndex(bandVMin(band));
+  if (lo >= 0) {
+    const hi = vGradeIndex(bandVMax(band));
+    const end = hi >= 0 ? hi : lo;
+    return idx >= Math.min(lo, end) && idx <= Math.max(lo, end);
+  }
+  if (kind === "v") return vGradeIndex(band.label) === idx;
+  if (kind === "font" || kind === "french" || kind === "yds") {
+    return vGradesForStandardGrade(kind, band.label).includes(v);
+  }
+  return false;
+}
+
+function vGradesForStandardGrade(
+  system: "font" | "french" | "yds",
+  grade: string,
+): string[] {
+  const list = gradesForSystem(system);
+  return GRADE_COMPARISON.filter((row) =>
+    cellCoversGrade(row[system], grade, list),
+  ).map((row) => row.v);
+}
+
+function cellCoversGrade(cell: string, grade: string, list: string[]): boolean {
+  const target = grade.trim();
+  const value = cell.trim();
+  if (!target || !value) return false;
+  if (value.toLowerCase() === target.toLowerCase()) return true;
+  const parts = value.split(/[–-]/).map((part) => part.trim());
+  if (parts.length !== 2) return false;
+  const start = parts[0];
+  const end = expandRangeEnd(start, parts[1]);
+  const i0 = list.findIndex((item) => item.toLowerCase() === start.toLowerCase());
+  const i1 = list.findIndex((item) => item.toLowerCase() === end.toLowerCase());
+  const ig = list.findIndex((item) => item.toLowerCase() === target.toLowerCase());
+  if (i0 < 0 || i1 < 0 || ig < 0) return false;
+  return ig >= Math.min(i0, i1) && ig <= Math.max(i0, i1);
+}
+
+/** "5.10a–b" → 5.10b; "6B–6B+" stays as written. */
+function expandRangeEnd(start: string, end: string): string {
+  if (start.startsWith("5.") && /^[a-d]$/i.test(end)) {
+    return start.replace(/[a-d]$/i, "") + end.toLowerCase();
+  }
+  return end;
 }
 
 export function vEquivFor(

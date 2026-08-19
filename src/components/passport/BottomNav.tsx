@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/components/ui/cx";
-import { GymsIcon, HomeIcon, ProfileIcon } from "./icons";
+import { GradesIcon, GymsIcon, HomeIcon, ProfileIcon } from "./icons";
 
 const ITEMS = [
   { href: "/passport", label: "Home", match: "home" as const },
   { href: "/passport/gyms", label: "Places", match: "gyms" as const },
+  { href: "/passport/grades", label: "Grades", match: "grades" as const },
   { href: "/passport/profile", label: "Profile", match: "profile" as const },
 ];
 
 function activeMatch(pathname: string) {
   if (pathname.startsWith("/passport/profile")) return "profile";
+  if (pathname.startsWith("/passport/grades")) return "grades";
   if (pathname.startsWith("/passport/gyms")) return "gyms";
   return "home";
 }
@@ -30,19 +32,21 @@ export function BottomNav() {
             ? HomeIcon
             : item.match === "gyms"
               ? GymsIcon
-              : ProfileIcon;
+              : item.match === "grades"
+                ? GradesIcon
+                : ProfileIcon;
         return (
           <Link
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cx(
-              "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-full px-2 text-xs font-semibold",
-              active ? "bg-sky-100 text-sky-700" : "text-ink-soft",
+              "flex min-h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-full py-1 text-xs font-semibold",
+              active ? "bg-sky-100 text-ink" : "text-ink-soft",
             )}
           >
             <Icon filled={active} />
-            {item.label}
+            <span className="truncate">{item.label}</span>
           </Link>
         );
       })}
