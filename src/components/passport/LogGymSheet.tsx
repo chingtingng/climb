@@ -343,7 +343,6 @@ function LogGymSheetInner({
               outlets={outlets}
               selected={outlet}
               newName={newOutletName}
-              city={city}
               onSelect={(item) => {
                 setOutlet(item.name);
                 setCity(item.city);
@@ -717,7 +716,6 @@ function OutletStep({
   outlets,
   selected,
   newName,
-  city,
   onSelect,
   onNewName,
   onAddNew,
@@ -725,62 +723,82 @@ function OutletStep({
   outlets: GymOutlet[];
   selected: string;
   newName: string;
-  city: string;
   onSelect: (outlet: GymOutlet) => void;
   onNewName: (value: string) => void;
   onAddNew: () => void;
 }) {
+  const [addingNew, setAddingNew] = useState(false);
+  const newInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (addingNew) newInputRef.current?.focus();
+  }, [addingNew]);
+
+  function handleAddNew() {
+    const label = newName.trim();
+    if (!label) return;
+    onAddNew();
+    setAddingNew(false);
+  }
+
   return (
     <div className="space-y-3">
-      {outlets.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {outlets.map((item) => {
-            const active = item.name === selected;
-            return (
-              <button
-                key={item.name}
-                type="button"
-                onClick={() => onSelect(item)}
-                className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${
-                  active
-                    ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                    : "border-pass-line bg-white text-pass-navy"
-                }`}
-              >
-                {item.name}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-sm text-pass-muted">
-          Add an outlet name if this gym has more than one location.
-        </p>
-      )}
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">New outlet</span>
-        <div className="flex gap-2">
-          <input
-            value={newName}
-            onChange={(e) => onNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onAddNew();
-              }
-            }}
-            placeholder={city ? `${city} branch` : "Tai Seng"}
-            className="passport-field"
-          />
+      <div className="flex flex-wrap gap-2">
+        {outlets.map((item) => {
+          const active = item.name === selected;
+          return (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => onSelect(item)}
+              className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${
+                active
+                  ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
+                  : "border-pass-line bg-white text-pass-navy"
+              }`}
+            >
+              {item.name}
+            </button>
+          );
+        })}
+        {!addingNew ? (
           <button
             type="button"
-            onClick={onAddNew}
-            className="min-h-12 shrink-0 rounded-full bg-pass-soft px-4 text-sm font-semibold"
+            onClick={() => setAddingNew(true)}
+            className="min-h-11 rounded-full border border-dashed border-pass-primary px-4 text-sm font-semibold text-pass-primary"
           >
-            Add
+            + New outlet
           </button>
-        </div>
-      </label>
+        ) : null}
+      </div>
+
+      {addingNew ? (
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">New outlet</span>
+          <div className="flex gap-2">
+            <input
+              ref={newInputRef}
+              value={newName}
+              onChange={(e) => onNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddNew();
+                }
+              }}
+              placeholder="Outlet name"
+              className="passport-field"
+            />
+            <button
+              type="button"
+              onClick={handleAddNew}
+              className="min-h-12 shrink-0 rounded-full bg-pass-soft px-4 text-sm font-semibold"
+            >
+              Add
+            </button>
+          </div>
+        </label>
+      ) : null}
     </div>
   );
 }
