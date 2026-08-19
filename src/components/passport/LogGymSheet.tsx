@@ -11,6 +11,7 @@ import {
   catalogCountries,
   defaultScaleFor,
   findKnownGym,
+  findOutletByLabel,
   gymsInCity,
   gymsInCountry,
   mergeOutlets,
@@ -238,9 +239,13 @@ function LogGymSheetInner({
     }
     if (step === "outlet") {
       if (!outlet.trim()) return;
-      const match = outlets.find((item) => item.name === outlet);
-      if (match) setCity(match.city);
-      else if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
+      const match = findOutletByLabel(outlets, outlet);
+      if (match) {
+        setOutlet(match.name);
+        setCity(match.city);
+      } else if (skipsCityStep(country) && !city.trim()) {
+        setCity("Singapore");
+      }
       setStep(needsScale ? "scale" : "grade");
       return;
     }
@@ -905,7 +910,7 @@ function OutletStep({
       {outlets.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {outlets.map((item) => {
-            const active = item.name === selected;
+            const active = Boolean(findOutletByLabel([item], selected));
             return (
               <button
                 key={item.name}

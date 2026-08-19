@@ -113,6 +113,7 @@ create unique index gyms_name_country_idx
 
 -- ---------------------------------------------------------------------------
 -- Outlets (one gym, several locations)
+-- `name` is the gym's own label for that location (Bugis, Bendemeer), not the mall.
 -- ---------------------------------------------------------------------------
 create table public.gym_outlets (
   id uuid primary key default gen_random_uuid(),
@@ -374,19 +375,20 @@ select s.id, o.name, o.city
 from seeded s
 join (
   values
+    -- name = the gym's own outlet label
     ('Boulder Planet', 'Singapore', 'Sembawang', 'Sembawang'),
     ('Boulder Planet', 'Singapore', 'Tai Seng', 'Tai Seng'),
     ('Boulder Planet', 'Indonesia', 'Central Park', 'Jakarta'),
     ('Boulder Planet', 'Thailand', 'Future Park Rangsit', 'Bangkok'),
-    ('Boulder Movement', 'Singapore', 'Bugis+', 'Bugis'),
-    ('Boulder Movement', 'Singapore', 'Downtown Gallery', 'Downtown'),
-    ('Boulder Movement', 'Singapore', 'Tekka Place', 'Rochor'),
+    ('Boulder Movement', 'Singapore', 'Bugis', 'Bugis'),
+    ('Boulder Movement', 'Singapore', 'Rochor', 'Rochor'),
+    ('Boulder Movement', 'Singapore', 'Downtown', 'Downtown'),
     ('Boulder Movement', 'Singapore', 'Tai Seng', 'Tai Seng'),
     ('Boulder+', 'Singapore', 'Aperia', 'Kallang'),
     ('Boulder+', 'Singapore', 'Chevrons', 'Jurong East'),
-    ('BFF Climbing', 'Singapore', 'CT Hub', 'Bendemeer'),
-    ('BFF Climbing', 'Singapore', 'Our Tampines Hub', 'Tampines'),
-    ('BFF Climbing', 'Singapore', 'yo:HA Commercial', 'Tampines'),
+    ('BFF Climbing', 'Singapore', 'Bendemeer', 'Bendemeer'),
+    ('BFF Climbing', 'Singapore', 'Tampines Yoha', 'Tampines'),
+    ('BFF Climbing', 'Singapore', 'Tampines Hub', 'Tampines'),
     ('Climb Central', 'Singapore', 'The Kallang', 'Kallang'),
     ('Climb Central', 'Singapore', 'Funan', 'Funan'),
     ('Climb Central', 'Singapore', 'Novena', 'Novena'),
@@ -396,18 +398,18 @@ join (
     ('Fit Bloc', 'Singapore', 'Telok Ayer', 'Telok Ayer'),
     ('Kinetics Climbing', 'Singapore', 'Serangoon', 'Serangoon'),
     ('Lighthouse', 'Singapore', 'Pasir Panjang', 'Pasir Panjang'),
-    ('Climba', 'Singapore', 'Robinson Centre', 'CBD'),
+    ('Climba', 'Singapore', 'Robinson', 'CBD'),
     ('Ark Bloc', 'Singapore', 'Punggol', 'Punggol'),
     ('Ground Up', 'Singapore', 'Tessensohn', 'Farrer Park'),
-    ('OYEYO Boulder Home', 'Singapore', 'Mackenzie Road', 'Rochor'),
-    ('ClimbUp', 'Singapore', 'i12 Katong', 'Katong'),
-    ('Z-Vertigo', 'Singapore', 'Bukit Timah Shopping Centre', 'Bukit Timah'),
-    ('Outpost Climbing', 'Singapore', 'Crawford Lane', 'Lavender'),
+    ('OYEYO Boulder Home', 'Singapore', 'Mackenzie', 'Rochor'),
+    ('ClimbUp', 'Singapore', 'Katong', 'Katong'),
+    ('Z-Vertigo', 'Singapore', 'Bukit Timah', 'Bukit Timah'),
+    ('Outpost Climbing', 'Singapore', 'Lavender', 'Lavender'),
     ('Upwall Climbing', 'Singapore', 'Downtown East', 'Pasir Ris'),
-    ('Project Send', 'Singapore', 'Esplanade Mall', 'Esplanade'),
-    ('Climb@T3', 'Singapore', 'Changi Airport T3', 'Changi'),
+    ('Project Send', 'Singapore', 'Esplanade', 'Esplanade'),
+    ('Climb@T3', 'Singapore', 'T3', 'Changi'),
     ('The Cliff', 'Singapore', 'Snow City', 'Jurong East'),
-    ('SAFRA Yishun', 'Singapore', 'Adventure Centre', 'Yishun'),
+    ('SAFRA Yishun', 'Singapore', 'Yishun', 'Yishun'),
     ('Boruda', 'Singapore', 'Boruda', 'Singapore')
 ) as o(gym_name, country, name, city)
   on o.gym_name = s.name and o.country = s.country;
