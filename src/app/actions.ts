@@ -71,11 +71,13 @@ function parsePassword(formData: FormData): string | ActionResult {
   return password;
 }
 
+const DUPLICATE_ACCOUNT_ERROR = "Username or email already in use.";
+
 function mapAuthError(message: string, context: "signup" | "login" = "login"): string {
   const lower = message.toLowerCase();
   if (lower.includes("already registered") || lower.includes("user already exists")) {
     return context === "signup"
-      ? "That email is already registered. Try signing in, or use a different email."
+      ? DUPLICATE_ACCOUNT_ERROR
       : "That account already exists. Try signing in instead.";
   }
   if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
@@ -180,10 +182,7 @@ export async function createAccountAction(
       return { ok: false, error: availability.error };
     }
     if (!availability.available) {
-      return {
-        ok: false,
-        error: "That username is already taken. Try another.",
-      };
+      return { ok: false, error: DUPLICATE_ACCOUNT_ERROR };
     }
 
     const siteUrl = await getSiteUrl();
@@ -202,6 +201,12 @@ export async function createAccountAction(
 
     if (!data.user) {
       return { ok: false, error: "Could not create account." };
+    }
+
+    // Existing email: Supabase returns a user with an empty identities list
+    // (no new session, no confirmation email) to avoid leaking account existence.
+    if (!data.session && (data.user.identities?.length ?? 0) === 0) {
+      return { ok: false, error: DUPLICATE_ACCOUNT_ERROR };
     }
 
     // When Confirm email is on, there is no session yet — profile is still
