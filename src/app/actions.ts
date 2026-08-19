@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
-import { isHouseSystem } from "@/lib/grades";
+import { isHouseSystem, normalizeVEquiv } from "@/lib/grades";
 import {
   createVisit,
   deleteVisit,
@@ -200,7 +200,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
           .filter((band) => band?.label)
           .map((band) => ({
             label: String(band.label).slice(0, 40),
-            v_equiv: band.v_equiv ? String(band.v_equiv).slice(0, 8) : undefined,
+            v_equiv: normalizeVEquiv(band.v_equiv),
             color: band.color ? String(band.color).slice(0, 16) : undefined,
           })),
       };
@@ -225,7 +225,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     outlet: outlet || undefined,
     grade_system,
     highest_grade,
-    v_equiv: v_equiv || undefined,
+    v_equiv: normalizeVEquiv(v_equiv),
     notes: notes || undefined,
     visited_on,
     scale,

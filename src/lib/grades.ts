@@ -190,3 +190,15 @@ export function isHouseSystem(system: GradeSystem): boolean {
 export function isGradeSystem(value: string): value is GradeSystem {
   return GRADE_SYSTEMS.some((item) => item.value === value);
 }
+
+/** Accept only VB / V0–V16 (matches supabase/schema.sql is_v_grade). */
+export function isVGrade(value: string): boolean {
+  return /^(VB|V([0-9]|1[0-6]))$/.test(value.trim());
+}
+
+export function normalizeVEquiv(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const trimmed = String(value).trim();
+  if (!trimmed || !isVGrade(trimmed)) return undefined;
+  return trimmed;
+}

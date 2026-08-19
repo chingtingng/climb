@@ -12,17 +12,23 @@ function numberBands(from: number, to: number, startV = 1): GradeBand[] {
   return vBands(numberRange(from, to), startV);
 }
 
-function colorBands(names: { label: string; v: number }[]): GradeBand[] {
+function colorBands(names: { label: string; v: number | string }[]): GradeBand[] {
   return names.map((item) => ({
     label: item.label,
     color: COLOR_GRADES.find((c) => c.label === item.label)?.color,
-    v_equiv: `V${item.v}`,
+    v_equiv: typeof item.v === "number" ? `V${item.v}` : item.v,
   }));
 }
 
+/** Boulder Planet house numbers 1–12 → approximate V (4≈V1 … 12≈V9). */
 const BOULDER_PLANET_SCALE: GradeScale = {
   kind: "number",
-  bands: numberBands(4, 12, 1),
+  bands: [
+    { label: "1", v_equiv: "VB" },
+    { label: "2", v_equiv: "VB" },
+    { label: "3", v_equiv: "V0" },
+    ...numberBands(4, 12, 1),
+  ],
 };
 
 function gym(
@@ -141,9 +147,9 @@ export const KNOWN_GYMS: CatalogGym[] = [
   gym("Climba", "Singapore", [["Robinson", "CBD"]], {
     kind: "color",
     bands: colorBands([
-      { label: "Blue", v: 2 },
-      { label: "Yellow", v: 4 },
-      { label: "Red", v: 6 },
+      { label: "Blue", v: 1 },
+      { label: "Yellow", v: 3 },
+      { label: "Red", v: 7 },
     ]),
   }),
   gym("Ark Bloc", "Singapore", [["Punggol", "Punggol"]]),
