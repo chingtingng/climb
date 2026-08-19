@@ -96,7 +96,8 @@ exception
 end $$;
 
 -- ---------------------------------------------------------------------------
--- Gyms (shared catalog)
+-- Gyms (shared catalog — stamp picker reads these tables)
+-- Add/remove gyms and outlets here or in Table Editor. Closed: Boruda, The Cliff.
 -- ---------------------------------------------------------------------------
 create table public.gyms (
   id uuid primary key default gen_random_uuid(),
@@ -113,6 +114,7 @@ create unique index gyms_name_country_idx
 
 -- ---------------------------------------------------------------------------
 -- Outlets (one gym, several locations)
+-- `name` is the gym's own label for that location (Bugis, Bendemeer), not the mall.
 -- ---------------------------------------------------------------------------
 create table public.gym_outlets (
   id uuid primary key default gen_random_uuid(),
@@ -339,36 +341,78 @@ create policy "Anyone can view grade charts"
   using (bucket_id = 'gym-grade-charts');
 
 -- ---------------------------------------------------------------------------
--- Seed known Singapore gyms (shared catalog)
+-- Seed known gyms (shared catalog)
+-- The app reads gyms / gym_outlets / gym_grade_scales. After first run you can
+-- add gyms in the Table Editor; this seed is for a new project.
+-- Closed and omitted: Boruda, The Cliff (Snow City).
 -- ---------------------------------------------------------------------------
 with seeded as (
   insert into public.gyms (name, country)
   values
     ('Boulder Planet', 'Singapore'),
-    ('BFF Climbing', 'Singapore'),
+    ('Boulder Planet', 'Indonesia'),
+    ('Boulder Planet', 'Thailand'),
+    ('Boulder Movement', 'Singapore'),
     ('Boulder+', 'Singapore'),
-    ('Lighthouse', 'Singapore'),
+    ('BFF Climbing', 'Singapore'),
+    ('Climb Central', 'Singapore'),
     ('Fit Bloc', 'Singapore'),
+    ('Kinetics Climbing', 'Singapore'),
+    ('Lighthouse', 'Singapore'),
+    ('Climba', 'Singapore'),
+    ('Ark Bloc', 'Singapore'),
     ('Ground Up', 'Singapore'),
-    ('Boruda', 'Singapore'),
-    ('Climba', 'Singapore')
-  returning id, name
+    ('OYEYO Boulder Home', 'Singapore'),
+    ('ClimbUp', 'Singapore'),
+    ('Z-Vertigo', 'Singapore'),
+    ('Outpost Climbing', 'Singapore'),
+    ('Upwall Climbing', 'Singapore'),
+    ('Project Send', 'Singapore'),
+    ('Climb@T3', 'Singapore'),
+    ('SAFRA Yishun', 'Singapore')
+  returning id, name, country
 )
 insert into public.gym_outlets (gym_id, name, city)
 select s.id, o.name, o.city
 from seeded s
 join (
   values
-    ('Boulder Planet', 'Sembawang', 'Singapore'),
-    ('Boulder Planet', 'Tai Seng', 'Singapore'),
-    ('BFF Climbing', 'BFF', 'Singapore'),
-    ('Boulder+', 'Boulder+', 'Singapore'),
-    ('Lighthouse', 'Lighthouse', 'Singapore'),
-    ('Fit Bloc', 'Fit Bloc', 'Singapore'),
-    ('Ground Up', 'Ground Up', 'Singapore'),
-    ('Boruda', 'Boruda', 'Singapore'),
-    ('Climba', 'Climba', 'Singapore')
-) as o(gym_name, name, city) on o.gym_name = s.name;
+    -- name = the gym's own outlet label
+    ('Boulder Planet', 'Singapore', 'Sembawang', 'Sembawang'),
+    ('Boulder Planet', 'Singapore', 'Tai Seng', 'Tai Seng'),
+    ('Boulder Planet', 'Indonesia', 'Central Park', 'Jakarta'),
+    ('Boulder Planet', 'Thailand', 'Future Park Rangsit', 'Bangkok'),
+    ('Boulder Movement', 'Singapore', 'Bugis', 'Bugis'),
+    ('Boulder Movement', 'Singapore', 'Rochor', 'Rochor'),
+    ('Boulder Movement', 'Singapore', 'Downtown', 'Downtown'),
+    ('Boulder Movement', 'Singapore', 'Tai Seng', 'Tai Seng'),
+    ('Boulder+', 'Singapore', 'Aperia', 'Kallang'),
+    ('Boulder+', 'Singapore', 'Chevrons', 'Jurong East'),
+    ('BFF Climbing', 'Singapore', 'Bendemeer', 'Bendemeer'),
+    ('BFF Climbing', 'Singapore', 'Tampines Yoha', 'Tampines'),
+    ('BFF Climbing', 'Singapore', 'Tampines Hub', 'Tampines'),
+    ('Climb Central', 'Singapore', 'The Kallang', 'Kallang'),
+    ('Climb Central', 'Singapore', 'Funan', 'Funan'),
+    ('Climb Central', 'Singapore', 'Novena', 'Novena'),
+    ('Climb Central', 'Singapore', 'SAFRA Choa Chu Kang', 'Choa Chu Kang'),
+    ('Fit Bloc', 'Singapore', 'Kent Ridge', 'Kent Ridge'),
+    ('Fit Bloc', 'Singapore', 'Depot Heights', 'Depot Heights'),
+    ('Fit Bloc', 'Singapore', 'Telok Ayer', 'Telok Ayer'),
+    ('Kinetics Climbing', 'Singapore', 'Serangoon', 'Serangoon'),
+    ('Lighthouse', 'Singapore', 'Pasir Panjang', 'Pasir Panjang'),
+    ('Climba', 'Singapore', 'Robinson', 'CBD'),
+    ('Ark Bloc', 'Singapore', 'Punggol', 'Punggol'),
+    ('Ground Up', 'Singapore', 'Tessensohn', 'Farrer Park'),
+    ('OYEYO Boulder Home', 'Singapore', 'Mackenzie', 'Rochor'),
+    ('ClimbUp', 'Singapore', 'Katong', 'Katong'),
+    ('Z-Vertigo', 'Singapore', 'Bukit Timah', 'Bukit Timah'),
+    ('Outpost Climbing', 'Singapore', 'Lavender', 'Lavender'),
+    ('Upwall Climbing', 'Singapore', 'Downtown East', 'Pasir Ris'),
+    ('Project Send', 'Singapore', 'Esplanade', 'Esplanade'),
+    ('Climb@T3', 'Singapore', 'T3', 'Changi'),
+    ('SAFRA Yishun', 'Singapore', 'Yishun', 'Yishun')
+) as o(gym_name, country, name, city)
+  on o.gym_name = s.name and o.country = s.country;
 
 insert into public.gym_grade_scales (gym_id, kind, bands)
 select g.id, s.kind, s.bands::jsonb
@@ -404,11 +448,6 @@ join (
       'Ground Up',
       'v',
       '[{"label":"V1","v_equiv":"V1"},{"label":"V2","v_equiv":"V2"},{"label":"V3","v_equiv":"V3"},{"label":"V4","v_equiv":"V4"},{"label":"V5","v_equiv":"V5"},{"label":"V6","v_equiv":"V6"},{"label":"V7","v_equiv":"V7"},{"label":"V8","v_equiv":"V8"}]'
-    ),
-    (
-      'Boruda',
-      'custom',
-      '[{"label":"7Q","v_equiv":"V1"},{"label":"6Q","v_equiv":"V2"},{"label":"5Q","v_equiv":"V3"},{"label":"4Q","v_equiv":"V4"},{"label":"3Q","v_equiv":"V5"},{"label":"2Q","v_equiv":"V6"},{"label":"1Q","v_equiv":"V7"},{"label":"1D","v_equiv":"V8"},{"label":"2D","v_equiv":"V9"}]'
     ),
     (
       'Climba',
