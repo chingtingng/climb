@@ -1,4 +1,4 @@
-import { COLOR_GRADES, numberRange } from "./grades";
+import { COLOR_GRADES, FRENCH_GRADES, FONT_GRADES, numberRange } from "./grades";
 import { countryMeta } from "./countries";
 import {
   DEFAULT_CLIMBING_TYPES,
@@ -376,6 +376,18 @@ export function defaultScaleFor(
       bands: ["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"].map(
         (label) => ({ label, v_equiv: label }),
       ),
+    };
+  }
+  if (kind === "font") {
+    return {
+      kind,
+      bands: FONT_GRADES.map((label) => ({ label })),
+    };
+  }
+  if (kind === "french") {
+    return {
+      kind,
+      bands: FRENCH_GRADES.map((label) => ({ label })),
     };
   }
   return { kind, bands: [] };
