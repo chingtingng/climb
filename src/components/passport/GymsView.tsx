@@ -57,7 +57,7 @@ export function GymsView() {
           onClick={() => openLog()}
           disabled={!configured}
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-pass-primary text-lg font-semibold text-white"
-          aria-label="Log a gym"
+          aria-label="Log a visit"
         >
           +
         </button>
@@ -109,7 +109,7 @@ export function GymsView() {
         <div className="rounded-[1.4rem] bg-white px-5 py-10 text-center">
           <p className="passport-mark text-2xl">No gyms yet</p>
           <p className="mt-2 text-sm text-pass-muted">
-            Log a gym and it’ll appear in your collection.
+            Log a visit and it’ll appear in your collection.
           </p>
         </div>
       ) : filtered.length === 0 ? (

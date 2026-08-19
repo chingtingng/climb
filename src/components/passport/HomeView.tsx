@@ -110,7 +110,7 @@ export function HomeView() {
             disabled={!configured}
             className="passport-btn pointer-events-auto"
           >
-            + Log a gym
+            + Log a visit
           </button>
         </div>
       ) : null}
