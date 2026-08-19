@@ -24,6 +24,7 @@ export type GymOutlet = {
 export type Profile = {
   id: string;
   username: string;
+  email?: string | null;
   created_at: string;
 };
 

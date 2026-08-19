@@ -30,7 +30,11 @@
 --
 -- After running:
 -- 1) Authentication → Providers → Email: enabled
--- 2) Turn OFF “Confirm email” (usernames map to you@chalk.local)
+-- 2) Turn ON “Confirm email” (signup uses a real inbox for recovery)
+-- 3) Authentication → URL Configuration: set Site URL, and add
+--    {SITE_URL}/auth/confirm and {SITE_URL}/auth/callback to Redirect URLs
+-- 4) Optional: update the Confirm signup email template to:
+--    {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/passport
 -- =============================================================================
 
 create extension if not exists "pgcrypto";
@@ -50,6 +54,7 @@ drop table if exists public.gyms cascade;
 create table if not exists public.profiles (
   id uuid primary key,
   username text not null unique,
+  email text,
   created_at timestamptz not null default now(),
   constraint profiles_username_format check (
     char_length(username) between 3 and 30
@@ -59,11 +64,28 @@ create table if not exists public.profiles (
 
 alter table public.profiles alter column id drop default;
 
+alter table public.profiles
+  add column if not exists email text;
+
 alter table public.profiles drop constraint if exists profiles_username_format;
 alter table public.profiles add constraint profiles_username_format check (
   char_length(username) between 3 and 30
   and username ~ '^[a-z0-9_]+$'
 );
+
+alter table public.profiles drop constraint if exists profiles_email_format;
+alter table public.profiles add constraint profiles_email_format check (
+  email is null
+  or (
+    char_length(email) between 3 and 254
+    and email = lower(email)
+    and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+  )
+);
+
+create unique index if not exists profiles_email_unique_idx
+  on public.profiles (email)
+  where email is not null;
 
 do $$
 begin
@@ -83,20 +105,73 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, username)
+  insert into public.profiles (id, username, email)
   values (
     new.id,
     lower(coalesce(
       new.raw_user_meta_data->>'username',
       split_part(new.email, '@', 1)
-    ))
+    )),
+    case
+      when new.email is null then null
+      when new.email like '%@chalk.local' then null
+      else lower(new.email)
+    end
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update
+    set email = coalesce(excluded.email, public.profiles.email);
   return new;
 end;
 $$;
 
 revoke all on function public.handle_new_user() from public, anon, authenticated;
+
+-- Resolve username → auth email for password login (anon-safe; returns email only).
+create or replace function public.resolve_login_email(identifier text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  normalized text := lower(trim(coalesce(identifier, '')));
+  found text;
+begin
+  if normalized = '' then
+    return null;
+  end if;
+
+  if position('@' in normalized) > 0 then
+    return normalized;
+  end if;
+
+  select p.email into found
+  from public.profiles p
+  where p.username = normalized
+    and p.email is not null;
+
+  return found;
+end;
+$$;
+
+revoke all on function public.resolve_login_email(text) from public;
+grant execute on function public.resolve_login_email(text) to anon, authenticated, service_role;
+
+create or replace function public.is_username_available(candidate text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select not exists (
+    select 1
+    from public.profiles
+    where username = lower(trim(coalesce(candidate, '')))
+  );
+$$;
+
+revoke all on function public.is_username_available(text) from public;
+grant execute on function public.is_username_available(text) to anon, authenticated, service_role;
 
 do $$
 begin

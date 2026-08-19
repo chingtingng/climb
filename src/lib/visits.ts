@@ -106,15 +106,37 @@ export async function ensureOwnProfile(
   supabase: SupabaseClient,
   userId: string,
   username: string,
+  email?: string | null,
 ): Promise<Profile> {
-  const { data, error } = await supabase
+  const base = { id: userId, username };
+  const withEmail =
+    email && email.trim()
+      ? { ...base, email: email.trim().toLowerCase() }
+      : base;
+
+  const first = await supabase
     .from("profiles")
-    .upsert({ id: userId, username }, { onConflict: "id" })
+    .upsert(withEmail, { onConflict: "id" })
     .select("*")
     .single();
 
-  if (error) throw mapDbError(error.message);
-  return data as Profile;
+  // Before email-auth.sql is applied, profiles has no email column — retry.
+  if (
+    first.error &&
+    withEmail !== base &&
+    /email|schema cache|PGRST204/i.test(first.error.message)
+  ) {
+    const retry = await supabase
+      .from("profiles")
+      .upsert(base, { onConflict: "id" })
+      .select("*")
+      .single();
+    if (retry.error) throw mapDbError(retry.error.message);
+    return retry.data as Profile;
+  }
+
+  if (first.error) throw mapDbError(first.error.message);
+  return first.data as Profile;
 }
 
 export async function listVisitsForProfile(profileId: string): Promise<GymVisit[]> {

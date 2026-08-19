@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getSiteUrl } from "@/lib/site-url";
 import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
 import { isHouseSystem, normalizeBandVRange, normalizeVEquiv } from "@/lib/grades";
 import {
@@ -13,11 +15,19 @@ import {
   ensureOwnProfile,
   updateVisit,
 } from "@/lib/visits";
-import { normalizeUsername, usernameToEmail } from "@/lib/username";
+import {
+  emailToUsername,
+  normalizeEmail,
+  normalizeUsername,
+  parseLoginIdentifier,
+  usernameToEmail,
+} from "@/lib/username";
 
 export type ActionResult = {
   ok: boolean;
   error?: string;
+  /** Signup succeeded; user must click the verification email before signing in. */
+  needsVerification?: boolean;
 };
 
 function requireConfigured(): ActionResult | null {
@@ -42,6 +52,17 @@ function parseUsername(formData: FormData): string | ActionResult {
   }
 }
 
+function parseEmail(formData: FormData): string | ActionResult {
+  try {
+    return normalizeEmail(String(formData.get("email") ?? ""));
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invalid email",
+    };
+  }
+}
+
 function parsePassword(formData: FormData): string | ActionResult {
   const password = String(formData.get("password") ?? "");
   if (password.length < 6) {
@@ -50,18 +71,89 @@ function parsePassword(formData: FormData): string | ActionResult {
   return password;
 }
 
-function mapAuthError(message: string): string {
+function mapAuthError(message: string, context: "signup" | "login" = "login"): string {
   const lower = message.toLowerCase();
-  if (lower.includes("already registered")) {
-    return "That username is already taken. Try signing in instead.";
+  if (lower.includes("already registered") || lower.includes("user already exists")) {
+    return context === "signup"
+      ? "That email is already registered. Try signing in, or use a different email."
+      : "That account already exists. Try signing in instead.";
   }
-  if (lower.includes("invalid login credentials")) {
-    return "Wrong username or password.";
+  if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
+    return "Wrong username/email or password.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Confirm your email before signing in. Check your inbox for the verification link.";
   }
   if (lower.includes("permission denied")) {
     return "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.";
   }
   return message;
+}
+
+async function isUsernameFree(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  username: string,
+): Promise<{ ok: true; available: boolean } | { ok: false; error: string }> {
+  const { data, error } = await supabase.rpc("is_username_available", {
+    candidate: username,
+  });
+
+  if (!error) {
+    return { ok: true, available: data !== false };
+  }
+
+  const admin = createAdminClient();
+  if (admin) {
+    const { data: row, error: adminError } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+    if (adminError) {
+      return { ok: false, error: mapAuthError(adminError.message, "signup") };
+    }
+    return { ok: true, available: !row };
+  }
+
+  return {
+    ok: false,
+    error:
+      "Could not check username availability. Run supabase/email-auth.sql in the Supabase SQL Editor.",
+  };
+}
+
+async function resolveAuthEmailForLogin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  identifier: ReturnType<typeof parseLoginIdentifier>,
+): Promise<string> {
+  if (identifier.kind === "email") {
+    return identifier.email;
+  }
+
+  const { data, error } = await supabase.rpc("resolve_login_email", {
+    identifier: identifier.username,
+  });
+
+  if (!error && typeof data === "string" && data.includes("@")) {
+    return data;
+  }
+
+  const admin = createAdminClient();
+  if (admin) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("username", identifier.username)
+      .maybeSingle();
+
+    if (profile?.id) {
+      const { data: userData } = await admin.auth.admin.getUserById(profile.id);
+      if (userData.user?.email) return userData.user.email;
+    }
+  }
+
+  // Legacy accounts created as username@chalk.local before real-email signup.
+  return usernameToEmail(identifier.username);
 }
 
 export async function createAccountAction(
@@ -74,32 +166,56 @@ export async function createAccountAction(
   const parsedUsername = parseUsername(formData);
   if (typeof parsedUsername !== "string") return parsedUsername;
 
+  const parsedEmail = parseEmail(formData);
+  if (typeof parsedEmail !== "string") return parsedEmail;
+
   const parsedPassword = parsePassword(formData);
   if (typeof parsedPassword !== "string") return parsedPassword;
 
   try {
     const supabase = await createClient();
+
+    const availability = await isUsernameFree(supabase, parsedUsername);
+    if (!availability.ok) {
+      return { ok: false, error: availability.error };
+    }
+    if (!availability.available) {
+      return {
+        ok: false,
+        error: "That username is already taken. Try another.",
+      };
+    }
+
+    const siteUrl = await getSiteUrl();
     const { data, error } = await supabase.auth.signUp({
-      email: usernameToEmail(parsedUsername),
+      email: parsedEmail,
       password: parsedPassword,
       options: {
         data: { username: parsedUsername },
+        emailRedirectTo: `${siteUrl}/auth/confirm?next=/passport`,
       },
     });
 
     if (error) {
-      return { ok: false, error: mapAuthError(error.message) };
+      return { ok: false, error: mapAuthError(error.message, "signup") };
     }
 
-    if (!data.session || !data.user) {
-      return {
-        ok: false,
-        error:
-          "Account created, but email confirmation is still on in Supabase. Turn off Confirm email under Authentication → Providers → Email, then sign in.",
-      };
+    if (!data.user) {
+      return { ok: false, error: "Could not create account." };
     }
 
-    await ensureOwnProfile(supabase, data.user.id, parsedUsername);
+    // When Confirm email is on, there is no session yet — profile is still
+    // created by the auth trigger. If confirmation is off, we get a session.
+    if (!data.session) {
+      return { ok: true, needsVerification: true };
+    }
+
+    await ensureOwnProfile(
+      supabase,
+      data.user.id,
+      parsedUsername,
+      parsedEmail,
+    );
   } catch (error) {
     return {
       ok: false,
@@ -117,25 +233,48 @@ export async function loginAction(
   const configured = requireConfigured();
   if (configured) return configured;
 
-  const parsedUsername = parseUsername(formData);
-  if (typeof parsedUsername !== "string") return parsedUsername;
+  let identifier: ReturnType<typeof parseLoginIdentifier>;
+  try {
+    identifier = parseLoginIdentifier(String(formData.get("identifier") ?? ""));
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invalid username or email",
+    };
+  }
 
   const parsedPassword = parsePassword(formData);
   if (typeof parsedPassword !== "string") return parsedPassword;
 
   try {
     const supabase = await createClient();
+    const email = await resolveAuthEmailForLogin(supabase, identifier);
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: usernameToEmail(parsedUsername),
+      email,
       password: parsedPassword,
     });
 
     if (error) {
-      return { ok: false, error: mapAuthError(error.message) };
+      return { ok: false, error: mapAuthError(error.message, "login") };
     }
 
     if (data.user) {
-      await ensureOwnProfile(supabase, data.user.id, parsedUsername);
+      const username =
+        (typeof data.user.user_metadata?.username === "string"
+          ? data.user.user_metadata.username
+          : undefined) ||
+        (identifier.kind === "username" ? identifier.username : undefined) ||
+        emailToUsername(data.user.email);
+
+      if (username) {
+        await ensureOwnProfile(
+          supabase,
+          data.user.id,
+          username,
+          data.user.email ?? undefined,
+        );
+      }
     }
   } catch (error) {
     return {

@@ -5,6 +5,7 @@ import { emailToUsername } from "@/lib/username";
 export type SessionUser = {
   id: string;
   username: string;
+  email?: string | null;
 };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -14,13 +15,28 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
 
-  const username =
-    (typeof data.user.user_metadata?.username === "string"
+  const metaUsername =
+    typeof data.user.user_metadata?.username === "string"
       ? data.user.user_metadata.username
-      : undefined) ||
-    emailToUsername(data.user.email);
+      : undefined;
+
+  // Prefer metadata; fall back to legacy @chalk.local mapping only.
+  let username = metaUsername || emailToUsername(data.user.email);
+
+  if (!username) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    username = profile?.username ?? undefined;
+  }
 
   if (!username) return null;
 
-  return { id: data.user.id, username };
+  return {
+    id: data.user.id,
+    username,
+    email: data.user.email,
+  };
 }

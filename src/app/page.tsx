@@ -3,16 +3,21 @@ import { LoginForm } from "@/components/LoginForm";
 import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ authError?: string }>;
+}) {
   const session = await getSessionUser();
   if (session) redirect("/passport");
 
   const configured = isSupabaseConfigured();
+  const params = await searchParams;
 
   return (
     <main className="app-shell flex flex-col justify-center">
       <div className="fade-up">
-        <LoginForm configured={configured} />
+        <LoginForm configured={configured} authError={params.authError} />
       </div>
 
       <footer className="fade-up-delay mt-8 pb-2 text-center text-sm text-ink-soft">

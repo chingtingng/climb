@@ -20,15 +20,66 @@ export function normalizeUsername(raw: string): string {
   return username;
 }
 
-/** Supabase Auth requires an email — map username to a synthetic one. */
+/** True when the string looks like an email address. */
+export function looksLikeEmail(raw: string): boolean {
+  return raw.trim().includes("@");
+}
+
+/**
+ * Normalize and validate a real email for signup / recovery.
+ * Rejects the legacy synthetic `@chalk.local` domain.
+ */
+export function normalizeEmail(raw: string): string {
+  const email = raw.trim().toLowerCase();
+
+  if (!email) {
+    throw new Error("Email is required");
+  }
+  if (email.length > 254) {
+    throw new Error("Email is too long");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Enter a valid email address");
+  }
+  if (email.endsWith(`@${USERNAME_DOMAIN}`)) {
+    throw new Error("Use a real email address");
+  }
+
+  return email;
+}
+
+/**
+ * Parse a sign-in identifier as either an email or a username.
+ * Does not resolve username → auth email; callers do that separately.
+ */
+export function parseLoginIdentifier(
+  raw: string,
+): { kind: "email"; email: string } | { kind: "username"; username: string } {
+  const value = raw.trim();
+  if (!value) {
+    throw new Error("Username or email is required");
+  }
+
+  if (looksLikeEmail(value)) {
+    return { kind: "email", email: normalizeEmail(value) };
+  }
+
+  return { kind: "username", username: normalizeUsername(value) };
+}
+
+/** Legacy synthetic email used before real-email signup. Prefer real emails. */
 export function usernameToEmail(username: string): string {
   return `${normalizeUsername(username)}@${USERNAME_DOMAIN}`;
 }
 
+/**
+ * Map auth email → username only for legacy `@chalk.local` accounts.
+ * Real emails are not usernames.
+ */
 export function emailToUsername(email: string | undefined): string | undefined {
   if (!email) return undefined;
   if (email.endsWith(`@${USERNAME_DOMAIN}`)) {
     return email.slice(0, -(USERNAME_DOMAIN.length + 1));
   }
-  return email;
+  return undefined;
 }

@@ -212,6 +212,16 @@ textarea {
   color: #8a2f2f;
 }
 
+.auth-success {
+  margin: 0;
+  border-radius: 1rem;
+  background: #e8f6ee;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #1f5c3a;
+  line-height: 1.45;
+}
+
 .auth-submit {
   margin-top: 4px;
   display: inline-flex;
