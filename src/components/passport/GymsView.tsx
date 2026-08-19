@@ -57,16 +57,16 @@ export function GymsView() {
         </button>
       </header>
 
-      <label className="relative block">
-        <span className="sr-only">Search gyms, cities or countries</span>
-        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-pass-muted">
+      <label className="flex min-h-12 items-center gap-3 rounded-full border border-pass-line bg-white px-3.5 text-pass-navy focus-within:border-pass-primary focus-within:shadow-[0_0_0_3px_rgba(52,126,168,0.18)]">
+        <span className="shrink-0 text-pass-muted" aria-hidden>
           <SearchIcon />
         </span>
+        <span className="sr-only">Search gyms, cities or countries</span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search gyms, cities or countries"
-          className="passport-field pl-12"
+          className="min-h-12 w-full min-w-0 flex-1 border-0 bg-transparent py-3 text-[16px] text-pass-navy outline-none"
         />
       </label>
 
