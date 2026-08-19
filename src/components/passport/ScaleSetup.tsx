@@ -282,7 +282,6 @@ export function ScaleSetup({
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(e) => {
               const file = e.target.files?.[0] ?? null;
               onChart(file);
@@ -292,7 +291,7 @@ export function ScaleSetup({
             className="block w-full text-sm text-pass-muted file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-pass-soft file:px-4 file:font-semibold file:text-pass-navy"
           />
           <span className="mt-1.5 block text-xs text-pass-muted">
-            Required for a new house scale — a wall photo or printed chart is perfect.
+            Required for a new house scale — take a photo, choose from your library, or pick a file.
           </span>
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
