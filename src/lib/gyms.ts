@@ -1,4 +1,4 @@
-import { formatGrade, gradeSortValue } from "./grades";
+import { displayGrade, gradeSortValue } from "./grades";
 import type { GymGroup, GymVisit, PassportStats } from "./types";
 
 export function gymSlug(name: string, country: string): string {
@@ -97,6 +97,7 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
       lastVisited: sorted[0]?.visited_on ?? "",
       bestGrade: best?.highest_grade ?? "",
       bestGradeSystem: best?.grade_system ?? "v",
+      bestVEquiv: best?.v_equiv ?? null,
     });
   }
 
@@ -175,7 +176,11 @@ export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStat
     cities: cities.size,
     countries: countries.size,
     bestSend: bestVisit
-      ? formatGrade(bestVisit.grade_system, bestVisit.highest_grade)
+      ? displayGrade(
+          bestVisit.grade_system,
+          bestVisit.highest_grade,
+          bestVisit.v_equiv,
+        ).grade
       : null,
     mostVisitedGym,
     favouriteCity,

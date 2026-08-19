@@ -86,6 +86,7 @@ export function HomeView() {
                         <GradeLabel
                           system={visit.grade_system}
                           grade={visit.highest_grade}
+                          vEquiv={visit.v_equiv}
                         />
                       </span>
                       <span className="block text-xs text-pass-muted">

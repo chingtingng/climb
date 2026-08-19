@@ -8,6 +8,7 @@ import { CountryStamp } from "./CountryStamp";
 import { DeleteStampDialog } from "./DeleteStampDialog";
 import { GradeLabel } from "./GradePicker";
 import { usePassport } from "./PassportContext";
+import { VisitMediaPreview } from "./VisitMediaPreview";
 
 export function GymDetailView({ slug }: { slug: string }) {
   const router = useRouter();
@@ -78,7 +79,11 @@ export function GymDetailView({ slug }: { slug: string }) {
             Highest grade
           </p>
           <p className="passport-mark mt-1 text-3xl leading-none">
-            <GradeLabel system={gym.bestGradeSystem} grade={gym.bestGrade} />
+            <GradeLabel
+              system={gym.bestGradeSystem}
+              grade={gym.bestGrade}
+              vEquiv={gym.bestVEquiv}
+            />
           </p>
         </div>
         <div className="rounded-[1.2rem] bg-white px-4 py-4">
@@ -95,26 +100,30 @@ export function GymDetailView({ slug }: { slug: string }) {
           {gym.visits.map((visit) => (
             <li
               key={visit.id}
-              className="flex items-center gap-3 rounded-[1.15rem] bg-white px-3 py-2.5"
+              className="rounded-[1.15rem] bg-white px-3 py-2.5"
             >
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
-                <p className="text-sm break-words text-pass-muted">
-                  {formatVisitPlace(visit)} ·{" "}
-                  <GradeLabel
-                    system={visit.grade_system}
-                    grade={visit.highest_grade}
-                  />
-                  {visit.notes ? ` · ${visit.notes}` : ""}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
+                  <p className="text-sm break-words text-pass-muted">
+                    {formatVisitPlace(visit)} ·{" "}
+                    <GradeLabel
+                      system={visit.grade_system}
+                      grade={visit.highest_grade}
+                      vEquiv={visit.v_equiv}
+                    />
+                    {visit.notes ? ` · ${visit.notes}` : ""}
+                  </p>
+                </div>
+                <DeleteStampDialog
+                  visitId={visit.id}
+                  onDeleted={() => {
+                    if (gym.visitCount <= 1) router.replace("/passport/gyms");
+                    router.refresh();
+                  }}
+                />
               </div>
-              <DeleteStampDialog
-                visitId={visit.id}
-                onDeleted={() => {
-                  if (gym.visitCount <= 1) router.replace("/passport/gyms");
-                  router.refresh();
-                }}
-              />
+              <VisitMediaPreview photoPath={visit.photo_path} videoPath={visit.video_path} />
             </li>
           ))}
         </ul>

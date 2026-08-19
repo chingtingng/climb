@@ -278,7 +278,10 @@ export function ScaleSetup({
 
       {isHouseSystem(scale.kind) ? (
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">Photo of the grade chart</span>
+          <span className="mb-1.5 block text-sm font-semibold">
+            Photo of the grade chart{" "}
+            <span className="font-medium text-pass-muted">(optional)</span>
+          </span>
           <input
             type="file"
             accept="image/*"
@@ -291,7 +294,7 @@ export function ScaleSetup({
             className="block w-full text-sm text-pass-muted file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-pass-soft file:px-4 file:font-semibold file:text-pass-navy"
           />
           <span className="mt-1.5 block text-xs text-pass-muted">
-            Required for a new house scale — take a photo, choose from your library, or pick a file.
+            Optional — a photo helps the next visit reuse this gym’s scale.
           </span>
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element

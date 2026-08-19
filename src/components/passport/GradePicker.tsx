@@ -1,18 +1,28 @@
 "use client";
 
-import { COLOR_GRADES, colorHex, formatBandV, GRADE_SYSTEMS, gradesForSystem } from "@/lib/grades";
+import {
+  COLOR_GRADES,
+  colorHex,
+  displayGrade,
+  formatBandV,
+  GRADE_SYSTEMS,
+  gradesForSystem,
+} from "@/lib/grades";
 import type { GradeScale, GradeSystem } from "@/lib/types";
 
 export function GradeLabel({
   system,
   grade,
+  vEquiv,
   color,
 }: {
   system: GradeSystem;
   grade: string;
+  vEquiv?: string | null;
   color?: string;
 }) {
-  if (system === "color") {
+  const shown = displayGrade(system, grade, vEquiv);
+  if (shown.system === "color" || (system === "color" && !vEquiv)) {
     return (
       <span className="inline-flex items-center gap-1.5">
         <span
@@ -20,11 +30,11 @@ export function GradeLabel({
           style={{ background: colorHex(grade, color) }}
           aria-hidden
         />
-        {grade}
+        {shown.grade}
       </span>
     );
   }
-  return <>{grade}</>;
+  return <>{shown.grade}</>;
 }
 
 export function GradePicker({

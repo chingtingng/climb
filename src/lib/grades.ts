@@ -148,6 +148,17 @@ export function formatGrade(system: GradeSystem, grade: string): string {
   return grade;
 }
 
+/** Prefer mapped V-grade for stamps / best-send display (e.g. house “6” → “V3”). */
+export function displayGrade(
+  system: GradeSystem,
+  grade: string,
+  vEquiv?: string | null,
+): { system: GradeSystem; grade: string } {
+  const v = canonicalVGrade(vEquiv);
+  if (v) return { system: "v", grade: v };
+  return { system, grade: formatGrade(system, grade) };
+}
+
 export function isHouseSystem(system: GradeSystem): boolean {
   return system === "number" || system === "color" || system === "custom";
 }

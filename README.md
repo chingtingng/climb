@@ -15,7 +15,7 @@ Shared catalog, private stamps:
 - `gyms` — brand (Boulder Planet, BFF Climbing, …)
 - `gym_outlets` — locations of that brand (Sembawang, Tai Seng, …)
 - `gym_grade_scales` — one grade chart per gym (numbers, colours, V-scale, custom) plus an optional photo
-- `visits` — your stamps: which gym + outlet, grade, date, notes
+- `visits` — your stamps: which gym + outlet, grade, date, notes, optional photo/video
 - `profiles` — username + email (for recovery / username login lookup)
 
 There is no `gym_visits` table. Gym name / city / country live on the catalog, not on each stamp.
@@ -33,7 +33,7 @@ When creating the project, use these **Security** checkboxes:
 Then:
 
 1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops old stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `visits`. Profiles and Auth users are kept. Re-run it whenever the schema changes.
-   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql) instead of a full reset.
+   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql) and [`supabase/visit-media.sql`](./supabase/visit-media.sql) instead of a full reset.
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:

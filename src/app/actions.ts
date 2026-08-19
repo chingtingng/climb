@@ -358,6 +358,8 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const hasCatalogScale = String(formData.get("has_catalog_scale") ?? "") === "1";
   const chart = formData.get("grade_chart");
   const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
+  const photo_path = String(formData.get("photo_path") ?? "").trim();
+  const video_path = String(formData.get("video_path") ?? "").trim();
 
   if (!gym_name || !country || !city || !highest_grade || !visited_on) {
     return "Please fill in gym, place, grade, and date.";
@@ -373,6 +375,13 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
 
   if (highest_grade.length > 40) {
     return "That grade is too long.";
+  }
+
+  if (photo_path && !isOwnedMediaPath(photo_path)) {
+    return "That photo upload looks invalid. Try again.";
+  }
+  if (video_path && !isOwnedMediaPath(video_path)) {
+    return "That video upload looks invalid. Try again.";
   }
 
   let scale: GradeScale | undefined;
@@ -405,9 +414,6 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     if (!scale || scale.bands.length < 1) {
       return "Add this gym’s grades so the next visit can reuse them.";
     }
-    if (!chartFile) {
-      return "Add a photo of this gym’s grade chart so others can use the same scale.";
-    }
   }
 
   return {
@@ -424,7 +430,14 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     visited_on,
     scale,
     chartFile,
+    photo_path: photo_path || null,
+    video_path: video_path || null,
   };
+}
+
+function isOwnedMediaPath(path: string): boolean {
+  // {uuid}/{uuid}/photo.jpg or video.webm — validated against session in createVisit.
+  return /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/(photo|video)\.[a-z0-9]+$/i.test(path);
 }
 
 async function requireSessionProfile() {

@@ -6,7 +6,7 @@ import { addVisitAction, type ActionResult } from "@/app/actions";
 import { citiesForCountry } from "@/lib/cities";
 import { COUNTRY_NAMES } from "@/lib/countries";
 import { todayISO } from "@/lib/dates";
-import { formatGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
+import { displayGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
 import {
   catalogCities,
   catalogCountries,
@@ -35,6 +35,7 @@ import { CloseIcon, MountainIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { ScaleSetup } from "./ScaleSetup";
+import { uploadVisitMediaFile, VisitMediaFields } from "./VisitMediaFields";
 
 const initial: ActionResult | null = null;
 const NOTES_MAX = 400;
@@ -93,7 +94,6 @@ function LogGymSheetInner({
 }) {
   const [state, formAction, actionPending] = useActionState(addVisitAction, initial);
   const [isPending, startTransition] = useTransition();
-  const pending = actionPending || isPending;
   const [name, setName] = useState(prefill?.name ?? "");
   const [country, setCountry] = useState(prefill?.country ?? "");
   const [city, setCity] = useState(
@@ -108,8 +108,13 @@ function LogGymSheetInner({
   const [notes, setNotes] = useState("");
   const [scale, setScale] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
   const [chartFile, setChartFile] = useState<File | null>(null);
+  const [visitPhoto, setVisitPhoto] = useState<File | null>(null);
+  const [visitVideo, setVisitVideo] = useState<File | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [newOutletName, setNewOutletName] = useState("");
   const closeRef = useRef<HTMLButtonElement>(null);
+  const pending = actionPending || isPending || mediaUploading;
 
   const known = findKnownGym(name, country);
   const catalogMatch = catalogGyms.find(
@@ -262,7 +267,7 @@ function LogGymSheetInner({
       return;
     }
     if (step === "scale") {
-      if (isHouseSystem(scale.kind) && (scale.bands.length < 1 || !chartFile)) return;
+      if (isHouseSystem(scale.kind) && scale.bands.length < 1) return;
       setSystem(scale.kind);
       setStep("grade");
       return;
@@ -290,7 +295,7 @@ function LogGymSheetInner({
     (step === "gym" && name.trim().length > 0) ||
     (step === "outlet" && outlet.trim()) ||
     (step === "scale" &&
-      (!isHouseSystem(scale.kind) || (scale.bands.length > 0 && Boolean(chartFile)))) ||
+      (!isHouseSystem(scale.kind) || scale.bands.length > 0)) ||
     (step === "grade" && Boolean(grade)) ||
     step === "date";
 
@@ -301,7 +306,9 @@ function LogGymSheetInner({
         <SuccessState
           name={name}
           place={[outlet || city, country].filter(Boolean).join(" · ")}
-          gradeLabel={formatGrade(pickerSystem, grade)}
+          gradeLabel={
+            displayGrade(pickerSystem, grade, vEquivFor(pickerSystem, grade, activeScale)).grade
+          }
           date={visitedOn}
           onViewGym={() => onViewGym(slug)}
           onHome={onHome}
@@ -513,21 +520,30 @@ function LogGymSheetInner({
           )}
 
           {step === "notes" && (
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold">
-                Notes <span className="font-medium text-pass-muted">(optional)</span>
-              </span>
-              <textarea
-                value={notes}
-                maxLength={NOTES_MAX}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="That blue slab was harder than it looked..."
-                className="passport-field"
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold">
+                  Notes <span className="font-medium text-pass-muted">(optional)</span>
+                </span>
+                <textarea
+                  value={notes}
+                  maxLength={NOTES_MAX}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="That blue slab was harder than it looked..."
+                  className="passport-field"
+                />
+                <p className="mt-1.5 text-right text-xs text-pass-muted">
+                  {notes.length}/{NOTES_MAX}
+                </p>
+              </label>
+              <VisitMediaFields
+                photo={visitPhoto}
+                video={visitVideo}
+                onPhoto={setVisitPhoto}
+                onVideo={setVisitVideo}
+                busy={pending}
               />
-              <p className="mt-1.5 text-right text-xs text-pass-muted">
-                {notes.length}/{NOTES_MAX}
-              </p>
-            </label>
+            </div>
           )}
 
           {state?.error && (
@@ -535,6 +551,11 @@ function LogGymSheetInner({
               {state.error}
             </p>
           )}
+          {mediaError ? (
+            <p role="alert" className="mt-3 rounded-xl bg-[#ffe8e8] px-3 py-2 text-sm text-[#8a2f2f]">
+              {mediaError}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex gap-2 pt-2">
@@ -560,31 +581,49 @@ function LogGymSheetInner({
               aria-busy={pending}
               onClick={() => {
                 if (pending) return;
-                const data = new FormData();
-                data.set("gym_name", name.trim());
-                data.set("city", (city.trim() || (skipCity ? "Singapore" : "")).trim());
-                data.set("country", country.trim());
-                const outletValue = (outlet || city).trim();
-                data.set("outlet", outletValue);
-                if (catalogMatch?.id) {
-                  data.set("gym_id", catalogMatch.id);
-                  const matchedOutlet = catalogMatch.outlets.find(
-                    (item) => item.name.toLowerCase() === outletValue.toLowerCase(),
-                  );
-                  if (matchedOutlet?.id) data.set("outlet_id", matchedOutlet.id);
-                }
-                data.set("grade_system", pickerSystem);
-                data.set("highest_grade", grade);
-                data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
-                data.set("visited_on", visitedOn);
-                data.set("notes", notes);
-                data.set("is_new_gym", isNewGym ? "1" : "0");
-                data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
-                if (needsScale) data.set("scale_json", JSON.stringify(scale));
-                if (chartFile) data.set("grade_chart", chartFile);
-                startTransition(() => {
-                  formAction(data);
-                });
+                setMediaError(null);
+                void (async () => {
+                  setMediaUploading(true);
+                  try {
+                    const data = new FormData();
+                    data.set("gym_name", name.trim());
+                    data.set("city", (city.trim() || (skipCity ? "Singapore" : "")).trim());
+                    data.set("country", country.trim());
+                    const outletValue = (outlet || city).trim();
+                    data.set("outlet", outletValue);
+                    if (catalogMatch?.id) {
+                      data.set("gym_id", catalogMatch.id);
+                      const matchedOutlet = catalogMatch.outlets.find(
+                        (item) => item.name.toLowerCase() === outletValue.toLowerCase(),
+                      );
+                      if (matchedOutlet?.id) data.set("outlet_id", matchedOutlet.id);
+                    }
+                    data.set("grade_system", pickerSystem);
+                    data.set("highest_grade", grade);
+                    data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
+                    data.set("visited_on", visitedOn);
+                    data.set("notes", notes);
+                    data.set("is_new_gym", isNewGym ? "1" : "0");
+                    data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
+                    if (needsScale) data.set("scale_json", JSON.stringify(scale));
+                    if (chartFile) data.set("grade_chart", chartFile);
+                    if (visitPhoto) {
+                      data.set("photo_path", await uploadVisitMediaFile("photo", visitPhoto));
+                    }
+                    if (visitVideo) {
+                      data.set("video_path", await uploadVisitMediaFile("video", visitVideo));
+                    }
+                    startTransition(() => {
+                      formAction(data);
+                    });
+                  } catch (err) {
+                    setMediaError(
+                      err instanceof Error ? err.message : "Couldn't upload visit media.",
+                    );
+                  } finally {
+                    setMediaUploading(false);
+                  }
+                })();
               }}
               className="passport-btn flex-1"
             >

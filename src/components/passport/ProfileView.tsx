@@ -281,7 +281,11 @@ function RecentRow({ visit }: { visit: GymVisit }) {
           <span className="block truncate text-xs text-pass-muted">{place}</span>
         </span>
         <span className="shrink-0 rounded-full bg-pass-soft px-2.5 py-1 text-xs font-semibold text-pass-primary">
-          <GradeLabel system={visit.grade_system} grade={visit.highest_grade} />
+          <GradeLabel
+            system={visit.grade_system}
+            grade={visit.highest_grade}
+            vEquiv={visit.v_equiv}
+          />
         </span>
       </Link>
     </li>

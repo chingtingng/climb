@@ -41,6 +41,8 @@ export type GymVisit = {
   highest_grade: string;
   v_equiv?: string | null;
   notes: string | null;
+  photo_path?: string | null;
+  video_path?: string | null;
   visited_on: string;
   created_at: string;
   updated_at: string;
@@ -61,6 +63,8 @@ export type GymVisitInput = {
   visited_on: string;
   scale?: GradeScale;
   chartFile?: File | null;
+  photo_path?: string | null;
+  video_path?: string | null;
 };
 
 /** A gym brand — possibly with several outlets. */
@@ -76,6 +80,7 @@ export type GymGroup = {
   lastVisited: string;
   bestGrade: string;
   bestGradeSystem: GradeSystem;
+  bestVEquiv?: string | null;
 };
 
 export type CatalogGym = {

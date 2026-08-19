@@ -25,6 +25,8 @@ const VISIT_SELECT = `
   highest_grade,
   v_equiv,
   notes,
+  photo_path,
+  video_path,
   visited_on,
   created_at,
   updated_at,
@@ -41,6 +43,8 @@ type VisitRow = {
   highest_grade: string;
   v_equiv: string | null;
   notes: string | null;
+  photo_path?: string | null;
+  video_path?: string | null;
   visited_on: string;
   created_at: string;
   updated_at: string;
@@ -69,6 +73,8 @@ function rowToVisit(row: VisitRow): GymVisit {
     highest_grade: row.highest_grade,
     v_equiv: row.v_equiv,
     notes: row.notes,
+    photo_path: row.photo_path ?? null,
+    video_path: row.video_path ?? null,
     visited_on: row.visited_on,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -141,15 +147,45 @@ export async function ensureOwnProfile(
 
 export async function listVisitsForProfile(profileId: string): Promise<GymVisit[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("visits")
     .select(VISIT_SELECT)
     .eq("profile_id", profileId)
     .order("visited_on", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (error) throw mapDbError(error.message);
-  return ((data ?? []) as VisitRow[]).map(rowToVisit);
+  if (
+    primary.error &&
+    /photo_path|video_path|schema cache|PGRST204|column/i.test(primary.error.message)
+  ) {
+    const legacy = await supabase
+      .from("visits")
+      .select(
+        `
+  id,
+  profile_id,
+  gym_id,
+  outlet_id,
+  grade_system,
+  highest_grade,
+  v_equiv,
+  notes,
+  visited_on,
+  created_at,
+  updated_at,
+  gyms!gym_id ( name, country ),
+  gym_outlets!outlet_id ( name, city )
+`,
+      )
+      .eq("profile_id", profileId)
+      .order("visited_on", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (legacy.error) throw mapDbError(legacy.error.message);
+    return ((legacy.data ?? []) as VisitRow[]).map(rowToVisit);
+  }
+
+  if (primary.error) throw mapDbError(primary.error.message);
+  return ((primary.data ?? []) as VisitRow[]).map(rowToVisit);
 }
 
 async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]> {
@@ -503,6 +539,8 @@ export async function createVisit(
 ): Promise<GymVisit> {
   const supabase = await createClient();
   const catalog = await ensureGymCatalog(supabase, profileId, input);
+  const photo_path = ownedMediaPath(profileId, input.photo_path);
+  const video_path = ownedMediaPath(profileId, input.video_path);
 
   const { data, error } = await supabase
     .from("visits")
@@ -514,10 +552,52 @@ export async function createVisit(
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
       notes: input.notes?.trim() || null,
+      photo_path,
+      video_path,
       visited_on: input.visited_on,
     })
     .select(VISIT_SELECT)
     .single();
+
+  if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
+    if (photo_path || video_path) {
+      throw new Error(
+        "Visit media isn’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+      );
+    }
+    const retry = await supabase
+      .from("visits")
+      .insert({
+        profile_id: profileId,
+        gym_id: catalog.gymId,
+        outlet_id: catalog.outletId,
+        grade_system: input.grade_system,
+        highest_grade: input.highest_grade.trim(),
+        v_equiv: input.v_equiv?.trim() || null,
+        notes: input.notes?.trim() || null,
+        visited_on: input.visited_on,
+      })
+      .select(
+        `
+  id,
+  profile_id,
+  gym_id,
+  outlet_id,
+  grade_system,
+  highest_grade,
+  v_equiv,
+  notes,
+  visited_on,
+  created_at,
+  updated_at,
+  gyms!gym_id ( name, country ),
+  gym_outlets!outlet_id ( name, city )
+`,
+      )
+      .single();
+    if (retry.error) throw mapDbError(retry.error.message);
+    return rowToVisit(retry.data as VisitRow);
+  }
 
   if (error) throw mapDbError(error.message);
   return rowToVisit(data as VisitRow);
@@ -530,6 +610,8 @@ export async function updateVisit(
 ): Promise<GymVisit> {
   const supabase = await createClient();
   const catalog = await ensureGymCatalog(supabase, profileId, input);
+  const photo_path = ownedMediaPath(profileId, input.photo_path);
+  const video_path = ownedMediaPath(profileId, input.video_path);
 
   const { data, error } = await supabase
     .from("visits")
@@ -540,12 +622,55 @@ export async function updateVisit(
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
       notes: input.notes?.trim() || null,
+      photo_path,
+      video_path,
       visited_on: input.visited_on,
     })
     .eq("id", visitId)
     .eq("profile_id", profileId)
     .select(VISIT_SELECT)
     .single();
+
+  if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
+    if (photo_path || video_path) {
+      throw new Error(
+        "Visit media isn’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+      );
+    }
+    const retry = await supabase
+      .from("visits")
+      .update({
+        gym_id: catalog.gymId,
+        outlet_id: catalog.outletId,
+        grade_system: input.grade_system,
+        highest_grade: input.highest_grade.trim(),
+        v_equiv: input.v_equiv?.trim() || null,
+        notes: input.notes?.trim() || null,
+        visited_on: input.visited_on,
+      })
+      .eq("id", visitId)
+      .eq("profile_id", profileId)
+      .select(
+        `
+  id,
+  profile_id,
+  gym_id,
+  outlet_id,
+  grade_system,
+  highest_grade,
+  v_equiv,
+  notes,
+  visited_on,
+  created_at,
+  updated_at,
+  gyms!gym_id ( name, country ),
+  gym_outlets!outlet_id ( name, city )
+`,
+      )
+      .single();
+    if (retry.error) throw mapDbError(retry.error.message);
+    return rowToVisit(retry.data as VisitRow);
+  }
 
   if (error) throw mapDbError(error.message);
   return rowToVisit(data as VisitRow);
@@ -567,4 +692,16 @@ export function chartPublicUrl(path: string | null | undefined): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
   if (!base) return null;
   return `${base}/storage/v1/object/public/${CHART_BUCKET}/${path}`;
+}
+
+function ownedMediaPath(
+  profileId: string,
+  path: string | null | undefined,
+): string | null {
+  const trimmed = path?.trim();
+  if (!trimmed) return null;
+  if (!trimmed.startsWith(`${profileId}/`)) {
+    throw new Error("That media upload doesn’t belong to your account.");
+  }
+  return trimmed;
 }
