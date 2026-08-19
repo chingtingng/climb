@@ -37,8 +37,11 @@ export default async function PassportLayout({
     try {
       visits = await listVisitsForProfile(session.id);
       catalogGyms = await listCatalogGyms();
-    } catch {
-      loadError = "Couldn't load your stamps right now. Try again in a moment.";
+    } catch (error) {
+      loadError =
+        error instanceof Error
+          ? error.message
+          : "Couldn't load your stamps right now. Try again in a moment.";
     }
   }
 

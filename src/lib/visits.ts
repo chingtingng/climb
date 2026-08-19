@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { findKnownGym } from "./gymCatalog";
+import { isGradeSystem } from "./grades";
 import type {
   CatalogGym,
+  GradeSystem,
   GymOutlet,
   GymVisit,
   GymVisitInput,
@@ -12,20 +14,80 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const CHART_BUCKET = "gym-grade-charts";
 const MAX_CHART_BYTES = 8 * 1024 * 1024;
 
+const VISIT_SELECT = `
+  id,
+  profile_id,
+  gym_id,
+  outlet_id,
+  grade_system,
+  highest_grade,
+  v_equiv,
+  notes,
+  visited_on,
+  created_at,
+  updated_at,
+  gyms!gym_id ( name, country ),
+  gym_outlets!outlet_id ( name, city )
+`;
+
+type VisitRow = {
+  id: string;
+  profile_id: string;
+  gym_id: string;
+  outlet_id: string;
+  grade_system: string;
+  highest_grade: string;
+  v_equiv: string | null;
+  notes: string | null;
+  visited_on: string;
+  created_at: string;
+  updated_at: string;
+  gyms: { name: string; country: string } | { name: string; country: string }[] | null;
+  gym_outlets: { name: string; city: string } | { name: string; city: string }[] | null;
+};
+
+function unwrapOne<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+function rowToVisit(row: VisitRow): GymVisit {
+  const gym = unwrapOne(row.gyms);
+  const outlet = unwrapOne(row.gym_outlets);
+  return {
+    id: row.id,
+    profile_id: row.profile_id,
+    gym_id: row.gym_id,
+    outlet_id: row.outlet_id,
+    gym_name: gym?.name ?? "Unknown gym",
+    outlet: outlet?.name ?? "",
+    city: outlet?.city ?? "",
+    country: gym?.country ?? "",
+    grade_system: isGradeSystem(row.grade_system) ? row.grade_system : "custom",
+    highest_grade: row.highest_grade,
+    v_equiv: row.v_equiv,
+    notes: row.notes,
+    visited_on: row.visited_on,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function isMissingRelation(message: string) {
+  return /does not exist|schema cache|could not find the table|could not find a relationship/i.test(
+    message,
+  );
+}
+
 function mapDbError(message: string): Error {
   if (/permission denied/i.test(message)) {
     return new Error(
       "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.",
     );
   }
-  if (/grade_system|gym_visits_grade/i.test(message)) {
+  if (isMissingRelation(message) || /grade_system|visits_grade/i.test(message)) {
     return new Error(
-      "This grade system needs a database update. Re-run supabase/schema.sql in the Supabase SQL Editor.",
-    );
-  }
-  if (/gyms|gym_outlets|gym_grade_scales/i.test(message) && /does not exist|schema cache/i.test(message)) {
-    return new Error(
-      "Gym catalog tables are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.",
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
   }
   if (/failed to fetch|network|timeout/i.test(message)) {
@@ -53,57 +115,53 @@ export async function ensureOwnProfile(
   return data as Profile;
 }
 
-export async function listVisitsForProfile(
-  profileId: string,
-): Promise<GymVisit[]> {
+export async function listVisitsForProfile(profileId: string): Promise<GymVisit[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("gym_visits")
-    .select("*")
+    .from("visits")
+    .select(VISIT_SELECT)
     .eq("profile_id", profileId)
     .order("visited_on", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error) throw mapDbError(error.message);
-  return (data as GymVisit[]) ?? [];
+  return ((data ?? []) as VisitRow[]).map(rowToVisit);
 }
 
 export async function listCatalogGyms(): Promise<CatalogGym[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("gyms")
-      .select(
-        "name, country, gym_outlets(name, city), gym_grade_scales(kind, bands, chart_path)",
-      )
-      .order("name");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("gyms")
+    .select(
+      "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+    )
+    .order("name");
 
-    if (error) return [];
+  if (error) throw mapDbError(error.message);
 
-    return (data ?? []).map((row) => {
-      const scaleRow = Array.isArray(row.gym_grade_scales)
-        ? row.gym_grade_scales[0]
-        : row.gym_grade_scales;
-      const outlets = Array.isArray(row.gym_outlets) ? row.gym_outlets : [];
-      return {
-        name: row.name as string,
-        country: row.country as string,
-        outlets: outlets.map((outlet: GymOutlet) => ({
-          name: outlet.name,
-          city: outlet.city,
-        })),
-        scale: scaleRow
-          ? {
-              kind: scaleRow.kind,
-              bands: scaleRow.bands ?? [],
-              chartPath: scaleRow.chart_path,
-            }
-          : null,
-      } satisfies CatalogGym;
-    });
-  } catch {
-    return [];
-  }
+  return (data ?? []).map((row) => {
+    const scaleRow = Array.isArray(row.gym_grade_scales)
+      ? row.gym_grade_scales[0]
+      : row.gym_grade_scales;
+    const outlets = Array.isArray(row.gym_outlets) ? row.gym_outlets : [];
+    return {
+      id: row.id as string,
+      name: row.name as string,
+      country: row.country as string,
+      outlets: outlets.map((outlet: GymOutlet) => ({
+        id: outlet.id,
+        name: outlet.name,
+        city: outlet.city,
+      })),
+      scale: scaleRow
+        ? {
+            kind: (isGradeSystem(scaleRow.kind) ? scaleRow.kind : "custom") as GradeSystem,
+            bands: scaleRow.bands ?? [],
+            chartPath: scaleRow.chart_path,
+          }
+        : null,
+    } satisfies CatalogGym;
+  });
 }
 
 async function findGymRow(
@@ -118,10 +176,22 @@ async function findGymRow(
     .ilike("country", escapeIlike(country.trim()))
     .limit(1)
     .maybeSingle();
-  if (error) {
-    if (/does not exist|schema cache/i.test(error.message)) return null;
-    throw mapDbError(error.message);
-  }
+  if (error) throw mapDbError(error.message);
+  return data;
+}
+
+async function findOutletRow(
+  supabase: SupabaseClient,
+  gymId: string,
+  outletName: string,
+): Promise<{ id: string } | null> {
+  const { data, error } = await supabase
+    .from("gym_outlets")
+    .select("id")
+    .eq("gym_id", gymId)
+    .ilike("name", escapeIlike(outletName.trim()))
+    .maybeSingle();
+  if (error) throw mapDbError(error.message);
   return data;
 }
 
@@ -129,111 +199,111 @@ async function ensureGymCatalog(
   supabase: SupabaseClient,
   profileId: string,
   input: GymVisitInput,
-): Promise<{ gymId: string | null; outletId: string | null }> {
+): Promise<{ gymId: string; outletId: string }> {
   const known = findKnownGym(input.gym_name, input.country);
+  const gymName = known?.name ?? input.gym_name.trim();
+  const country = known?.country ?? input.country.trim();
   const scale = input.scale ?? known?.scale ?? null;
-  const outletName = (input.outlet?.trim() || input.city).trim();
+  const outletName = (input.outlet?.trim() || input.city.trim() || "Main").trim();
+  const city = input.city.trim() || outletName;
 
-  try {
-    let gym = await findGymRow(supabase, input.gym_name, input.country);
-    if (!gym) {
-      const inserted = await supabase
-        .from("gyms")
-        .insert({
-          name: input.gym_name.trim(),
-          country: input.country.trim(),
-          created_by: profileId,
-        })
-        .select("id")
-        .single();
-
-      if (inserted.error) {
-        if (/duplicate|unique/i.test(inserted.error.message)) {
-          gym = await findGymRow(supabase, input.gym_name, input.country);
-        } else if (/does not exist|schema cache/i.test(inserted.error.message)) {
-          return { gymId: null, outletId: null };
-        } else {
-          throw mapDbError(inserted.error.message);
-        }
-      } else {
-        gym = inserted.data;
-      }
-    }
-
-    if (!gym) return { gymId: null, outletId: null };
-
-    let outletId: string | null = null;
-    const existingOutlet = await supabase
-      .from("gym_outlets")
+  let gym = await findGymRow(supabase, gymName, country);
+  if (!gym) {
+    const inserted = await supabase
+      .from("gyms")
+      .insert({
+        name: gymName,
+        country,
+        created_by: profileId,
+      })
       .select("id")
-      .eq("gym_id", gym.id)
-      .ilike("name", escapeIlike(outletName))
-      .maybeSingle();
+      .single();
 
-    if (existingOutlet.data) {
-      outletId = existingOutlet.data.id;
-    } else if (!existingOutlet.error || !/does not exist|schema cache/i.test(existingOutlet.error.message)) {
-      const createdOutlet = await supabase
-        .from("gym_outlets")
-        .insert({
-          gym_id: gym.id,
-          name: outletName,
-          city: input.city.trim(),
-          created_by: profileId,
-        })
-        .select("id")
-        .single();
-      if (!createdOutlet.error) outletId = createdOutlet.data.id;
-    }
-
-    if (known?.outlets) {
-      for (const outlet of known.outlets) {
-        const found = await supabase
-          .from("gym_outlets")
-          .select("id")
-          .eq("gym_id", gym.id)
-          .ilike("name", escapeIlike(outlet.name))
-          .maybeSingle();
-        if (!found.data) {
-          await supabase.from("gym_outlets").insert({
-            gym_id: gym.id,
-            name: outlet.name,
-            city: outlet.city,
-            created_by: profileId,
-          });
-        }
+    if (inserted.error) {
+      if (/duplicate|unique/i.test(inserted.error.message)) {
+        gym = await findGymRow(supabase, gymName, country);
+      } else {
+        throw mapDbError(inserted.error.message);
       }
+    } else {
+      gym = inserted.data;
     }
+  }
 
-    if (scale) {
-      const existingScale = await supabase
-        .from("gym_grade_scales")
-        .select("id")
-        .eq("gym_id", gym.id)
-        .maybeSingle();
+  if (!gym) {
+    throw new Error("Couldn't save that gym. Please try again.");
+  }
 
-      if (!existingScale.data) {
-        let chartPath: string | null = scale.chartPath ?? null;
-        if (input.chartFile) {
-          chartPath = await uploadGradeChart(supabase, profileId, gym.id, input.chartFile);
-        }
-        await supabase.from("gym_grade_scales").insert({
+  if (known?.outlets) {
+    for (const outlet of known.outlets) {
+      const found = await findOutletRow(supabase, gym.id, outlet.name);
+      if (!found) {
+        await supabase.from("gym_outlets").insert({
           gym_id: gym.id,
-          kind: scale.kind,
-          bands: scale.bands,
-          chart_path: chartPath,
+          name: outlet.name,
+          city: outlet.city,
           created_by: profileId,
         });
       }
     }
-
-    return { gymId: gym.id, outletId };
-  } catch (error) {
-    if (error instanceof Error && /catalog tables are missing/i.test(error.message)) {
-      return { gymId: null, outletId: null };
-    }
-    throw error;
   }
+
+  let outlet = await findOutletRow(supabase, gym.id, outletName);
+  if (!outlet) {
+    const createdOutlet = await supabase
+      .from("gym_outlets")
+      .insert({
+        gym_id: gym.id,
+        name: outletName,
+        city,
+        created_by: profileId,
+      })
+      .select("id")
+      .single();
+
+    if (createdOutlet.error) {
+      if (/duplicate|unique/i.test(createdOutlet.error.message)) {
+        outlet = await findOutletRow(supabase, gym.id, outletName);
+      } else {
+        throw mapDbError(createdOutlet.error.message);
+      }
+    } else {
+      outlet = createdOutlet.data;
+    }
+  }
+
+  if (!outlet) {
+    throw new Error("Couldn't save that gym location. Please try again.");
+  }
+
+  if (scale) {
+    const existingScale = await supabase
+      .from("gym_grade_scales")
+      .select("id")
+      .eq("gym_id", gym.id)
+      .maybeSingle();
+
+    if (existingScale.error) throw mapDbError(existingScale.error.message);
+
+    if (!existingScale.data) {
+      let chartPath: string | null = scale.chartPath ?? null;
+      if (input.chartFile) {
+        chartPath = await uploadGradeChart(supabase, profileId, gym.id, input.chartFile);
+      }
+      const { error } = await supabase.from("gym_grade_scales").insert({
+        gym_id: gym.id,
+        kind: scale.kind,
+        bands: scale.bands,
+        chart_path: chartPath,
+        created_by: profileId,
+      });
+      if (error && !/duplicate|unique/i.test(error.message)) {
+        throw mapDbError(error.message);
+      }
+    }
+  }
+
+  return { gymId: gym.id, outletId: outlet.id };
 }
 
 async function uploadGradeChart(
@@ -272,81 +342,30 @@ function extensionFor(file: File): string {
   return "jpg";
 }
 
-async function resolveGymIdentity(
-  profileId: string,
-  input: Pick<GymVisitInput, "gym_name" | "city" | "country" | "outlet">,
-): Promise<Pick<GymVisitInput, "gym_name" | "city" | "country" | "outlet">> {
-  const supabase = await createClient();
-  let query = supabase
-    .from("gym_visits")
-    .select("gym_name, city, country, outlet")
-    .eq("profile_id", profileId)
-    .ilike("gym_name", escapeIlike(input.gym_name.trim()))
-    .ilike("country", escapeIlike(input.country.trim()));
-
-  const outlet = input.outlet?.trim();
-  if (outlet) {
-    query = query.or(`outlet.ilike.${escapeIlike(outlet)},city.ilike.${escapeIlike(outlet)}`);
-  } else {
-    query = query.ilike("city", escapeIlike(input.city.trim()));
-  }
-
-  const { data, error } = await query.limit(1).maybeSingle();
-  if (error) throw mapDbError(error.message);
-  if (data) {
-    return {
-      gym_name: data.gym_name,
-      city: data.city,
-      country: data.country,
-      outlet: data.outlet || outlet || data.city,
-    };
-  }
-
-  return {
-    gym_name: input.gym_name.trim(),
-    city: input.city.trim(),
-    country: input.country.trim(),
-    outlet: outlet || input.city.trim(),
-  };
-}
-
 export async function createVisit(
   profileId: string,
   input: GymVisitInput,
 ): Promise<GymVisit> {
-  const gym = await resolveGymIdentity(profileId, input);
   const supabase = await createClient();
-  const catalog = await ensureGymCatalog(supabase, profileId, {
-    ...input,
-    gym_name: gym.gym_name,
-    city: gym.city,
-    country: gym.country,
-    outlet: gym.outlet,
-  });
-
-  const row: Record<string, unknown> = {
-    profile_id: profileId,
-    gym_name: gym.gym_name,
-    country: gym.country,
-    city: gym.city,
-    outlet: gym.outlet || null,
-    grade_system: input.grade_system,
-    highest_grade: input.highest_grade.trim(),
-    v_equiv: input.v_equiv?.trim() || null,
-    notes: input.notes?.trim() || null,
-    visited_on: input.visited_on,
-  };
-  if (catalog.gymId) row.gym_id = catalog.gymId;
-  if (catalog.outletId) row.outlet_id = catalog.outletId;
+  const catalog = await ensureGymCatalog(supabase, profileId, input);
 
   const { data, error } = await supabase
-    .from("gym_visits")
-    .insert(row)
-    .select("*")
+    .from("visits")
+    .insert({
+      profile_id: profileId,
+      gym_id: catalog.gymId,
+      outlet_id: catalog.outletId,
+      grade_system: input.grade_system,
+      highest_grade: input.highest_grade.trim(),
+      v_equiv: input.v_equiv?.trim() || null,
+      notes: input.notes?.trim() || null,
+      visited_on: input.visited_on,
+    })
+    .select(VISIT_SELECT)
     .single();
 
   if (error) throw mapDbError(error.message);
-  return data as GymVisit;
+  return rowToVisit(data as VisitRow);
 }
 
 export async function updateVisit(
@@ -354,15 +373,14 @@ export async function updateVisit(
   visitId: string,
   input: GymVisitInput,
 ): Promise<GymVisit> {
-  const gym = await resolveGymIdentity(profileId, input);
   const supabase = await createClient();
+  const catalog = await ensureGymCatalog(supabase, profileId, input);
+
   const { data, error } = await supabase
-    .from("gym_visits")
+    .from("visits")
     .update({
-      gym_name: gym.gym_name,
-      country: gym.country,
-      city: gym.city,
-      outlet: gym.outlet || null,
+      gym_id: catalog.gymId,
+      outlet_id: catalog.outletId,
       grade_system: input.grade_system,
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
@@ -371,20 +389,17 @@ export async function updateVisit(
     })
     .eq("id", visitId)
     .eq("profile_id", profileId)
-    .select("*")
+    .select(VISIT_SELECT)
     .single();
 
   if (error) throw mapDbError(error.message);
-  return data as GymVisit;
+  return rowToVisit(data as VisitRow);
 }
 
-export async function deleteVisit(
-  profileId: string,
-  visitId: string,
-): Promise<void> {
+export async function deleteVisit(profileId: string, visitId: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
-    .from("gym_visits")
+    .from("visits")
     .delete()
     .eq("id", visitId)
     .eq("profile_id", profileId);

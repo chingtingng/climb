@@ -186,3 +186,7 @@ export function gradeSortValue(
 export function isHouseSystem(system: GradeSystem): boolean {
   return system === "number" || system === "color" || system === "custom";
 }
+
+export function isGradeSystem(value: string): value is GradeSystem {
+  return GRADE_SYSTEMS.some((item) => item.value === value);
+}

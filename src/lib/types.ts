@@ -13,6 +13,7 @@ export type GradeScale = {
 };
 
 export type GymOutlet = {
+  id?: string;
   name: string;
   city: string;
 };
@@ -26,6 +27,8 @@ export type Profile = {
 export type GymVisit = {
   id: string;
   profile_id: string;
+  gym_id: string;
+  outlet_id: string;
   gym_name: string;
   country: string;
   city: string;
@@ -56,6 +59,7 @@ export type GymVisitInput = {
 /** A gym brand — possibly with several outlets. */
 export type GymGroup = {
   slug: string;
+  gymId: string;
   name: string;
   city: string;
   country: string;
@@ -68,6 +72,7 @@ export type GymGroup = {
 };
 
 export type CatalogGym = {
+  id?: string;
   name: string;
   country: string;
   outlets: GymOutlet[];

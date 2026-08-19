@@ -42,16 +42,17 @@ export function formatVisitPlace(visit: GymVisit): string {
 
 export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
   const map = new Map<string, GymVisit[]>();
-  const labels = new Map<string, { name: string; country: string }>();
+  const labels = new Map<string, { gymId: string; name: string; country: string }>();
 
   for (const visit of visits) {
-    const key = gymKey(visit.gym_name, visit.country);
+    const key = visit.gym_id || gymKey(visit.gym_name, visit.country);
     const list = map.get(key);
     if (list) {
       list.push(visit);
     } else {
       map.set(key, [visit]);
       labels.set(key, {
+        gymId: visit.gym_id,
         name: visit.gym_name,
         country: visit.country,
       });
@@ -85,6 +86,7 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
 
     gyms.push({
       slug: gymSlug(label.name, label.country),
+      gymId: label.gymId,
       name: label.name,
       city: sorted[0] ? visitOutlet(sorted[0]) : "",
       country: label.country,
