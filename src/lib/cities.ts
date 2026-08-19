@@ -1,12 +1,12 @@
-import { COUNTRY_NAMES } from "./countries";
+import { countryMeta } from "./countries";
 
 /**
- * Major cities (and climbing hubs) keyed by the display names in `COUNTRY_NAMES`.
+ * Major cities (and climbing hubs) keyed by ISO 3166-1 Alpha-2 codes.
  * Merged at runtime with catalog / user gym cities so known locations always appear.
  */
-const CITIES_BY_COUNTRY: Record<string, string[]> = {
-  Singapore: ["Singapore"],
-  Japan: [
+const CITIES_BY_ISO2: Record<string, string[]> = {
+  SG: ["Singapore"],
+  JP: [
     "Tokyo",
     "Osaka",
     "Kyoto",
@@ -18,7 +18,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Sendai",
     "Hiroshima",
   ],
-  "South Korea": [
+  KR: [
     "Seoul",
     "Busan",
     "Incheon",
@@ -28,9 +28,9 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Ulsan",
     "Suwon",
   ],
-  Taiwan: ["Taipei", "New Taipei", "Taichung", "Kaohsiung", "Tainan", "Hsinchu"],
-  "Hong Kong": ["Hong Kong"],
-  China: [
+  TW: ["Taipei", "New Taipei", "Taichung", "Kaohsiung", "Tainan", "Hsinchu"],
+  HK: ["Hong Kong"],
+  CN: [
     "Shanghai",
     "Beijing",
     "Shenzhen",
@@ -44,7 +44,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Suzhou",
     "Tianjin",
   ],
-  Malaysia: [
+  MY: [
     "Kuala Lumpur",
     "Petaling Jaya",
     "Shah Alam",
@@ -56,7 +56,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Kota Kinabalu",
     "Kuching",
   ],
-  Thailand: [
+  TH: [
     "Bangkok",
     "Chiang Mai",
     "Phuket",
@@ -66,7 +66,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Nonthaburi",
     "Nakhon Ratchasima",
   ],
-  Indonesia: [
+  ID: [
     "Jakarta",
     "Bandung",
     "Surabaya",
@@ -79,7 +79,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Depok",
     "Bekasi",
   ],
-  Vietnam: [
+  VN: [
     "Ho Chi Minh City",
     "Hanoi",
     "Da Nang",
@@ -88,7 +88,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Nha Trang",
     "Hue",
   ],
-  Philippines: [
+  PH: [
     "Manila",
     "Quezon City",
     "Makati",
@@ -97,7 +97,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Taguig",
     "Pasig",
   ],
-  India: [
+  IN: [
     "Mumbai",
     "Delhi",
     "Bengaluru",
@@ -109,7 +109,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Jaipur",
     "Chandigarh",
   ],
-  Australia: [
+  AU: [
     "Sydney",
     "Melbourne",
     "Brisbane",
@@ -121,7 +121,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Darwin",
     "Newcastle",
   ],
-  "New Zealand": [
+  NZ: [
     "Auckland",
     "Wellington",
     "Christchurch",
@@ -130,7 +130,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Dunedin",
     "Queenstown",
   ],
-  "United States": [
+  US: [
     "New York",
     "Los Angeles",
     "Chicago",
@@ -154,7 +154,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Boulder",
     "Salt Lake City",
   ],
-  Canada: [
+  CA: [
     "Toronto",
     "Montreal",
     "Vancouver",
@@ -166,7 +166,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Victoria",
     "Halifax",
   ],
-  Mexico: [
+  MX: [
     "Mexico City",
     "Guadalajara",
     "Monterrey",
@@ -175,7 +175,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Puebla",
     "Mérida",
   ],
-  "United Kingdom": [
+  GB: [
     "London",
     "Manchester",
     "Birmingham",
@@ -190,8 +190,8 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Oxford",
     "Cambridge",
   ],
-  Ireland: ["Dublin", "Cork", "Galway", "Limerick", "Waterford"],
-  France: [
+  IE: ["Dublin", "Cork", "Galway", "Limerick", "Waterford"],
+  FR: [
     "Paris",
     "Lyon",
     "Marseille",
@@ -203,7 +203,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Strasbourg",
     "Grenoble",
   ],
-  Germany: [
+  DE: [
     "Berlin",
     "Munich",
     "Hamburg",
@@ -215,7 +215,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Dresden",
     "Nuremberg",
   ],
-  Italy: [
+  IT: [
     "Rome",
     "Milan",
     "Naples",
@@ -227,7 +227,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Verona",
     "Palermo",
   ],
-  Spain: [
+  ES: [
     "Madrid",
     "Barcelona",
     "Valencia",
@@ -237,8 +237,8 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Zaragoza",
     "Granada",
   ],
-  Portugal: ["Lisbon", "Porto", "Braga", "Coimbra", "Faro"],
-  Netherlands: [
+  PT: ["Lisbon", "Porto", "Braga", "Coimbra", "Faro"],
+  NL: [
     "Amsterdam",
     "Rotterdam",
     "The Hague",
@@ -246,8 +246,8 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Eindhoven",
     "Groningen",
   ],
-  Belgium: ["Brussels", "Antwerp", "Ghent", "Bruges", "Leuven", "Liège"],
-  Switzerland: [
+  BE: ["Brussels", "Antwerp", "Ghent", "Bruges", "Leuven", "Liège"],
+  CH: [
     "Zurich",
     "Geneva",
     "Basel",
@@ -256,26 +256,26 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Lucerne",
     "Interlaken",
   ],
-  Austria: ["Vienna", "Salzburg", "Innsbruck", "Graz", "Linz"],
-  Norway: ["Oslo", "Bergen", "Trondheim", "Stavanger", "Tromsø"],
-  Sweden: ["Stockholm", "Gothenburg", "Malmö", "Uppsala", "Umeå"],
-  Denmark: ["Copenhagen", "Aarhus", "Odense", "Aalborg"],
-  Finland: ["Helsinki", "Espoo", "Tampere", "Turku", "Oulu"],
-  Iceland: ["Reykjavík", "Akureyri"],
-  Poland: ["Warsaw", "Kraków", "Wrocław", "Gdańsk", "Poznań", "Łódź"],
-  Czechia: ["Prague", "Brno", "Ostrava", "Plzeň"],
-  Greece: ["Athens", "Thessaloniki", "Patras", "Heraklion"],
-  Croatia: ["Zagreb", "Split", "Dubrovnik", "Rijeka", "Zadar"],
-  Slovenia: ["Ljubljana", "Maribor", "Kranj"],
-  "South Africa": [
+  AT: ["Vienna", "Salzburg", "Innsbruck", "Graz", "Linz"],
+  NO: ["Oslo", "Bergen", "Trondheim", "Stavanger", "Tromsø"],
+  SE: ["Stockholm", "Gothenburg", "Malmö", "Uppsala", "Umeå"],
+  DK: ["Copenhagen", "Aarhus", "Odense", "Aalborg"],
+  FI: ["Helsinki", "Espoo", "Tampere", "Turku", "Oulu"],
+  IS: ["Reykjavík", "Akureyri"],
+  PL: ["Warsaw", "Kraków", "Wrocław", "Gdańsk", "Poznań", "Łódź"],
+  CZ: ["Prague", "Brno", "Ostrava", "Plzeň"],
+  GR: ["Athens", "Thessaloniki", "Patras", "Heraklion"],
+  HR: ["Zagreb", "Split", "Dubrovnik", "Rijeka", "Zadar"],
+  SI: ["Ljubljana", "Maribor", "Kranj"],
+  ZA: [
     "Cape Town",
     "Johannesburg",
     "Durban",
     "Pretoria",
     "Port Elizabeth",
   ],
-  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
-  Brazil: [
+  AE: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
+  BR: [
     "São Paulo",
     "Rio de Janeiro",
     "Brasília",
@@ -284,8 +284,8 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
     "Porto Alegre",
     "Salvador",
   ],
-  Argentina: ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "Bariloche"],
-  Chile: ["Santiago", "Valparaíso", "Concepción", "Viña del Mar"],
+  AR: ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "Bariloche"],
+  CL: ["Santiago", "Valparaíso", "Concepción", "Viña del Mar"],
 };
 
 function uniqueSorted(values: string[]): string[] {
@@ -302,17 +302,12 @@ function uniqueSorted(values: string[]): string[] {
   return ordered.sort((a, b) => a.localeCompare(b));
 }
 
-/** Canonical country name → city list for dropdowns. */
+/** Resolve cities for a country name, alias, or ISO code. */
 export function citiesForCountry(
   country: string,
   extras: string[] = [],
 ): string[] {
-  const key = country.trim();
-  const base =
-    CITIES_BY_COUNTRY[key] ??
-    CITIES_BY_COUNTRY[
-      COUNTRY_NAMES.find((name) => name.toLowerCase() === key.toLowerCase()) ?? ""
-    ] ??
-    [];
+  const meta = countryMeta(country);
+  const base = meta.iso2 ? (CITIES_BY_ISO2[meta.iso2] ?? []) : [];
   return uniqueSorted([...base, ...extras]);
 }

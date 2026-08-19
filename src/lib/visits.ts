@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { countryMeta } from "./countries";
 import { findKnownGym, isClosedGym, KNOWN_GYMS, mergeCatalogGyms, visibleOutlets } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
 import type {
@@ -300,7 +301,8 @@ async function ensureGymCatalog(
 ): Promise<{ gymId: string; outletId: string }> {
   const known = findKnownGym(input.gym_name, input.country);
   const gymName = known?.name ?? input.gym_name.trim();
-  const country = known?.country ?? input.country.trim();
+  const resolvedCountry = countryMeta(known?.country ?? input.country);
+  const country = resolvedCountry.name || (known?.country ?? input.country.trim());
   const scale = input.scale ?? known?.scale ?? null;
   const knownOutlets = known ? visibleOutlets(known) : [];
   const typedOutlet = (input.outlet?.trim() || input.city.trim() || "").trim();

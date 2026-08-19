@@ -1,4 +1,5 @@
 import { COLOR_GRADES, numberRange } from "./grades";
+import { countryMeta } from "./countries";
 import type { CatalogGym, GradeBand, GradeScale, GymOutlet } from "./types";
 
 function vBands(labels: string[], startV = 1): GradeBand[] {
@@ -220,8 +221,9 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
 
   return [...map.values()].sort((a, b) => {
     if (a.country !== b.country) {
-      if (a.country === "Singapore") return -1;
-      if (b.country === "Singapore") return 1;
+      const aSg = countryMeta(a.country).iso2 === "SG";
+      const bSg = countryMeta(b.country).iso2 === "SG";
+      if (aSg !== bSg) return aSg ? -1 : 1;
       return a.country.localeCompare(b.country);
     }
     return a.name.localeCompare(b.name);
@@ -229,24 +231,29 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
 }
 
 export function catalogCountries(gyms: CatalogGym[]): string[] {
-  return unique(gyms.map((gym) => gym.country));
+  return unique(gyms.map((gym) => countryMeta(gym.country).name || gym.country));
 }
 
 /** Singapore is a city-state — outlet already names the neighbourhood. */
 export function skipsCityStep(country: string): boolean {
-  return country.trim().toLowerCase() === "singapore";
+  return countryMeta(country).iso2 === "SG";
+}
+
+export function sameCountry(a: string, b: string): boolean {
+  const left = countryMeta(a);
+  const right = countryMeta(b);
+  if (left.iso2 && right.iso2) return left.iso2 === right.iso2;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 export function gymsInCountry(gyms: CatalogGym[], country: string): CatalogGym[] {
-  const c = country.trim().toLowerCase();
-  return gyms.filter((gym) => gym.country.toLowerCase() === c);
+  return gyms.filter((gym) => sameCountry(gym.country, country));
 }
 
 export function catalogCities(gyms: CatalogGym[], country: string): string[] {
-  const c = country.trim().toLowerCase();
   return unique(
     gyms.flatMap((gym) =>
-      gym.country.toLowerCase() === c ? gym.outlets.map((outlet) => outlet.city) : [],
+      sameCountry(gym.country, country) ? gym.outlets.map((outlet) => outlet.city) : [],
     ),
   );
 }
@@ -256,11 +263,10 @@ export function gymsInCity(
   country: string,
   city: string,
 ): CatalogGym[] {
-  const c = country.trim().toLowerCase();
   const place = city.trim().toLowerCase();
   return gyms.filter(
     (gym) =>
-      gym.country.toLowerCase() === c &&
+      sameCountry(gym.country, country) &&
       gym.outlets.some((outlet) => outlet.city.toLowerCase() === place),
   );
 }
@@ -273,10 +279,9 @@ export function outletsInCity(gym: CatalogGym, city: string): GymOutlet[] {
 
 export function findKnownGym(name: string, country?: string): CatalogGym | undefined {
   const n = name.trim().toLowerCase();
-  const c = country?.trim().toLowerCase();
   return KNOWN_GYMS.find((gym) => {
     if (gym.name.toLowerCase() !== n) return false;
-    if (c && gym.country.toLowerCase() !== c) return false;
+    if (country && !sameCountry(gym.country, country)) return false;
     return true;
   });
 }
@@ -287,11 +292,11 @@ export function searchKnownGyms(
   filters?: { country?: string; city?: string },
 ): CatalogGym[] {
   const q = query.trim().toLowerCase();
-  const country = filters?.country?.trim().toLowerCase();
+  const country = filters?.country?.trim();
   const city = filters?.city?.trim().toLowerCase();
 
   const filtered = gyms.filter((gym) => {
-    if (country && gym.country.toLowerCase() !== country) return false;
+    if (country && !sameCountry(gym.country, country)) return false;
     if (city && !gym.outlets.some((outlet) => outlet.city.toLowerCase() === city)) {
       return false;
     }
@@ -299,6 +304,8 @@ export function searchKnownGyms(
     return (
       gym.name.toLowerCase().includes(q) ||
       gym.country.toLowerCase().includes(q) ||
+      countryMeta(gym.country).name.toLowerCase().includes(q) ||
+      countryMeta(gym.country).code.toLowerCase().includes(q) ||
       gym.outlets.some(
         (outlet) =>
           outlet.name.toLowerCase().includes(q) ||
