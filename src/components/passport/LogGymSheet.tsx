@@ -47,6 +47,7 @@ import type {
   GymOutlet,
 } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
+import { FlashToast } from "./FlashToast";
 import { CloseIcon, MountainIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
@@ -137,8 +138,15 @@ function LogGymSheetInner({
   const [climbType, setClimbType] = useState<ClimbingType>("bouldering");
   const [placeKind, setPlaceKind] = useState<PlaceKind>("gym");
   const closeRef = useRef<HTMLButtonElement>(null);
+  const errorBannerRef = useRef<HTMLParagraphElement>(null);
   const prevStepRef = useRef<Step | null>(null);
   const pending = actionPending || isPending || mediaUploading;
+  const sheetError = mediaError || state?.error || null;
+
+  useEffect(() => {
+    if (!sheetError) return;
+    errorBannerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [sheetError]);
 
   const known = findKnownGym(name, country);
   const catalogMatch = catalogGyms.find(
@@ -451,6 +459,7 @@ function LogGymSheetInner({
 
   return (
     <Overlay onClose={onClose}>
+      <FlashToast message={sheetError} />
       <div
         role="dialog"
         aria-modal="true"
@@ -725,18 +734,18 @@ function LogGymSheetInner({
               />
             </div>
           )}
-
-          {state?.error && (
-            <p role="alert" className="mt-3 rounded-xl bg-[#ffe8e8] px-3 py-2 text-sm text-[#8a2f2f]">
-              {state.error}
-            </p>
-          )}
-          {mediaError ? (
-            <p role="alert" className="mt-3 rounded-xl bg-[#ffe8e8] px-3 py-2 text-sm text-[#8a2f2f]">
-              {mediaError}
-            </p>
-          ) : null}
         </div>
+
+        {/* Keep errors outside the scroll region so they stay visible above the CTA. */}
+        {sheetError ? (
+          <p
+            ref={errorBannerRef}
+            role="alert"
+            className="mt-1 shrink-0 rounded-xl bg-[#ffe8e8] px-3 py-2 text-sm text-[#8a2f2f]"
+          >
+            {sheetError}
+          </p>
+        ) : null}
 
         <div className="flex gap-2 pt-2">
           <button
