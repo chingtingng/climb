@@ -281,7 +281,15 @@ function LogGymSheetInner({
       return;
     }
     const idx = steps.indexOf(step);
-    setStep(steps[Math.max(0, idx - 1)] ?? "country");
+    const prev = steps[Math.max(0, idx - 1)] ?? "country";
+    // Selecting a gym fills the name field and advances; clear it when returning
+    // so the full country/city list is visible again.
+    if (prev === "gym") {
+      setName("");
+      setQuery("");
+      setOutlet("");
+    }
+    setStep(prev);
   }
 
   const canNext =
