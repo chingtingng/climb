@@ -148,15 +148,20 @@ export async function checkUsernameAvailableAction(
     };
   }
 
-  const supabase = await createClient();
-  const availability = await isUsernameFree(supabase, username);
-  if (!availability.ok) {
-    return { available: null, error: availability.error };
-  }
+  try {
+    const supabase = await createClient();
+    const availability = await isUsernameFree(supabase, username);
+    if (!availability.ok) {
+      // Don't block typing on infra issues — submit still re-checks.
+      return { available: null };
+    }
 
-  return availability.available
-    ? { available: true }
-    : { available: false, error: USERNAME_IN_USE_ERROR };
+    return availability.available
+      ? { available: true }
+      : { available: false, error: USERNAME_IN_USE_ERROR };
+  } catch {
+    return { available: null };
+  }
 }
 
 async function resolveAuthEmailForLogin(

@@ -45,10 +45,27 @@ export function LoginForm({
       return;
     }
 
-    const trimmed = username.trim();
+    const trimmed = username.trim().toLowerCase();
     if (!trimmed) {
       setUsernameError(null);
       setUsernameChecking(false);
+      return;
+    }
+
+    // Match Instagram-style: only hit the server once the value looks like a real username.
+    if (trimmed.length < 3) {
+      setUsernameChecking(false);
+      setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+    if (trimmed.length > 30) {
+      setUsernameChecking(false);
+      setUsernameError("Username must be 30 characters or fewer");
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(trimmed)) {
+      setUsernameChecking(false);
+      setUsernameError("Username can only contain letters, numbers, and underscores");
       return;
     }
 
@@ -61,7 +78,8 @@ export function LoginForm({
       if (cancelled) return;
 
       setUsernameChecking(false);
-      if (result.available === false || result.error) {
+      // Only treat a confirmed conflict as "in use". Setup/network failures fail open.
+      if (result.available === false) {
         setUsernameError(result.error ?? "Username already in use.");
       } else {
         setUsernameError(null);
