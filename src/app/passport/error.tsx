@@ -18,14 +18,12 @@ export default function PassportError({
   const recover = retry ?? reset ?? (() => window.location.reload());
 
   return (
-    <div className="pt-8 text-center">
-      <h1 className="passport-mark text-3xl text-pass-navy">
-        Your passport couldn’t load.
-      </h1>
-      <p className="mx-auto mt-2 max-w-[16rem] text-sm text-pass-muted">
+    <div className="card-tint mt-6 px-5 py-10 text-center">
+      <h1 className="wordmark text-2xl text-ink">Your passport couldn’t load</h1>
+      <p className="mx-auto mt-2 max-w-[17rem] text-[0.88rem] leading-relaxed text-ink-soft">
         Something went wrong while opening your stamps. Please try again.
       </p>
-      <button type="button" onClick={() => recover()} className="passport-btn mt-6">
+      <button type="button" onClick={() => recover()} className="btn btn-primary mt-6">
         Try again
       </button>
     </div>

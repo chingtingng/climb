@@ -24,7 +24,7 @@ export function DeleteStampDialog({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex size-11 items-center justify-center rounded-full text-pass-muted"
+        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-[#fdecea] hover:text-[#b4342c]"
         aria-label="Remove this stamp"
       >
         <TrashIcon />
@@ -34,7 +34,7 @@ export function DeleteStampDialog({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
           <button
             type="button"
-            className="absolute inset-0 bg-[#1b3a52]/35"
+            className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
             aria-label="Cancel"
             onClick={() => !pending && setOpen(false)}
           />
@@ -42,19 +42,19 @@ export function DeleteStampDialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-title"
-            className="passport-sheet-in relative w-full max-w-[20rem] rounded-[1.35rem] bg-white p-5 text-center shadow-[0_16px_40px_rgba(27,58,82,0.16)]"
+            className="card passport-sheet-in relative w-full max-w-[20rem] p-5 text-center"
           >
-            <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full bg-[#fdecec] text-[#b42318]">
+            <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full bg-[#fdecea] text-[#b4342c]">
               <TrashIcon />
             </div>
-            <h2 id="delete-title" className="passport-mark text-2xl text-pass-navy">
+            <h2 id="delete-title" className="wordmark text-[1.55rem] text-ink">
               Remove this stamp?
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-pass-muted">
+            <p className="mt-2 text-[0.85rem] leading-relaxed text-ink-soft">
               This will remove this visit from your passport.
             </p>
             {error ? (
-              <p role="alert" className="mt-3 text-sm text-[#8a2f2f]">
+              <p role="alert" className="mt-3 text-sm text-[#b4342c]">
                 {error}
               </p>
             ) : null}
@@ -80,7 +80,7 @@ export function DeleteStampDialog({
                   setPending(false);
                 }
               }}
-              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#c23b3b] px-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#b4342c] px-4 font-semibold text-white shadow-[0_10px_22px_-10px_rgba(180,52,44,0.7)] transition hover:bg-[#98291f] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <ActionButtonLabel
                 pending={pending}
@@ -92,7 +92,7 @@ export function DeleteStampDialog({
               type="button"
               disabled={pending}
               onClick={() => setOpen(false)}
-              className="passport-btn-ghost mt-1 w-full"
+              className="btn-ghost mt-1 w-full"
             >
               Cancel
             </button>

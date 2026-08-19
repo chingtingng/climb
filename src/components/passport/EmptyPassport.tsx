@@ -1,3 +1,5 @@
+import { PlusIcon } from "./icons";
+
 export function EmptyPassport({
   onLog,
   disabled,
@@ -6,21 +8,23 @@ export function EmptyPassport({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center px-2 pb-6 pt-4 text-center">
+    <div className="card-tint flex flex-col items-center px-5 pb-7 pt-8 text-center">
       <PassportIllustration />
-      <h2 className="passport-mark mt-5 text-[1.85rem] leading-tight text-pass-navy">
-        Your passport is still blank.
+      <h2 className="wordmark mt-6 text-[1.7rem] leading-tight text-ink">
+        Your passport is still blank
       </h2>
-      <p className="mt-2 max-w-[16.5rem] text-sm leading-relaxed text-pass-muted">
-        Every climbing adventure starts with one place.
+      <p className="mt-2 max-w-[17rem] text-[0.88rem] leading-relaxed text-ink-soft">
+        Every climbing adventure starts with one place. Add your first stamp and
+        watch the pages fill up.
       </p>
       <button
         type="button"
         onClick={onLog}
         disabled={disabled}
-        className="passport-btn mt-6 max-w-[17rem]"
+        className="btn btn-primary mt-6 max-w-[17rem]"
       >
-        + Log your first visit
+        <PlusIcon />
+        Log your first visit
       </button>
     </div>
   );
@@ -29,52 +33,70 @@ export function EmptyPassport({
 function PassportIllustration() {
   return (
     <svg
-      viewBox="0 0 220 148"
-      className="h-32 w-auto text-pass-navy"
+      viewBox="0 0 220 150"
+      className="h-32 w-auto"
       role="img"
-      aria-label="An open blank passport"
+      aria-label="An open blank passport with a stamp"
     >
       <rect
-        x="18"
-        y="18"
-        width="184"
+        x="16"
+        y="20"
+        width="188"
         height="112"
-        rx="14"
+        rx="16"
         fill="#fff"
-        stroke="currentColor"
-        strokeOpacity="0.18"
-      />
-      <path d="M110 18v112" stroke="currentColor" strokeOpacity="0.12" />
-      <rect x="34" y="36" width="60" height="76" rx="8" fill="#eef6fb" />
-      <circle
-        cx="158"
-        cy="74"
-        r="28"
-        fill="none"
-        stroke="#347ea8"
+        stroke="var(--sky-300)"
         strokeWidth="1.6"
-        strokeDasharray="5 4"
       />
-      <text
-        x="158"
-        y="70"
-        textAnchor="middle"
-        fill="#347ea8"
-        fontSize="9"
-        fontWeight="700"
-        letterSpacing="1.4"
-      >
-        STAMP IT
-      </text>
-      <text
-        x="158"
-        y="84"
-        textAnchor="middle"
-        fill="#5a7588"
-        fontSize="11"
-      >
-        ✦
-      </text>
+      <path d="M110 24v104" stroke="var(--sky-200)" strokeWidth="1.4" strokeDasharray="4 5" />
+
+      <rect x="32" y="38" width="62" height="76" rx="10" fill="var(--sky-100)" />
+      <rect x="40" y="48" width="30" height="4" rx="2" fill="var(--sky-300)" />
+      <rect x="40" y="58" width="44" height="4" rx="2" fill="var(--sky-200)" />
+      <rect x="40" y="68" width="36" height="4" rx="2" fill="var(--sky-200)" />
+      <circle cx="60" cy="94" r="12" fill="#fff" stroke="var(--sky-300)" strokeWidth="1.4" />
+      <path
+        d="m53.5 98 5-7 2.8 4 3-3.6 4.2 6.6h-15Z"
+        fill="none"
+        stroke="var(--sky-500)"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+
+      <g transform="rotate(-8 158 78)">
+        <circle
+          cx="158"
+          cy="78"
+          r="30"
+          fill="#fff"
+          stroke="var(--sky-400)"
+          strokeWidth="1.6"
+          strokeDasharray="5 5"
+        />
+        <circle cx="158" cy="78" r="24" fill="none" stroke="var(--sky-500)" strokeWidth="1.4" />
+        <text
+          x="158"
+          y="74"
+          textAnchor="middle"
+          fill="var(--sky-700)"
+          fontSize="8"
+          fontWeight="700"
+          letterSpacing="1.6"
+        >
+          STAMP IT
+        </text>
+        <text
+          x="158"
+          y="88"
+          textAnchor="middle"
+          fill="var(--sky-500)"
+          fontSize="9"
+          fontWeight="600"
+          letterSpacing="1.2"
+        >
+          ✦ ✦ ✦
+        </text>
+      </g>
     </svg>
   );
 }

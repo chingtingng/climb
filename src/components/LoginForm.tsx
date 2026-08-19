@@ -136,151 +136,168 @@ export function LoginForm({
 
   const signupBlocked = Boolean(usernameError) || usernameChecking;
 
+  function switchMode(next: Mode) {
+    if (next === mode) return;
+    setMode(next);
+    setError(null);
+    setVerifyMessage(null);
+    setUsernameError(null);
+  }
+
   return (
     <div className="auth-card">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-white/50 blur-2xl"
+        className="pointer-events-none absolute -right-12 -top-14 size-36 rounded-full bg-white/60 blur-2xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-[#9fd0ea]/35 blur-3xl"
+        className="pointer-events-none absolute -bottom-16 -left-12 size-40 rounded-full bg-sky-300/35 blur-3xl"
       />
 
-      <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-ink-soft">
-        climbing log
-      </p>
-      <h1 className="brand-mark text-[2.6rem] leading-[0.92] text-ink">
-        Chalk Passport
-      </h1>
-      <p className="auth-subtitle">
-        Stamp the places you’ve sent — by country, city, and highest grade.
-      </p>
+      <div className="relative">
+        <div className="auth-tabs" role="tablist" aria-label="Account">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "signin"}
+            className="auth-tab"
+            disabled={loading}
+            onClick={() => switchMode("signin")}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "signup"}
+            className="auth-tab"
+            disabled={loading}
+            onClick={() => switchMode("signup")}
+          >
+            Create account
+          </button>
+        </div>
 
-      <form onSubmit={handleSubmit} className="auth-form">
-        {mode === "signin" ? (
-          <label>
-            Username or email
-            <input
-              name="identifier"
-              type="text"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              required
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="yourname or you@email.com"
-              disabled={!configured || loading}
-            />
-          </label>
-        ) : (
-          <>
+        <form onSubmit={handleSubmit} className="auth-form">
+          {mode === "signin" ? (
             <label>
-              Username
+              Username or email
               <input
-                name="username"
+                name="identifier"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder="yourname"
-                minLength={3}
-                maxLength={30}
-                pattern="[A-Za-z0-9_]+"
-                title="Letters, numbers, and underscores only"
-                disabled={!configured || loading}
-                aria-invalid={Boolean(usernameError)}
-                aria-describedby={usernameError ? "username-availability" : undefined}
-              />
-              {usernameError && (
-                <span id="username-availability" className="auth-field-error" role="alert">
-                  {usernameError}
-                </span>
-              )}
-            </label>
-
-            <label>
-              Email
-              <input
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="you@email.com"
+                placeholder="yourname or you@email.com"
                 disabled={!configured || loading}
               />
             </label>
-          </>
-        )}
+          ) : (
+            <>
+              <label>
+                Username
+                <input
+                  name="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="yourname"
+                  minLength={3}
+                  maxLength={30}
+                  pattern="[A-Za-z0-9_]+"
+                  title="Letters, numbers, and underscores only"
+                  disabled={!configured || loading}
+                  aria-invalid={Boolean(usernameError)}
+                  aria-describedby={usernameError ? "username-availability" : undefined}
+                />
+                {usernameError ? (
+                  <span id="username-availability" className="auth-field-error" role="alert">
+                    {usernameError}
+                  </span>
+                ) : usernameChecking ? (
+                  <span className="text-[0.75rem] font-medium text-ink-faint">
+                    Checking availability…
+                  </span>
+                ) : null}
+              </label>
 
-        <label>
-          Password
-          <input
-            name="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            placeholder="••••••••"
-            minLength={6}
-            disabled={!configured || loading}
-          />
-        </label>
+              <label>
+                Email
+                <input
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="you@email.com"
+                  disabled={!configured || loading}
+                />
+              </label>
+            </>
+          )}
 
-        {!configured && (
-          <p className="rounded-2xl bg-white/70 px-4 py-3 text-sm leading-relaxed text-ink-soft">
-            Connect Supabase first — add env vars and run{" "}
-            <code className="rounded bg-sky px-1.5 py-0.5 text-[0.8rem]">
-              supabase/schema.sql
-            </code>
-            .
-          </p>
-        )}
+          <label>
+            Password
+            <input
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              placeholder="••••••••"
+              minLength={6}
+              disabled={!configured || loading}
+            />
+          </label>
 
-        {verifyMessage && <p className="auth-success">{verifyMessage}</p>}
-        {error && <p className="auth-error">{error}</p>}
+          {!configured && (
+            <p className="notice notice-info">
+              Connect Supabase first — add env vars and run{" "}
+              <code className="rounded-md bg-white/70 px-1.5 py-0.5 text-[0.8rem] font-semibold">
+                supabase/schema.sql
+              </code>
+              .
+            </p>
+          )}
 
-        <button
-          type="submit"
-          className="auth-submit"
-          disabled={loading || !configured || (mode === "signup" && signupBlocked)}
-          aria-busy={loading}
-        >
-          <ActionButtonLabel
-            pending={loading}
-            idle={mode === "signin" ? "Sign in" : "Create account"}
-            busy="Please wait…"
-          />
-        </button>
-      </form>
+          {verifyMessage && <p className="auth-success">{verifyMessage}</p>}
+          {error && <p className="auth-error">{error}</p>}
 
-      <button
-        type="button"
-        className="auth-toggle"
-        disabled={loading}
-        onClick={() => {
-          setMode(mode === "signin" ? "signup" : "signin");
-          setError(null);
-          setVerifyMessage(null);
-          setUsernameError(null);
-        }}
-      >
-        {mode === "signin"
-          ? "Don’t have an account? Sign up"
-          : "Already have an account? Sign in"}
-      </button>
+          <button
+            type="submit"
+            className="auth-submit"
+            disabled={loading || !configured || (mode === "signup" && signupBlocked)}
+            aria-busy={loading}
+          >
+            <ActionButtonLabel
+              pending={loading}
+              idle={mode === "signin" ? "Sign in" : "Create account"}
+              busy="Please wait…"
+            />
+          </button>
+        </form>
+
+        <p className="auth-hint">
+          {mode === "signin"
+            ? "Sign in with your username or email."
+            : "We’ll email a verification link before your first sign-in."}
+        </p>
+      </div>
     </div>
   );
 }

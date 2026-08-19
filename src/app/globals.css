@@ -1,37 +1,84 @@
 @import "tailwindcss";
 
+/*
+ * Chalk Passport design system — one palette, one type voice, one surface
+ * language shared by the signed-out and signed-in screens.
+ */
 :root {
-  --sky-soft: #eaf5fc;
-  --sky: #cfe8f6;
-  --baby: #9fd0ea;
-  --baby-deep: #6bb3d9;
-  --ink: #1f3a4d;
-  --ink-soft: #4a6a7d;
-  --white: #ffffff;
-  --mist: #f7fbfe;
-  --blush: #d9eef8;
-  --shadow: 0 18px 50px rgba(107, 179, 217, 0.18);
-  --radius: 1.25rem;
+  --sky-50: #f7fbff;
+  --sky-100: #eef7fe;
+  --sky-200: #dcedfb;
+  --sky-300: #c3e0f7;
+  --sky-400: #9bcdf0;
+  --sky-500: #6bb2e2;
+  --sky-600: #3d8fc6;
+  --sky-700: #2a71a3;
+  --sky-800: #1d5478;
+
+  --ink: #15384f;
+  --ink-soft: #4d7590;
+  --ink-faint: #8aa8bd;
+
+  --paper: #ffffff;
+  --line: #d9e9f5;
+  --line-soft: #e8f2fa;
+
+  --danger: #b4342c;
+  --danger-soft: #fdecea;
+  --success: #1f6b4c;
+  --success-soft: #e7f6ee;
+
+  --radius-xs: 0.75rem;
+  --radius-sm: 1rem;
+  --radius-md: 1.35rem;
+  --radius-lg: 1.75rem;
+  --radius-xl: 2.15rem;
+
+  --shadow-card: 0 1px 2px rgba(21, 56, 79, 0.04), 0 10px 26px -14px rgba(42, 113, 163, 0.28);
+  --shadow-float: 0 2px 6px rgba(21, 56, 79, 0.05), 0 22px 45px -22px rgba(42, 113, 163, 0.42);
+  --shadow-brand: 0 10px 22px -10px rgba(42, 113, 163, 0.65);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --frame: 480px;
+  --dock-height: 4.5rem;
 }
 
 @theme inline {
-  --color-sky-soft: var(--sky-soft);
-  --color-sky: var(--sky);
-  --color-baby: var(--baby);
-  --color-baby-deep: var(--baby-deep);
+  --color-sky-50: var(--sky-50);
+  --color-sky-100: var(--sky-100);
+  --color-sky-200: var(--sky-200);
+  --color-sky-300: var(--sky-300);
+  --color-sky-400: var(--sky-400);
+  --color-sky-500: var(--sky-500);
+  --color-sky-600: var(--sky-600);
+  --color-sky-700: var(--sky-700);
+  --color-sky-800: var(--sky-800);
+
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-mist: var(--mist);
-  --color-blush: var(--blush);
-  --color-pass-bg: #dceef8;
-  --color-pass-navy: #1b3a52;
-  --color-pass-muted: #5a7588;
-  --color-pass-primary: #347ea8;
-  --color-pass-line: #c3d7e5;
-  --color-pass-soft: #eef6fb;
-  --font-display: var(--font-glacial);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-paper: var(--paper);
+
+  /* Aliases kept so existing markup keeps speaking the same palette. */
+  --color-sky-soft: var(--sky-100);
+  --color-sky: var(--sky-300);
+  --color-baby: var(--sky-400);
+  --color-baby-deep: var(--sky-600);
+  --color-mist: var(--sky-50);
+  --color-blush: var(--sky-200);
+  --color-pass-bg: var(--sky-100);
+  --color-pass-navy: var(--ink);
+  --color-pass-muted: var(--ink-soft);
+  --color-pass-faint: var(--ink-faint);
+  --color-pass-primary: var(--sky-600);
+  --color-pass-line: var(--line);
+  --color-pass-soft: var(--sky-100);
+
   --font-sans: var(--font-poppins);
-  --font-pass: var(--font-montserrat);
+  --font-display: var(--font-glacial);
+  --font-pass: var(--font-poppins);
   --font-pass-display: var(--font-glacial);
 }
 
@@ -44,16 +91,20 @@ body {
   min-height: 100%;
 }
 
+/* One continuous sky behind every route, signed in or out. */
 body {
   margin: 0;
   color: var(--ink);
   background:
-    radial-gradient(1200px 600px at 10% -10%, #dff1fb 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #c9e6f6 0%, transparent 50%),
-    linear-gradient(180deg, var(--sky-soft) 0%, var(--mist) 42%, #ffffff 100%);
+    radial-gradient(760px 420px at 8% -6%, rgba(155, 205, 240, 0.5) 0%, transparent 62%),
+    radial-gradient(680px 380px at 104% 4%, rgba(195, 224, 247, 0.62) 0%, transparent 58%),
+    linear-gradient(180deg, var(--sky-100) 0%, var(--sky-50) 46%, #ffffff 100%);
   background-attachment: fixed;
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 16px;
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -68,43 +119,897 @@ textarea {
   font: inherit;
 }
 
-.app-shell {
-  width: min(100%, 430px);
+:focus-visible {
+  outline: 2px solid var(--sky-600);
+  outline-offset: 2px;
+}
+
+/* Inputs signal focus with their own border; rings clip inside scroll areas. */
+:is(input, textarea, select):focus,
+:is(input, textarea, select):focus-visible {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.app-frame {
+  width: min(100%, var(--frame));
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 1.25rem 1.1rem 2.5rem;
+  overflow-wrap: break-word;
+  padding: max(1rem, env(safe-area-inset-top))
+    max(1.15rem, env(safe-area-inset-right))
+    calc(2rem + env(safe-area-inset-bottom))
+    max(1.15rem, env(safe-area-inset-left));
+}
+
+/* Signed-out shell: same frame, vertically centred. */
+.app-shell {
+  width: min(100%, var(--frame));
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.15rem 2.25rem;
   position: relative;
 }
 
-.brand-mark {
-  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
-  letter-spacing: -0.03em;
+.passport-root {
+  min-height: 100dvh;
+  overflow-x: clip;
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+.passport-frame {
+  width: min(100%, var(--frame));
+  margin: 0 auto;
+  min-height: 100dvh;
+  overflow-wrap: break-word;
+  padding: max(0.9rem, env(safe-area-inset-top))
+    max(1.15rem, env(safe-area-inset-right))
+    calc(var(--dock-height) + 2.35rem + env(safe-area-inset-bottom))
+    max(1.15rem, env(safe-area-inset-left));
+}
+
+/* ------------------------------------------------------------ typography */
+
+.wordmark {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Legacy hooks — same wordmark treatment. */
+.brand-mark,
+.passport-mark {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.page-title {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(1.85rem, 7.2vw, 2.15rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.page-subtitle {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------- surfaces */
+
+.card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+}
+
+.card-glass {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-float);
+}
+
+.card-tint {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(160deg, var(--sky-100) 0%, var(--paper) 74%);
+  box-shadow: var(--shadow-card);
+}
+
+/* Tappable list row shared by Home, Places, Profile and detail screens. */
+.row-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  min-height: 4.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--paper);
+  padding: 0.7rem 0.85rem;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  transition: transform 0.18s var(--ease-soft), box-shadow 0.18s var(--ease-soft),
+    border-color 0.18s var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .row-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--sky-300);
+    box-shadow: var(--shadow-float);
+  }
+}
+
+.row-card:active {
+  transform: scale(0.995);
+}
+
+.divide-list > * + * {
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 3rem;
+  width: 100%;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.16s var(--ease-soft), box-shadow 0.16s var(--ease-soft),
+    background 0.16s var(--ease-soft), opacity 0.16s var(--ease-soft);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+    transform: translateY(-1px);
+  }
+}
+
+.btn-primary:enabled:active {
+  transform: scale(0.985);
+}
+
+.btn-soft {
+  background: var(--sky-100);
+  color: var(--sky-700);
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .btn-soft:hover:not(:disabled) {
+    background: var(--sky-200);
+  }
+}
+
+.btn-outline {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.16s var(--ease-soft), background 0.16s var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.btn:disabled,
+.btn-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.16s var(--ease-soft), box-shadow 0.16s var(--ease-soft);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+.icon-btn-primary {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+}
+
+/* Legacy button hooks map onto the same system. */
+.passport-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 3rem;
+  width: 100%;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-brand);
+  cursor: pointer;
+  transition: transform 0.16s var(--ease-soft), background 0.16s var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .passport-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+    transform: translateY(-1px);
+  }
+}
+
+.passport-btn:enabled:active {
+  transform: scale(0.985);
+}
+
+.passport-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.passport-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.passport-btn-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* ----------------------------------------------------------------- chips */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 0 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.16s var(--ease-soft), background 0.16s var(--ease-soft),
+    border-color 0.16s var(--ease-soft), color 0.16s var(--ease-soft);
+}
+
+.chip:active {
+  transform: scale(0.97);
+}
+
+.chip-selected {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+}
+
+.chip-static {
+  cursor: default;
+  background: var(--sky-100);
+  border-color: var(--line-soft);
+  color: var(--sky-700);
+}
+
+.pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  background: var(--sky-100);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sky-700);
+}
+
+/* ---------------------------------------------------------------- fields */
+
+.field {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding-block: 0.75rem;
+  padding-inline: 1rem;
+  color: var(--ink);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.16s var(--ease-soft), box-shadow 0.16s var(--ease-soft);
+}
+
+.field::placeholder {
+  color: var(--ink-faint);
+}
+
+.field:focus {
+  border-color: var(--sky-500);
+  box-shadow: 0 0 0 4px rgba(155, 205, 240, 0.35);
+}
+
+.field:disabled {
+  background: var(--sky-50);
+  opacity: 0.7;
+}
+
+.field[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Legacy field hooks. */
+.field-input,
+.passport-field {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding-block: 0.75rem;
+  padding-inline: 1rem;
+  color: var(--ink);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.16s var(--ease-soft), box-shadow 0.16s var(--ease-soft);
+}
+
+.field-input::placeholder,
+.passport-field::placeholder {
+  color: var(--ink-faint);
+}
+
+.field-input:focus,
+.passport-field:focus {
+  border-color: var(--sky-500);
+  box-shadow: 0 0 0 4px rgba(155, 205, 240, 0.35);
+}
+
+.passport-field-clearable {
+  padding-inline-end: 2.9rem;
+}
+
+select.passport-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234d7590' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+  padding-inline-end: 2.5rem;
+}
+
+.passport-field-icon {
+  padding-inline-start: 3rem;
+}
+
+textarea.passport-field {
+  min-height: 7.5rem;
+  border-radius: var(--radius-md);
+  resize: none;
+  line-height: 1.5;
+}
+
+.file-field {
+  display: block;
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.file-field::file-selector-button {
+  margin-inline-end: 0.75rem;
+  min-height: 2.75rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--sky-100);
+  padding-inline: 1rem;
+  font-weight: 600;
+  color: var(--sky-700);
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------- feedback */
+
+.notice {
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.notice-info {
+  background: var(--sky-100);
+  color: var(--sky-800);
+}
+
+.notice-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.notice-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+/* ------------------------------------------------------------------- auth */
+
+.auth-card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-float);
+  padding: 1.6rem 1.35rem 1.5rem;
+}
+
+.auth-subtitle {
+  margin: 0.6rem auto 0;
+  max-width: 19rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  margin: 1.35rem 0 1.1rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--sky-100);
+}
+
+.auth-tab {
+  min-height: 2.5rem;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-soft), color 0.18s var(--ease-soft),
+    box-shadow 0.18s var(--ease-soft);
+}
+
+.auth-tab[aria-selected="true"] {
+  background: var(--paper);
+  color: var(--sky-700);
+  box-shadow: var(--shadow-card);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  text-align: left;
+}
+
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.auth-form input {
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 400;
+  outline: none;
+  transition: border-color 0.16s var(--ease-soft), box-shadow 0.16s var(--ease-soft);
+}
+
+.auth-form input::placeholder {
+  color: var(--ink-faint);
+}
+
+.auth-form input:focus {
+  border-color: var(--sky-500);
+  box-shadow: 0 0 0 4px rgba(155, 205, 240, 0.35);
+}
+
+.auth-form input:disabled {
+  background: var(--sky-50);
+  opacity: 0.7;
+}
+
+.auth-form input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.auth-field-error {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--danger);
+}
+
+.auth-error {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--danger);
+}
+
+.auth-success {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  background: var(--success-soft);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--success);
+}
+
+.auth-submit {
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-brand);
+  cursor: pointer;
+  transition: transform 0.16s var(--ease-soft), background 0.16s var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .auth-submit:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+    transform: translateY(-1px);
+  }
+}
+
+.auth-submit:enabled:active {
+  transform: scale(0.985);
+}
+
+.auth-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.auth-hint {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* -------------------------------------------------------------- nav dock */
+
+.dock-wrap {
+  position: fixed;
+  z-index: 40;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, var(--frame));
+  transform: translateX(-50%);
+  padding: 0 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.dock-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -1.75rem 0 0;
+  background: linear-gradient(180deg, rgba(247, 251, 255, 0) 0%, rgba(247, 251, 255, 0.92) 62%);
+  pointer-events: none;
+}
+
+.dock {
+  position: relative;
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  height: var(--dock-height);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-float);
+  padding: 0 0.4rem;
+}
+
+.dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 3.25rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  transition: color 0.18s var(--ease-soft);
+}
+
+.dock-item[aria-current="page"] {
+  color: var(--sky-700);
+}
+
+.dock-item[aria-current="page"] .dock-icon {
+  background: var(--sky-100);
+}
+
+.dock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  transition: background 0.18s var(--ease-soft);
+}
+
+.dock-fab {
+  position: absolute;
+  right: 1.35rem;
+  bottom: calc(var(--dock-height) + 0.9rem + env(safe-area-inset-bottom));
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 3.4rem;
+  padding: 0 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+  cursor: pointer;
+  transition: transform 0.18s var(--ease-soft), box-shadow 0.18s var(--ease-soft);
+}
+
+@media (hover: hover) {
+  .dock-fab:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px -10px rgba(42, 113, 163, 0.75);
+  }
+}
+
+.dock-fab-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.dock-fab:enabled:active {
+  transform: scale(0.94);
+}
+
+.dock-fab:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------- stamps */
+
+.stamp-row {
+  display: flex;
+  gap: 0.7rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: -0.2rem;
+  padding: 0.35rem 0.2rem 0.5rem;
+}
+
+.stamp-row::-webkit-scrollbar {
+  display: none;
+}
+
+.stamp-ring {
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 24%, #ffffff 0%, var(--sky-50) 58%, var(--sky-100) 100%);
+  box-shadow: 0 6px 16px -8px rgba(42, 113, 163, 0.55);
+}
+
+/* ---------------------------------------------------------------- sheets */
+
+.sheet {
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: var(--paper);
+  box-shadow: 0 -8px 60px -20px rgba(21, 56, 79, 0.45);
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    border-radius: var(--radius-xl);
+  }
+}
+
+.sheet-grip {
+  width: 2.5rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.step-track {
+  display: flex;
+  gap: 0.28rem;
+}
+
+.step-dot {
+  height: 0.25rem;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--line-soft);
+  transition: background 0.25s var(--ease-soft);
+}
+
+.step-dot-done {
+  background: var(--sky-300);
+}
+
+.step-dot-active {
+  background: linear-gradient(90deg, var(--sky-500), var(--sky-700));
+}
+
+/* ------------------------------------------------------------- animation */
+
 .fade-up {
-  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up 0.6s var(--ease-soft) both;
 }
 
 .fade-up-delay {
-  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  animation: fade-up 0.7s var(--ease-soft) 0.1s both;
 }
 
 .fade-up-delay-2 {
-  animation: fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+  animation: fade-up 0.75s var(--ease-soft) 0.2s both;
 }
 
 .float-soft {
-  animation: float-soft 5.5s ease-in-out infinite;
+  animation: float-soft 6s ease-in-out infinite;
 }
 
-.sheet-in {
-  animation: sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+.sheet-in,
+.passport-sheet-in {
+  animation: sheet-in 0.34s var(--ease-soft) both;
+}
+
+.stamp-press {
+  animation: stamp-press 0.55s var(--ease-soft) both;
 }
 
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -118,328 +1023,14 @@ textarea {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-7px);
   }
 }
 
 @keyframes sheet-in {
   from {
     opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.field-input {
-  width: 100%;
-  border-radius: 1rem;
-  border: 1px solid rgba(159, 208, 234,.7);
-  background: #f7fbfe;
-  padding: 0.8rem 0.95rem;
-  color: #1f3a4d;
-  outline: none;
-}
-
-.field-input:focus {
-  border-color: #6bb3d9;
-  box-shadow: 0 0 0 4px rgba(159, 208, 234, 0.35);
-}
-
-.auth-card {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 28px;
-  padding: 36px 28px 28px;
-  box-shadow: var(--shadow);
-  text-align: center;
-}
-
-.auth-subtitle {
-  margin: 12px auto 24px;
-  max-width: 18rem;
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: var(--ink-soft);
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  text-align: left;
-}
-
-.auth-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.auth-form input {
-  padding: 12px 14px;
-  border: 1px solid rgba(159, 208, 234, 0.7);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--ink);
-  outline: none;
-}
-
-.auth-form input:focus {
-  border-color: var(--baby-deep);
-  box-shadow: 0 0 0 4px rgba(159, 208, 234, 0.35);
-}
-
-.auth-form input:disabled {
-  opacity: 0.6;
-}
-
-.auth-form input[aria-invalid="true"] {
-  border-color: #d46a6a;
-}
-
-.auth-field-error {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #8a2f2f;
-  line-height: 1.35;
-}
-
-.auth-error {
-  margin: 0;
-  border-radius: 1rem;
-  background: #ffe8e8;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  color: #8a2f2f;
-}
-
-.auth-success {
-  margin: 0;
-  border-radius: 1rem;
-  background: #e8f6ee;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  color: #1f5c3a;
-  line-height: 1.45;
-}
-
-.auth-submit {
-  margin-top: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background: var(--ink);
-  color: white;
-  border-radius: 999px;
-  font-weight: 600;
-  transition: background 0.15s, transform 0.15s, opacity 0.15s;
-}
-
-.auth-submit:hover:not(:disabled) {
-  background: #163040;
-  transform: translateY(-1px);
-}
-
-.auth-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.auth-toggle {
-  margin-top: 16px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.8125rem;
-  color: var(--baby-deep);
-  font-weight: 600;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fade-up,
-  .fade-up-delay,
-  .fade-up-delay-2,
-  .float-soft,
-  .sheet-in {
-    animation: none;
-  }
-}
-
-/* Authenticated passport shell — login/auth styles above stay untouched */
-.passport-root {
-  min-height: 100dvh;
-  overflow-x: clip;
-  background: var(--color-pass-bg);
-  color: var(--color-pass-navy);
-  font-family: var(--font-pass), var(--font-sans), system-ui, sans-serif;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.passport-root :focus-visible {
-  outline: 2px solid var(--color-pass-primary);
-  outline-offset: 2px;
-}
-
-/* Inputs already use a border change; outer rings clip inside overflow containers. */
-.passport-root :is(input, textarea, select):focus,
-.passport-root :is(input, textarea, select):focus-visible {
-  outline: none;
-}
-
-.passport-frame {
-  width: min(100%, 480px);
-  margin: 0 auto;
-  min-height: 100dvh;
-  overflow-wrap: break-word;
-  padding: max(0.7rem, env(safe-area-inset-top))
-    max(1.05rem, env(safe-area-inset-right))
-    calc(5.75rem + env(safe-area-inset-bottom))
-    max(1.05rem, env(safe-area-inset-left));
-}
-
-.passport-mark {
-  font-family: var(--font-pass-display), var(--font-pass), system-ui, sans-serif;
-  letter-spacing: -0.03em;
-}
-
-.passport-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: 48px;
-  width: 100%;
-  padding: 0.7rem 1.1rem;
-  border: none;
-  border-radius: 999px;
-  background: var(--color-pass-primary);
-  color: #fff;
-  font-weight: 600;
-  font-size: 1rem;
-  box-shadow: 0 8px 18px rgba(52, 126, 168, 0.22);
-}
-
-.passport-btn:enabled:active {
-  transform: scale(0.98);
-}
-
-.passport-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.passport-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0.5rem 0.9rem;
-  border: none;
-  background: none;
-  color: var(--color-pass-muted);
-  font-weight: 600;
-}
-
-.passport-field {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  border: 1px solid var(--color-pass-line);
-  background: #fff;
-  /* Separate axes so utilities / .passport-field-icon can set inline-start. */
-  padding-block: 0.75rem;
-  padding-inline: 1rem;
-  color: var(--color-pass-navy);
-  font-size: 16px;
-  outline: none;
-}
-
-.passport-field-clearable {
-  padding-inline-end: 2.75rem;
-}
-
-select.passport-field {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a7388' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1rem;
-  padding-inline-end: 2.5rem;
-}
-
-.passport-field-icon {
-  padding-inline-start: 3rem;
-}
-
-.passport-field:focus {
-  border-color: var(--color-pass-primary);
-}
-
-textarea.passport-field {
-  min-height: 7.5rem;
-  border-radius: 1.15rem;
-  resize: none;
-  line-height: 1.45;
-}
-
-.stamp-row {
-  display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  margin-inline: -0.15rem;
-  padding: 0.15rem 0.15rem 0.4rem;
-}
-
-.stamp-row::-webkit-scrollbar {
-  display: none;
-}
-
-.passport-nav {
-  position: fixed;
-  z-index: 40;
-  bottom: 0;
-  left: 50%;
-  width: min(100%, 480px);
-  transform: translateX(-50%);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background: rgba(255, 255, 255, 0.94);
-  border-top: 1px solid var(--color-pass-line);
-  padding: 0.2rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom));
-  backdrop-filter: blur(10px);
-}
-
-.passport-sheet-in {
-  animation: passport-sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.stamp-press {
-  animation: stamp-press 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes passport-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(28px);
+    transform: translateY(26px);
   }
   to {
     opacity: 1;
@@ -463,12 +1054,32 @@ textarea.passport-field {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fade-up,
+  .fade-up-delay,
+  .fade-up-delay-2,
+  .float-soft,
+  .sheet-in,
   .passport-sheet-in,
   .stamp-press {
     animation: none;
   }
 
-  .passport-btn:enabled:active {
+  .btn,
+  .btn-primary,
+  .passport-btn,
+  .row-card,
+  .chip,
+  .dock-fab,
+  .icon-btn {
+    transition: none;
+  }
+
+  .btn-primary:enabled:active,
+  .passport-btn:enabled:active,
+  .dock-fab:enabled:active,
+  .icon-btn:active,
+  .chip:active,
+  .row-card:active {
     transform: none;
   }
 }

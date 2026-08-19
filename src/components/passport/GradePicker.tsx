@@ -60,7 +60,7 @@ export function GradePicker({
     <div className="space-y-3">
       {allowSystemChange && !locked ? (
         <fieldset>
-          <legend className="mb-1.5 text-sm font-semibold">Grade system</legend>
+          <legend className="field-label">Grade system</legend>
           <div className="grid grid-cols-3 gap-2">
             {GRADE_SYSTEMS.filter((item) => item.value !== "custom").map((item) => {
               const selected = item.value === system;
@@ -69,11 +69,7 @@ export function GradePicker({
                   key={item.value}
                   type="button"
                   onClick={() => onSystem(item.value)}
-                  className={`min-h-11 rounded-full border text-sm font-semibold ${
-                    selected
-                      ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                      : "border-pass-line bg-white text-pass-muted"
-                  }`}
+                  className={`chip justify-center ${selected ? "chip-selected" : ""}`}
                 >
                   {item.label}
                 </button>
@@ -82,7 +78,7 @@ export function GradePicker({
           </div>
         </fieldset>
       ) : (
-        <p className="text-sm text-pass-muted">
+        <p className="text-[0.82rem] text-ink-soft">
           {locked
             ? `This place uses ${labelFor(scale?.kind ?? system)}.`
             : `Using ${labelFor(system)}.`}
@@ -90,15 +86,15 @@ export function GradePicker({
       )}
 
       {scale?.chartPath ? (
-        <p className="text-xs text-pass-muted">
+        <p className="text-[0.75rem] text-ink-faint">
           Grades come from this place’s chart. Pick the highest you sent.
         </p>
       ) : null}
 
       <fieldset>
-        <legend className="mb-1.5 text-sm font-semibold">Highest grade</legend>
+        <legend className="field-label">Highest grade</legend>
         {grades.length === 0 ? (
-          <p className="text-sm text-pass-muted">Add this place’s grades first.</p>
+          <p className="text-[0.82rem] text-ink-soft">Add this place’s grades first.</p>
         ) : (
           <div
             className={`grid gap-2 ${
@@ -120,10 +116,10 @@ export function GradePicker({
                     key={item}
                     type="button"
                     onClick={() => onGrade(item)}
-                    className={`flex min-h-12 items-center gap-2 rounded-2xl border px-3 text-left text-sm font-semibold ${
+                    className={`flex min-h-12 items-center gap-2 rounded-2xl border bg-white px-3 text-left text-sm font-semibold transition ${
                       selected
-                        ? "border-pass-primary ring-2 ring-pass-primary/25"
-                        : "border-pass-line"
+                        ? "border-sky-500 ring-2 ring-sky-300/50"
+                        : "border-line hover:border-sky-300"
                     }`}
                   >
                     <span
@@ -134,7 +130,7 @@ export function GradePicker({
                     <span className="min-w-0">
                       <span className="block truncate">{item}</span>
                       {vHint ? (
-                        <span className="block text-[11px] font-medium text-pass-muted">{vHint}</span>
+                        <span className="block text-[11px] font-medium text-ink-faint">{vHint}</span>
                       ) : null}
                     </span>
                   </button>
@@ -145,15 +141,21 @@ export function GradePicker({
                   key={item}
                   type="button"
                   onClick={() => onGrade(item)}
-                  className={`flex min-h-11 flex-col items-center justify-center rounded-xl border px-1.5 text-sm font-semibold ${
+                  className={`flex min-h-11 flex-col items-center justify-center rounded-xl border px-1.5 text-sm font-semibold transition ${
                     selected
-                      ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                      : "border-pass-line bg-white text-pass-navy"
+                      ? "border-transparent bg-gradient-to-b from-sky-500 to-sky-600 text-white shadow-[0_8px_18px_-9px_rgba(42,113,163,0.7)]"
+                      : "border-line bg-white text-ink hover:border-sky-300"
                   }`}
                 >
                   <span className="max-w-full truncate">{item}</span>
                   {vHint ? (
-                    <span className="text-[10px] font-medium text-pass-muted">{vHint}</span>
+                    <span
+                      className={`text-[10px] font-medium ${
+                        selected ? "text-white/80" : "text-ink-faint"
+                      }`}
+                    >
+                      {vHint}
+                    </span>
                   ) : null}
                 </button>
               );

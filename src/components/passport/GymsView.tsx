@@ -9,7 +9,7 @@ import { formatPlaceKind } from "@/lib/placeKinds";
 import type { GymGroup } from "@/lib/types";
 import { CountryStamp } from "./CountryStamp";
 import { GradeLabel } from "./GradePicker";
-import { SearchIcon } from "./icons";
+import { PlusIcon, SearchIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
 type SortKey = "recent" | "grade" | "az" | "country";
@@ -39,34 +39,21 @@ export function GymsView() {
         gym.country.trim().toLowerCase() === country.trim().toLowerCase();
       return matchesQuery && matchesCountry;
     });
-    return [...list].sort((a, b) => compareGyms(a, b, sort));
+    list.sort((a, b) => compareGyms(a, b, sort));
+    return list;
   }, [gyms, query, country, sort]);
 
   return (
     <div className="space-y-4">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="passport-mark text-[2rem] leading-none text-pass-navy">
-            Your places
-          </h1>
-          <p className="mt-1.5 text-sm text-pass-muted">
-            Every place you’ve left some chalk.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => openLog()}
-          disabled={!configured}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-pass-primary text-lg font-semibold text-white"
-          aria-label="Log a visit"
-        >
-          +
-        </button>
+      <header>
+        <p className="eyebrow">Collection</p>
+        <h1 className="page-title mt-1.5">Your places</h1>
+        <p className="page-subtitle">Every place you’ve left some chalk.</p>
       </header>
 
       <label className="relative block">
         <span className="sr-only">Search places, cities or countries</span>
-        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-pass-muted">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint">
           <SearchIcon />
         </span>
         <input
@@ -78,7 +65,7 @@ export function GymsView() {
       </label>
 
       {countries.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {["All", ...countries].map((item) => {
             const selected = item === country;
             return (
@@ -86,11 +73,7 @@ export function GymsView() {
                 key={item}
                 type="button"
                 onClick={() => setCountry(item)}
-                className={`min-h-10 shrink-0 rounded-full px-3.5 text-sm font-semibold ${
-                  selected
-                    ? "bg-pass-primary text-white"
-                    : "border border-pass-line bg-white text-pass-navy"
-                }`}
+                className={`chip ${selected ? "chip-selected" : ""}`}
               >
                 {item}
               </button>
@@ -100,50 +83,58 @@ export function GymsView() {
       ) : null}
 
       <div className="relative z-20 flex items-center justify-between gap-3">
-        <p className="text-sm text-pass-muted">
+        <p className="text-[0.82rem] font-medium text-ink-soft">
           {filtered.length} {filtered.length === 1 ? "place" : "places"}
         </p>
         <SortMenu value={sort} onChange={setSort} />
       </div>
 
       {gyms.length === 0 ? (
-        <div className="rounded-[1.4rem] bg-white px-5 py-10 text-center">
-          <p className="passport-mark text-2xl">No places yet</p>
-          <p className="mt-2 text-sm text-pass-muted">
-            Log a visit and it’ll appear in your collection.
+        <div className="card-tint px-5 py-10 text-center">
+          <p className="wordmark text-2xl text-ink">No places yet</p>
+          <p className="mx-auto mt-2 max-w-[17rem] text-[0.88rem] leading-relaxed text-ink-soft">
+            Log a visit and it’ll appear here, sorted however you like.
           </p>
+          <button
+            type="button"
+            onClick={() => openLog()}
+            disabled={!configured}
+            className="btn btn-primary mx-auto mt-5 max-w-[15rem]"
+          >
+            <PlusIcon />
+            Log a visit
+          </button>
         </div>
       ) : filtered.length === 0 ? (
-        <p className="rounded-[1.4rem] bg-white px-5 py-8 text-center text-sm text-pass-muted">
+        <p className="card px-5 py-8 text-center text-[0.88rem] text-ink-soft">
           No places match that search.
         </p>
       ) : (
-        <ul className="relative z-0 space-y-2.5">
+        <ul className="relative z-0 space-y-2">
           {filtered.map((gym) => (
             <li key={gym.slug}>
-              <Link
-                href={`/passport/gyms/${gym.slug}`}
-                className="flex min-h-16 items-center gap-3 rounded-[1.25rem] border border-white bg-white px-3 py-3 shadow-[0_8px_20px_rgba(52,126,168,0.08)]"
-              >
+              <Link href={`/passport/gyms/${gym.slug}`} className="row-card">
                 <CountryStamp country={gym.country} size="sm" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold leading-tight">
                     {gym.name}
                   </span>
-                  <span className="block truncate text-sm text-pass-muted">
+                  <span className="block truncate text-[0.82rem] text-ink-soft">
                     {formatPlaceKind(gym.place_kind)} · {formatGymPlace(gym)}
                   </span>
-                  <span className="mt-0.5 block text-xs text-pass-muted">
+                  <span className="mt-0.5 block text-[0.72rem] text-ink-faint">
                     {gym.visitCount} {gym.visitCount === 1 ? "visit" : "visits"} ·{" "}
                     {formatStampDate(gym.lastVisited)}
                   </span>
                 </span>
-                <span className="shrink-0 text-sm font-semibold">
-                  <GradeLabel
-                    system={gym.bestGradeSystem}
-                    grade={gym.bestGrade}
-                    vEquiv={gym.bestVEquiv}
-                  />
+                <span className="shrink-0 text-right">
+                  <span className="pill-tag">
+                    <GradeLabel
+                      system={gym.bestGradeSystem}
+                      grade={gym.bestGrade}
+                      vEquiv={gym.bestVEquiv}
+                    />
+                  </span>
                 </span>
               </Link>
             </li>
@@ -200,11 +191,11 @@ function SortMenu({
         aria-expanded={open}
         aria-controls={menuId}
         onClick={toggle}
-        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-pass-line bg-white px-3 text-sm font-semibold text-pass-navy"
+        className="chip"
       >
-        <span className="text-pass-muted">Sort</span>
+        <span className="text-ink-faint">Sort</span>
         <span>{label}</span>
-        <span className="text-pass-muted" aria-hidden>
+        <span className="text-ink-faint" aria-hidden>
           {placeAbove && open ? "▴" : "▾"}
         </span>
       </button>
@@ -213,7 +204,7 @@ function SortMenu({
           id={menuId}
           role="listbox"
           aria-label="Sort places"
-          className={`absolute right-0 z-40 min-w-[12.5rem] rounded-2xl border border-pass-line bg-white py-1.5 shadow-[0_16px_40px_rgba(27,58,82,0.16)] ${
+          className={`card absolute right-0 z-40 min-w-[12.5rem] overflow-hidden py-1.5 ${
             placeAbove ? "bottom-[calc(100%+0.4rem)]" : "top-[calc(100%+0.4rem)]"
           }`}
         >
@@ -227,10 +218,10 @@ function SortMenu({
                     onChange(item.value);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-semibold ${
+                  className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm font-semibold transition ${
                     selected
-                      ? "bg-pass-soft text-pass-navy"
-                      : "text-pass-navy hover:bg-pass-soft/70"
+                      ? "bg-sky-100 text-sky-700"
+                      : "text-ink hover:bg-sky-50"
                   }`}
                 >
                   {item.label}

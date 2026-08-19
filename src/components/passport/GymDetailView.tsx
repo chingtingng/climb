@@ -5,7 +5,7 @@ import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDate } from "@/lib/dates";
 import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
 import { formatPlaceKind } from "@/lib/placeKinds";
-import { BackIcon } from "./icons";
+import { BackIcon, PlusIcon } from "./icons";
 import { CountryStamp } from "./CountryStamp";
 import { DeleteStampDialog } from "./DeleteStampDialog";
 import { GradeLabel } from "./GradePicker";
@@ -19,17 +19,17 @@ export function GymDetailView({ slug }: { slug: string }) {
 
   if (!gym) {
     return (
-      <div className="pt-6 text-center">
-        <h1 className="passport-mark text-3xl text-pass-navy">
-          This stamp isn’t in your passport.
+      <div className="card-tint mt-4 px-5 py-10 text-center">
+        <h1 className="wordmark text-2xl text-ink">
+          This stamp isn’t in your passport
         </h1>
-        <p className="mt-2 text-sm text-pass-muted">
+        <p className="mt-2 text-[0.88rem] text-ink-soft">
           It may have been removed, or the link is out of date.
         </p>
         <button
           type="button"
           onClick={() => router.push("/passport/gyms")}
-          className="passport-btn mt-6"
+          className="btn btn-primary mt-6"
         >
           Back to places
         </button>
@@ -38,36 +38,48 @@ export function GymDetailView({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-start gap-3">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => router.back()}
-          className="mt-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-white"
+          className="icon-btn"
           aria-label="Back"
         >
           <BackIcon />
         </button>
-        <div className="min-w-0 flex-1 pt-1">
-          <h1 className="passport-mark text-[1.85rem] leading-tight break-words">
+        <p className="eyebrow">{formatPlaceKind(gym.place_kind)}</p>
+      </div>
+
+      <header className="card-tint flex items-start gap-3.5 px-4 py-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="wordmark text-[1.7rem] leading-tight break-words text-ink">
             {gym.name}
           </h1>
-          <p className="mt-1 text-sm text-pass-muted">
-            {formatPlaceKind(gym.place_kind)} · {formatGymPlace(gym)}
-          </p>
+          <p className="mt-1 text-[0.85rem] text-ink-soft">{formatGymPlace(gym)}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <span className="pill-tag">
+              Best{" "}
+              <GradeLabel
+                system={gym.bestGradeSystem}
+                grade={gym.bestGrade}
+                vEquiv={gym.bestVEquiv}
+              />
+            </span>
+            <span className="pill-tag">
+              {gym.visitCount} {gym.visitCount === 1 ? "visit" : "visits"}
+            </span>
+          </div>
         </div>
         <CountryStamp country={gym.country} />
       </header>
 
       {gym.outlets.length > 1 ? (
         <section>
-          <h2 className="passport-mark text-xl">Outlets</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <h2 className="section-title">Outlets</h2>
+          <div className="mt-2 flex flex-wrap gap-2">
             {gym.outlets.map((outlet) => (
-              <span
-                key={outlet}
-                className="inline-flex min-h-10 items-center rounded-full bg-white px-3 text-sm font-semibold"
-              >
+              <span key={outlet} className="chip chip-static">
                 {outlet}
               </span>
             ))}
@@ -75,47 +87,33 @@ export function GymDetailView({ slug }: { slug: string }) {
         </section>
       ) : null}
 
-      <section className="grid grid-cols-2 gap-2.5">
-        <div className="rounded-[1.2rem] bg-white px-4 py-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Highest grade
-          </p>
-          <p className="passport-mark mt-1 text-3xl leading-none">
-            <GradeLabel
-              system={gym.bestGradeSystem}
-              grade={gym.bestGrade}
-              vEquiv={gym.bestVEquiv}
-            />
-          </p>
-        </div>
-        <div className="rounded-[1.2rem] bg-white px-4 py-4">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Visits
-          </p>
-          <p className="passport-mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
-        </div>
-      </section>
-
       <section>
-        <h2 className="passport-mark text-xl">Visit history</h2>
-        <ul className="mt-3 space-y-2">
+        <h2 className="section-title">Visit history</h2>
+        <ul className="mt-2 space-y-2">
           {gym.visits.map((visit) => (
-            <li
-              key={visit.id}
-              className="rounded-[1.15rem] bg-white px-3 py-2.5"
-            >
-              <div className="flex items-center gap-3">
+            <li key={visit.id} className="card px-3.5 py-3">
+              <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
-                  <p className="text-sm break-words text-pass-muted">
-                    {formatVisitPlace(visit)} · {formatClimbingType(visit.climbing_type)} ·{" "}
-                    <GradeLabel
-                      system={visit.grade_system}
-                      grade={visit.highest_grade}
-                      vEquiv={visit.v_equiv}
-                    />
-                    {visit.notes ? ` · ${visit.notes}` : ""}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold leading-tight">
+                      {formatStampDate(visit.visited_on)}
+                    </p>
+                    <span className="pill-tag">
+                      <GradeLabel
+                        system={visit.grade_system}
+                        grade={visit.highest_grade}
+                        vEquiv={visit.v_equiv}
+                      />
+                    </span>
+                  </div>
+                  <p className="mt-1 break-words text-[0.82rem] text-ink-soft">
+                    {formatVisitPlace(visit)} · {formatClimbingType(visit.climbing_type)}
                   </p>
+                  {visit.notes ? (
+                    <p className="mt-1.5 break-words text-[0.82rem] leading-relaxed text-ink-soft">
+                      “{visit.notes}”
+                    </p>
+                  ) : null}
                 </div>
                 <DeleteStampDialog
                   visitId={visit.id}
@@ -142,9 +140,10 @@ export function GymDetailView({ slug }: { slug: string }) {
             existing: true,
           })
         }
-        className="passport-btn"
+        className="btn btn-soft"
       >
-        + Log another visit
+        <PlusIcon />
+        Log another visit
       </button>
     </div>
   );

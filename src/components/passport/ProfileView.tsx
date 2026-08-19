@@ -4,13 +4,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
+import { BrandStamp } from "@/components/BrandStamp";
 import { formatClimbingType } from "@/lib/climbingTypes";
 import { formatStampDayMonth } from "@/lib/dates";
 import { gymSlug } from "@/lib/gyms";
 import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { GradeLabel } from "./GradePicker";
-import { ChevronIcon, GymsIcon, MountainIcon } from "./icons";
+import { ChevronIcon, GymsIcon, MountainIcon, PlusIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
 const FEEDBACK_URL = "https://www.instagram.com/chalkchingup";
@@ -22,26 +23,29 @@ export function ProfileView() {
 
   return (
     <div className="space-y-3">
-      <header className="pb-1">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-          Profile
-        </p>
-        <p className="mt-2 text-[0.95rem] font-semibold text-pass-navy">@{username}</p>
+      <header>
+        <p className="eyebrow">Profile</p>
+        <h1 className="page-title mt-1.5">My passport</h1>
       </header>
 
-      <section className="rounded-[1.25rem] bg-white px-4 py-5">
-        <h1 className="passport-mark text-[1.65rem] leading-none text-pass-navy">
-          My climbing passport
-        </h1>
-        <p className="mt-2 text-sm text-pass-muted">
-          {empty
-            ? "Log your first visit to start filling this in."
-            : "Here’s where you’ve been climbing."}
-        </p>
+      <section className="card-tint px-4 py-5">
+        <div className="flex items-center gap-3.5">
+          <BrandStamp size={62} label={false} />
+          <div className="min-w-0">
+            <p className="wordmark truncate text-[1.4rem] leading-tight text-ink">
+              @{username}
+            </p>
+            <p className="mt-0.5 text-[0.82rem] text-ink-soft">
+              {empty
+                ? "Log your first visit to start filling this in."
+                : "Here’s where you’ve been climbing."}
+            </p>
+          </div>
+        </div>
 
         <div
           aria-label="Passport statistics"
-          className="mt-5 grid grid-cols-4 gap-2"
+          className="mt-5 grid grid-cols-4 divide-x divide-line-soft rounded-[1.15rem] bg-white/70 py-3"
         >
           <Stat value={stats.gyms} label="Places" dim={empty} />
           <Stat value={stats.cities} label="Cities" dim={empty} />
@@ -58,13 +62,10 @@ export function ProfileView() {
           type="button"
           onClick={() => openLog()}
           disabled={!configured}
-          className={
-            empty
-              ? "passport-btn mt-5"
-              : "mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-pass-soft text-[0.95rem] font-semibold text-pass-primary disabled:cursor-not-allowed disabled:opacity-55"
-          }
+          className={`btn mt-5 ${empty ? "btn-primary" : "btn-soft"}`}
         >
-          {empty ? "+ Log your first visit" : "+ Log a visit"}
+          <PlusIcon />
+          {empty ? "Log your first visit" : "Log a visit"}
         </button>
       </section>
 
@@ -78,7 +79,7 @@ export function ProfileView() {
               type="button"
               onClick={() => openLog()}
               disabled={!configured}
-              className="font-semibold text-pass-primary"
+              className="font-semibold text-sky-700"
             >
               Log a visit
             </button>{" "}
@@ -101,10 +102,8 @@ export function ProfileView() {
 
       {recent.length > 0 ? (
         <section>
-          <h2 className="mb-2 px-0.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-            Recent
-          </h2>
-          <ul className="overflow-hidden rounded-[1.25rem] bg-white">
+          <h2 className="eyebrow mb-2 px-0.5">Recent</h2>
+          <ul className="card divide-list overflow-hidden">
             {recent.map((visit) => (
               <RecentRow key={visit.id} visit={visit} />
             ))}
@@ -113,19 +112,19 @@ export function ProfileView() {
       ) : null}
 
       <section>
-        <h2 className="mb-2 px-0.5 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-pass-muted">
-          Account
-        </h2>
-        <div className="overflow-hidden rounded-[1.25rem] bg-white">
+        <h2 className="eyebrow mb-2 px-0.5">Account</h2>
+        <div className="card divide-list overflow-hidden">
           <a
             href={FEEDBACK_URL}
             target="_blank"
             rel="noreferrer"
-            className="flex min-h-14 items-center gap-3 px-4 text-sm font-semibold"
+            className="flex min-h-14 items-center gap-3 px-4 text-sm font-semibold transition hover:bg-sky-50"
           >
-            <HelpIcon />
-            Help & feedback
-            <span className="ml-auto text-pass-line">
+            <span className="flex size-9 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+              <HelpIcon />
+            </span>
+            Help &amp; feedback
+            <span className="ml-auto text-ink-faint">
               <ChevronIcon />
             </span>
           </a>
@@ -146,11 +145,13 @@ function LogoutButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="flex min-h-14 w-full items-center gap-3 border-t border-pass-line px-4 text-sm font-semibold text-[#b42318] disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex min-h-14 w-full items-center gap-3 px-4 text-sm font-semibold text-[#b4342c] transition hover:bg-[#fdecea] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <LogoutIcon />
+      <span className="flex size-9 items-center justify-center rounded-full bg-[#fdecea]">
+        <LogoutIcon />
+      </span>
       <ActionButtonLabel pending={pending} idle="Log out" busy="Logging out…" />
-      <span className="ml-auto text-pass-line">
+      <span className="ml-auto text-ink-faint">
         <ChevronIcon />
       </span>
     </button>
@@ -169,15 +170,15 @@ function Stat({
   accent?: boolean;
 }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 px-1 text-center">
       <p
-        className={`passport-mark truncate text-[1.7rem] leading-none ${
-          accent ? "text-pass-primary" : dim ? "text-pass-line" : "text-pass-navy"
+        className={`wordmark truncate text-[1.55rem] leading-none ${
+          accent ? "text-sky-700" : dim ? "text-sky-300" : "text-ink"
         }`}
       >
         {value}
       </p>
-      <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-pass-muted">
+      <p className="mt-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
         {label}
       </p>
     </div>
@@ -196,15 +197,17 @@ function HighlightCard({
   children: ReactNode;
 }) {
   return (
-    <section className="flex items-center gap-3.5 rounded-[1.25rem] bg-white px-4 py-4">
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-pass-soft text-pass-primary">
+    <section className="card flex items-center gap-3.5 px-4 py-4">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-pass-muted">
-          {label}
-        </p>
-        {children ? children : <p className="mt-1 text-sm leading-relaxed text-pass-muted">{empty}</p>}
+        <p className="eyebrow">{label}</p>
+        {children ? (
+          children
+        ) : (
+          <p className="mt-1 text-[0.82rem] leading-relaxed text-ink-soft">{empty}</p>
+        )}
       </div>
     </section>
   );
@@ -218,7 +221,7 @@ function GymHighlight({ gym }: { gym: GymGroup }) {
     >
       <div className="min-w-0">
         <p className="truncate font-semibold leading-tight">{gym.name}</p>
-        <p className="truncate text-sm text-pass-muted">{gym.country}</p>
+        <p className="truncate text-[0.82rem] text-ink-soft">{gym.country}</p>
       </div>
       <Count value={gym.visitCount} label={gym.visitCount === 1 ? "Visit" : "Visits"} />
     </Link>
@@ -233,7 +236,7 @@ function CityHighlight({ city }: { city: FavouriteCity }) {
     <div className="mt-1 flex items-center justify-between gap-3">
       <div className="min-w-0">
         <p className="truncate font-semibold leading-tight">{city.name}</p>
-        <p className="truncate text-sm text-pass-muted">
+        <p className="truncate text-[0.82rem] text-ink-soft">
           {samePlace ? gymsLabel : `${city.country} · ${gymsLabel}`}
         </p>
       </div>
@@ -248,8 +251,8 @@ function CityHighlight({ city }: { city: FavouriteCity }) {
 function Count({ value, label }: { value: number; label: string }) {
   return (
     <div className="shrink-0 text-right">
-      <p className="passport-mark text-2xl leading-none">{value}</p>
-      <p className="mt-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-pass-muted">
+      <p className="wordmark text-2xl leading-none text-ink">{value}</p>
+      <p className="mt-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
         {label}
       </p>
     </div>
@@ -264,13 +267,13 @@ function RecentRow({ visit }: { visit: GymVisit }) {
       : visit.country;
 
   return (
-    <li className="border-b border-pass-line last:border-b-0">
+    <li>
       <Link
         href={`/passport/gyms/${gymSlug(visit.gym_name, visit.country)}`}
-        className="flex min-h-16 items-center gap-3 px-4 py-2.5"
+        className="flex min-h-16 items-center gap-3 px-3.5 py-2.5 transition hover:bg-sky-50"
       >
-        <span className="w-9 shrink-0 text-center text-[0.65rem] font-semibold uppercase leading-tight text-pass-muted">
-          <span className="block text-[0.95rem] font-bold tracking-tight text-pass-navy">
+        <span className="flex size-10 shrink-0 flex-col items-center justify-center rounded-2xl bg-sky-100 text-[0.58rem] font-semibold uppercase leading-tight text-sky-700">
+          <span className="block text-[0.9rem] font-bold tracking-tight text-ink">
             {stamp.day}
           </span>
           {stamp.month}
@@ -279,11 +282,11 @@ function RecentRow({ visit }: { visit: GymVisit }) {
           <span className="block truncate text-sm font-semibold leading-tight">
             {visit.gym_name}
           </span>
-          <span className="block truncate text-xs text-pass-muted">
+          <span className="block truncate text-[0.75rem] text-ink-soft">
             {place} · {formatClimbingType(visit.climbing_type)}
           </span>
         </span>
-        <span className="shrink-0 rounded-full bg-pass-soft px-2.5 py-1 text-xs font-semibold text-pass-primary">
+        <span className="pill-tag shrink-0">
           <GradeLabel
             system={visit.grade_system}
             grade={visit.highest_grade}

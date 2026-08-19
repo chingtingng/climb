@@ -79,12 +79,12 @@ export function ScaleSetup({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm leading-relaxed text-pass-muted">
+      <p className="text-sm leading-relaxed text-ink-soft">
         You’re the first to add this place. Save how it grades so the next visit can reuse it.
       </p>
 
       <fieldset>
-        <legend className="mb-1.5 text-sm font-semibold">How does this place grade?</legend>
+        <legend className="field-label">How does this place grade?</legend>
         <div className="grid grid-cols-3 gap-2">
           {GRADE_SYSTEMS.map((item) => {
             const selected = item.value === scale.kind;
@@ -95,8 +95,8 @@ export function ScaleSetup({
                 onClick={() => setKind(item.value)}
                 className={`min-h-11 rounded-full border text-sm font-semibold ${
                   selected
-                    ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                    : "border-pass-line bg-white text-pass-muted"
+                    ? "border-sky-500 bg-sky-100 text-ink"
+                    : "border-line bg-white text-ink-soft"
                 }`}
               >
                 {item.label}
@@ -109,7 +109,7 @@ export function ScaleSetup({
       {scale.kind === "number" ? (
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">From</span>
+            <span className="field-label">From</span>
             <input
               type="number"
               inputMode="numeric"
@@ -121,7 +121,7 @@ export function ScaleSetup({
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">To</span>
+            <span className="field-label">To</span>
             <input
               type="number"
               inputMode="numeric"
@@ -132,7 +132,7 @@ export function ScaleSetup({
               className="passport-field"
             />
           </label>
-          <p className="col-span-2 text-xs text-pass-muted">
+          <p className="col-span-2 text-xs text-ink-soft">
             Chart bands can map to a V range below (e.g. 7 and 8 both → V3–V4).
           </p>
         </div>
@@ -140,7 +140,7 @@ export function ScaleSetup({
 
       {scale.kind === "color" ? (
         <div>
-          <p className="mb-1.5 text-sm font-semibold">Colours, easy to hard</p>
+          <p className="field-label">Colours, easy to hard</p>
           <div className="flex flex-wrap gap-2">
             {COLOR_GRADES.map((item) => {
               const selected = scale.bands.some((band) => band.label === item.label);
@@ -169,7 +169,7 @@ export function ScaleSetup({
                     });
                   }}
                   className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3 text-sm font-semibold ${
-                    selected ? "border-pass-primary bg-[#e7f4fb]" : "border-pass-line bg-white"
+                    selected ? "border-sky-500 bg-sky-100" : "border-line bg-white"
                   }`}
                 >
                   <span
@@ -187,7 +187,7 @@ export function ScaleSetup({
 
       {scale.kind === "custom" ? (
         <div>
-          <p className="mb-1.5 text-sm font-semibold">Grade labels, easy to hard</p>
+          <p className="field-label">Grade labels, easy to hard</p>
           <div className="flex gap-2">
             <input
               value={customLabel}
@@ -204,12 +204,12 @@ export function ScaleSetup({
             <button
               type="button"
               onClick={addCustom}
-              className="min-h-12 shrink-0 rounded-full bg-pass-soft px-4 text-sm font-semibold"
+              className="min-h-12 shrink-0 rounded-full bg-sky-100 px-4 text-sm font-semibold"
             >
               Add
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-pass-muted">
+          <p className="mt-1.5 text-xs text-ink-soft">
             One row per chart band — any label works (“7Q”, “Alien Tags”).
           </p>
         </div>
@@ -217,8 +217,8 @@ export function ScaleSetup({
 
       {isHouseSystem(scale.kind) && scale.bands.length > 0 ? (
         <div>
-          <p className="mb-1.5 text-sm font-semibold">Map to V-scale</p>
-          <p className="mb-2 text-xs text-pass-muted">
+          <p className="field-label">Map to V-scale</p>
+          <p className="mb-2 text-xs text-ink-soft">
             Set From and To the same for a single grade, or different for a range (V3–V4).
           </p>
           <ul className="space-y-1.5">
@@ -228,7 +228,7 @@ export function ScaleSetup({
               return (
                 <li
                   key={`${band.label}-${index}`}
-                  className="flex min-h-11 flex-wrap items-center gap-2 rounded-2xl border border-pass-line bg-white px-3 py-2"
+                  className="flex min-h-11 flex-wrap items-center gap-2 rounded-2xl border border-line bg-white px-3 py-2"
                 >
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{band.label}</span>
                   <div className="flex items-center gap-1.5">
@@ -243,7 +243,7 @@ export function ScaleSetup({
                         const nextMax = max && max !== min ? max : nextMin;
                         setBandV(index, nextMin, nextMax);
                       }}
-                      className="min-h-10 min-w-[4.5rem] rounded-full border border-pass-line bg-pass-soft px-2 text-sm font-semibold text-pass-navy"
+                      className="min-h-10 min-w-[4.5rem] rounded-full border border-line bg-sky-100 px-2 text-sm font-semibold text-ink"
                     >
                       <option value="">Skip</option>
                       {V_GRADES.map((item) => (
@@ -252,7 +252,7 @@ export function ScaleSetup({
                         </option>
                       ))}
                     </select>
-                    <span className="text-xs font-semibold text-pass-muted" aria-hidden>
+                    <span className="text-xs font-semibold text-ink-soft" aria-hidden>
                       –
                     </span>
                     <label className="sr-only" htmlFor={`v-max-${index}`}>
@@ -263,7 +263,7 @@ export function ScaleSetup({
                       value={max}
                       disabled={!min}
                       onChange={(e) => setBandV(index, min, e.target.value)}
-                      className="min-h-10 min-w-[4.5rem] rounded-full border border-pass-line bg-pass-soft px-2 text-sm font-semibold text-pass-navy disabled:opacity-40"
+                      className="min-h-10 min-w-[4.5rem] rounded-full border border-line bg-sky-100 px-2 text-sm font-semibold text-ink disabled:opacity-40"
                     >
                       <option value="">Skip</option>
                       {V_GRADES.map((item) => (
@@ -276,7 +276,7 @@ export function ScaleSetup({
                       <button
                         type="button"
                         onClick={() => removeBand(index)}
-                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-pass-muted hover:bg-pass-soft hover:text-pass-navy"
+                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-sky-100 hover:text-ink"
                         aria-label={`Remove ${band.label}`}
                       >
                         <span aria-hidden className="text-lg leading-none">
@@ -294,9 +294,9 @@ export function ScaleSetup({
 
       {isHouseSystem(scale.kind) ? (
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">
+          <span className="field-label">
             Photo of the grade chart{" "}
-            <span className="font-medium text-pass-muted">(optional)</span>
+            <span className="font-medium text-ink-soft">(optional)</span>
           </span>
           <input
             type="file"
@@ -307,9 +307,9 @@ export function ScaleSetup({
               if (preview) URL.revokeObjectURL(preview);
               setPreview(file ? URL.createObjectURL(file) : null);
             }}
-            className="block w-full text-sm text-pass-muted file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-pass-soft file:px-4 file:font-semibold file:text-pass-navy"
+            className="file-field"
           />
-          <span className="mt-1.5 block text-xs text-pass-muted">
+          <span className="mt-1.5 block text-xs text-ink-soft">
             Optional — a photo helps the next visit reuse this place’s scale.
           </span>
           {preview ? (
@@ -320,11 +320,11 @@ export function ScaleSetup({
               className="mt-3 max-h-40 w-full rounded-2xl object-cover"
             />
           ) : chartFile ? (
-            <p className="mt-2 text-sm text-pass-navy">{chartFile.name}</p>
+            <p className="mt-2 text-sm text-ink">{chartFile.name}</p>
           ) : null}
         </label>
       ) : (
-        <p className="text-sm text-pass-muted">
+        <p className="text-sm text-ink-soft">
           {STANDARD_SYSTEMS.includes(scale.kind)
             ? "Standard V-scale, Font, and French don’t need a chart photo."
             : "This grade system doesn’t need a chart photo."}
