@@ -6,12 +6,11 @@ import {
   GRADE_SYSTEMS,
   isHouseSystem,
   normalizeBandVRange,
+  STANDARD_SYSTEMS,
   V_GRADES,
 } from "@/lib/grades";
 import { defaultScaleFor } from "@/lib/gymCatalog";
 import type { GradeBand, GradeScale, GradeSystem } from "@/lib/types";
-
-const HOUSE: GradeSystem[] = ["number", "color", "custom"];
 
 export function ScaleSetup({
   scale,
@@ -87,25 +86,23 @@ export function ScaleSetup({
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold">How does this gym grade?</legend>
         <div className="grid grid-cols-3 gap-2">
-          {GRADE_SYSTEMS.filter((item) => HOUSE.includes(item.value) || item.value === "v").map(
-            (item) => {
-              const selected = item.value === scale.kind;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => setKind(item.value)}
-                  className={`min-h-11 rounded-full border text-sm font-semibold ${
-                    selected
-                      ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                      : "border-pass-line bg-white text-pass-muted"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            },
-          )}
+          {GRADE_SYSTEMS.map((item) => {
+            const selected = item.value === scale.kind;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setKind(item.value)}
+                className={`min-h-11 rounded-full border text-sm font-semibold ${
+                  selected
+                    ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
+                    : "border-pass-line bg-white text-pass-muted"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -218,7 +215,7 @@ export function ScaleSetup({
         </div>
       ) : null}
 
-      {scale.bands.length > 0 ? (
+      {isHouseSystem(scale.kind) && scale.bands.length > 0 ? (
         <div>
           <p className="mb-1.5 text-sm font-semibold">Map to V-scale</p>
           <p className="mb-2 text-xs text-pass-muted">
@@ -327,7 +324,11 @@ export function ScaleSetup({
           ) : null}
         </label>
       ) : (
-        <p className="text-sm text-pass-muted">Standard V-scale doesn’t need a chart photo.</p>
+        <p className="text-sm text-pass-muted">
+          {STANDARD_SYSTEMS.includes(scale.kind)
+            ? "Standard V-scale, Font, and French don’t need a chart photo."
+            : "This grade system doesn’t need a chart photo."}
+        </p>
       )}
     </div>
   );
