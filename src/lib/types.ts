@@ -1,6 +1,7 @@
 import type { ClimbingType } from "./climbingTypes";
+import type { PlaceKind } from "./placeKinds";
 
-export type { ClimbingType };
+export type { ClimbingType, PlaceKind };
 
 export type GradeSystem = "v" | "font" | "french" | "number" | "color" | "custom";
 
@@ -61,8 +62,10 @@ export type GymVisitInput = {
   /** When set with outlet_id, save path can skip name-based catalog resolution. */
   gym_id?: string;
   outlet_id?: string;
-  /** Types this gym offers — saved when creating / updating the catalog gym. */
+  /** Types this place offers — saved when creating / updating the catalog place. */
   climbing_types?: ClimbingType[];
+  /** Gym (artificial) or Rock (natural stone). Saved on the catalog place. */
+  place_kind?: PlaceKind;
   /** Discipline for this stamp. */
   climbing_type: ClimbingType;
   grade_system: GradeSystem;
@@ -83,6 +86,7 @@ export type GymGroup = {
   name: string;
   city: string;
   country: string;
+  place_kind: PlaceKind;
   outlets: string[];
   visits: GymVisit[];
   visitCount: number;
@@ -96,7 +100,9 @@ export type CatalogGym = {
   id?: string;
   name: string;
   country: string;
-  /** Disciplines this gym offers. Single-type gyms skip the visit type picker. */
+  /** Gym = artificial; Rock = natural stone. */
+  place_kind: PlaceKind;
+  /** Disciplines this place offers. Single-type places skip the visit type picker. */
   climbing_types: ClimbingType[];
   outlets: GymOutlet[];
   scale: GradeScale | null;

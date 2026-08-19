@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatStampDate } from "@/lib/dates";
 import { gradeSortValue } from "@/lib/grades";
 import { formatGymPlace, uniqueCountries } from "@/lib/gyms";
+import { formatPlaceKind } from "@/lib/placeKinds";
 import type { GymGroup } from "@/lib/types";
 import { CountryStamp } from "./CountryStamp";
 import { GradeLabel } from "./GradePicker";
@@ -130,7 +131,7 @@ export function GymsView() {
                     {gym.name}
                   </span>
                   <span className="block truncate text-sm text-pass-muted">
-                    {formatGymPlace(gym)}
+                    {formatPlaceKind(gym.place_kind)} · {formatGymPlace(gym)}
                   </span>
                   <span className="mt-0.5 block text-xs text-pass-muted">
                     {gym.visitCount} {gym.visitCount === 1 ? "visit" : "visits"} ·{" "}

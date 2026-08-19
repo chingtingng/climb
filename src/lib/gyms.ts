@@ -1,5 +1,6 @@
 import { displayGrade, gradeSortValue } from "./grades";
-import type { GymGroup, GymVisit, PassportStats } from "./types";
+import { normalizePlaceKind } from "./placeKinds";
+import type { CatalogGym, GymGroup, GymVisit, PassportStats } from "./types";
 
 export function gymSlug(name: string, country: string): string {
   return `${slugPart(name)}--${slugPart(country)}`;
@@ -40,9 +41,17 @@ export function formatVisitPlace(visit: GymVisit): string {
   return `${outlet} · ${visit.country}`;
 }
 
-export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
+export function groupVisitsByGym(
+  visits: GymVisit[],
+  catalogGyms: CatalogGym[] = [],
+): GymGroup[] {
   const map = new Map<string, GymVisit[]>();
   const labels = new Map<string, { gymId: string; name: string; country: string }>();
+  const kindByKey = new Map<string, ReturnType<typeof normalizePlaceKind>>();
+  for (const gym of catalogGyms) {
+    kindByKey.set(gymKey(gym.name, gym.country), normalizePlaceKind(gym.place_kind));
+    if (gym.id) kindByKey.set(gym.id, normalizePlaceKind(gym.place_kind));
+  }
 
   for (const visit of visits) {
     const key = visit.gym_id || gymKey(visit.gym_name, visit.country);
@@ -85,12 +94,18 @@ export function groupVisitsByGym(visits: GymVisit[]): GymGroup[] {
       outlets.push(outlet);
     }
 
+    const place_kind =
+      kindByKey.get(label.gymId) ??
+      kindByKey.get(gymKey(label.name, label.country)) ??
+      "gym";
+
     gyms.push({
       slug: gymSlug(label.name, label.country),
       gymId: label.gymId,
       name: label.name,
       city: sorted[0] ? visitOutlet(sorted[0]) : "",
       country: label.country,
+      place_kind,
       outlets,
       visits: sorted,
       visitCount: sorted.length,
