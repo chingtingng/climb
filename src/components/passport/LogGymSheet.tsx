@@ -347,6 +347,10 @@ function LogGymSheetInner({
                 setOutlet(item.name);
                 setCity(item.city);
               }}
+              onSelectNew={() => {
+                setOutlet("");
+                setNewOutletName("");
+              }}
               onNewName={setNewOutletName}
               onAddNew={() => {
                 const label = newOutletName.trim();
@@ -717,6 +721,7 @@ function OutletStep({
   selected,
   newName,
   onSelect,
+  onSelectNew,
   onNewName,
   onAddNew,
 }: {
@@ -724,6 +729,7 @@ function OutletStep({
   selected: string;
   newName: string;
   onSelect: (outlet: GymOutlet) => void;
+  onSelectNew: () => void;
   onNewName: (value: string) => void;
   onAddNew: () => void;
 }) {
@@ -733,6 +739,23 @@ function OutletStep({
   useEffect(() => {
     if (addingNew) newInputRef.current?.focus();
   }, [addingNew]);
+
+  const chipClass = (active: boolean) =>
+    `min-h-11 rounded-full border px-4 text-sm font-semibold ${
+      active
+        ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
+        : "border-pass-line bg-white text-pass-navy"
+    }`;
+
+  function handleSelectOutlet(item: GymOutlet) {
+    setAddingNew(false);
+    onSelect(item);
+  }
+
+  function handleSelectNew() {
+    setAddingNew(true);
+    onSelectNew();
+  }
 
   function handleAddNew() {
     const label = newName.trim();
@@ -745,31 +768,26 @@ function OutletStep({
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {outlets.map((item) => {
-          const active = item.name === selected;
+          const active = !addingNew && item.name === selected;
           return (
             <button
               key={item.name}
               type="button"
-              onClick={() => onSelect(item)}
-              className={`min-h-11 rounded-full border px-4 text-sm font-semibold ${
-                active
-                  ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                  : "border-pass-line bg-white text-pass-navy"
-              }`}
+              onClick={() => handleSelectOutlet(item)}
+              className={chipClass(active)}
             >
               {item.name}
             </button>
           );
         })}
-        {!addingNew ? (
-          <button
-            type="button"
-            onClick={() => setAddingNew(true)}
-            className="min-h-11 rounded-full border border-pass-primary bg-[#e7f4fb] px-4 text-sm font-semibold text-pass-navy"
-          >
-            + New outlet
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={handleSelectNew}
+          aria-pressed={addingNew}
+          className={chipClass(addingNew)}
+        >
+          + New outlet
+        </button>
       </div>
 
       {addingNew ? (
