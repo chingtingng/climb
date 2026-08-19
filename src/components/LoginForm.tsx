@@ -150,14 +150,8 @@ export function LoginForm({
         aria-hidden
         className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-sky-500/35 blur-3xl"
       />
-      <div aria-hidden className="pointer-events-none absolute -right-3 top-6 float-soft">
+      <div aria-hidden className="mb-3 flex justify-center gap-3">
         <Stamp variant="grade" size="sm" seed="login-v4" label="V4" />
-      </div>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-4 top-16 float-soft"
-        style={{ animationDelay: "0.8s" }}
-      >
         <Stamp variant="country" size="sm" country="Singapore" seed="SG" />
       </div>
 
