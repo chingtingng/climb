@@ -1,22 +1,10 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import { PassportShell } from "@/components/passport/PassportShell";
 import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import type { CatalogGym, GymVisit } from "@/lib/types";
 import { listCatalogGyms, listVisitsForProfile } from "@/lib/visits";
-
-const dmSerif = DM_Serif_Display({
-  variable: "--font-dm-serif",
-  subsets: ["latin"],
-  weight: "400",
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-});
 
 export const dynamic = "force-dynamic";
 
@@ -46,16 +34,14 @@ export default async function PassportLayout({
   }
 
   return (
-    <div className={`${dmSerif.variable} ${dmSans.variable}`}>
-      <PassportShell
-        username={session.username}
-        visits={visits}
-        catalogGyms={catalogGyms}
-        configured={configured}
-        loadError={loadError}
-      >
-        {children}
-      </PassportShell>
-    </div>
+    <PassportShell
+      username={session.username}
+      visits={visits}
+      catalogGyms={catalogGyms}
+      configured={configured}
+      loadError={loadError}
+    >
+      {children}
+    </PassportShell>
   );
 }

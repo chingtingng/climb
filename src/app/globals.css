@@ -29,10 +29,10 @@
   --color-pass-primary: #347ea8;
   --color-pass-line: #c3d7e5;
   --color-pass-soft: #eef6fb;
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-nunito);
-  --font-pass: var(--font-dm-sans);
-  --font-pass-display: var(--font-dm-serif);
+  --font-display: var(--font-glacial);
+  --font-sans: var(--font-poppins);
+  --font-pass: var(--font-montserrat);
+  --font-pass-display: var(--font-glacial);
 }
 
 * {
@@ -77,7 +77,7 @@ textarea {
 }
 
 .brand-mark {
-  font-family: var(--font-display), serif;
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   letter-spacing: -0.03em;
 }
 
@@ -281,7 +281,7 @@ textarea {
 }
 
 .passport-mark {
-  font-family: var(--font-pass-display), var(--font-display), serif;
+  font-family: var(--font-pass-display), var(--font-pass), system-ui, sans-serif;
   letter-spacing: -0.03em;
 }
 
