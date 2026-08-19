@@ -143,7 +143,7 @@ export function GradePicker({
                   onClick={() => onGrade(item)}
                   className={`flex min-h-11 flex-col items-center justify-center rounded-xl border px-1.5 text-sm font-semibold transition ${
                     selected
-                      ? "border-transparent bg-gradient-to-b from-sky-500 to-sky-600 text-white shadow-[0_8px_18px_-9px_rgba(42,113,163,0.7)]"
+                      ? "border-transparent bg-gradient-to-b from-sky-600 to-sky-700 text-white shadow-[0_8px_18px_-9px_rgba(42,113,163,0.7)]"
                       : "border-line bg-white text-ink hover:border-sky-300"
                   }`}
                 >

@@ -24,7 +24,7 @@ export default async function HomePage({
   return (
     <main className="app-shell flex flex-col justify-center gap-7">
       <header className="fade-up flex flex-col items-center text-center">
-        <BrandStamp className="float-soft" />
+        <BrandStamp size={118} className="float-soft" />
         <p className="eyebrow mt-5">Climbing log</p>
         <h1 className="wordmark mt-1.5 text-[2.7rem] leading-[0.95] text-ink">
           Chalk Passport

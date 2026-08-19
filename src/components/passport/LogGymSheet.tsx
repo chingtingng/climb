@@ -48,7 +48,7 @@ import type {
 } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { FlashToast } from "./FlashToast";
-import { CloseIcon, MountainIcon } from "./icons";
+import { ChevronIcon, CloseIcon, MountainIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { ScaleSetup } from "./ScaleSetup";
@@ -941,7 +941,7 @@ function PlaceKindStep({
 function optionClass(active: boolean) {
   return `w-full rounded-[1.2rem] border px-4 py-3.5 text-left transition ${
     active
-      ? "border-transparent bg-gradient-to-b from-sky-500 to-sky-600 text-white shadow-[0_10px_22px_-10px_rgba(42,113,163,0.65)]"
+      ? "border-transparent bg-gradient-to-b from-sky-600 to-sky-700 text-white shadow-[0_10px_22px_-10px_rgba(42,113,163,0.65)]"
       : "border-line-soft bg-sky-50 text-ink hover:border-sky-300 hover:bg-white"
   }`;
 }
@@ -1169,7 +1169,7 @@ function ChoiceList({
             <button
               type="button"
               onClick={item.onClick}
-              className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[1.1rem] border border-line-soft bg-sky-50 px-3.5 py-2.5 text-left transition hover:border-sky-300 hover:bg-white"
+              className="flex min-h-12 w-full items-center justify-between gap-2 rounded-[1.1rem] border border-line bg-sky-50 px-3.5 py-2.5 text-left transition hover:border-sky-400 hover:bg-white"
             >
               <span className="min-w-0">
                 <span className="block truncate font-semibold leading-tight">{item.title}</span>
@@ -1180,6 +1180,9 @@ function ChoiceList({
                 ) : null}
               </span>
               {item.meta ? <span className="pill-tag shrink-0">{item.meta}</span> : null}
+              <span className="shrink-0 text-sky-500" aria-hidden>
+                <ChevronIcon />
+              </span>
             </button>
           </li>
         ))}

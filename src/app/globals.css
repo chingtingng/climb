@@ -10,14 +10,15 @@
   --sky-200: #dcedfb;
   --sky-300: #c3e0f7;
   --sky-400: #9bcdf0;
-  --sky-500: #6bb2e2;
-  --sky-600: #3d8fc6;
-  --sky-700: #2a71a3;
-  --sky-800: #1d5478;
+  --sky-500: #62aede;
+  --sky-600: #3585bd;
+  --sky-700: #276a99;
+  --sky-800: #1c516f;
 
   --ink: #15384f;
   --ink-soft: #4d7590;
-  --ink-faint: #8aa8bd;
+  /* Kept at AA contrast on white — used for small meta text and eyebrows. */
+  --ink-faint: #57798f;
 
   --paper: #ffffff;
   --line: #d9e9f5;
@@ -164,9 +165,10 @@ textarea {
   margin: 0 auto;
   min-height: 100dvh;
   overflow-wrap: break-word;
+  /* Bottom clears the dock plus the floating log button above it. */
   padding: max(0.9rem, env(safe-area-inset-top))
     max(1.15rem, env(safe-area-inset-right))
-    calc(var(--dock-height) + 2.35rem + env(safe-area-inset-bottom))
+    calc(var(--dock-height) + 5.5rem + env(safe-area-inset-bottom))
     max(1.15rem, env(safe-area-inset-left));
 }
 
@@ -295,14 +297,14 @@ textarea {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  background: linear-gradient(180deg, var(--sky-600) 0%, var(--sky-700) 100%);
   color: #fff;
   box-shadow: var(--shadow-brand);
 }
 
 @media (hover: hover) {
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+    background: linear-gradient(180deg, var(--sky-700) 0%, var(--sky-800) 100%);
     transform: translateY(-1px);
   }
 }
@@ -312,6 +314,7 @@ textarea {
 }
 
 .btn-soft {
+  border: 1px solid var(--sky-200);
   background: var(--sky-100);
   color: var(--sky-700);
   box-shadow: none;
@@ -319,6 +322,7 @@ textarea {
 
 @media (hover: hover) {
   .btn-soft:hover:not(:disabled) {
+    border-color: var(--sky-300);
     background: var(--sky-200);
   }
 }
@@ -381,7 +385,7 @@ textarea {
 
 .icon-btn-primary {
   border-color: transparent;
-  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  background: linear-gradient(180deg, var(--sky-600) 0%, var(--sky-700) 100%);
   color: #fff;
   box-shadow: var(--shadow-brand);
 }
@@ -397,7 +401,7 @@ textarea {
   padding: 0.7rem 1.2rem;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  background: linear-gradient(180deg, var(--sky-600) 0%, var(--sky-700) 100%);
   color: #fff;
   font-size: 0.98rem;
   font-weight: 600;
@@ -408,7 +412,7 @@ textarea {
 
 @media (hover: hover) {
   .passport-btn:hover:not(:disabled) {
-    background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+    background: linear-gradient(180deg, var(--sky-700) 0%, var(--sky-800) 100%);
     transform: translateY(-1px);
   }
 }
@@ -469,7 +473,7 @@ textarea {
 
 .chip-selected {
   border-color: transparent;
-  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  background: linear-gradient(180deg, var(--sky-600) 0%, var(--sky-700) 100%);
   color: #fff;
   box-shadow: var(--shadow-brand);
 }
@@ -766,7 +770,7 @@ textarea.passport-field {
   padding: 0.7rem 1.2rem;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-600) 100%);
+  background: linear-gradient(180deg, var(--sky-600) 0%, var(--sky-700) 100%);
   color: #fff;
   font-size: 0.98rem;
   font-weight: 600;
@@ -777,7 +781,7 @@ textarea.passport-field {
 
 @media (hover: hover) {
   .auth-submit:hover:not(:disabled) {
-    background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+    background: linear-gradient(180deg, var(--sky-700) 0%, var(--sky-800) 100%);
     transform: translateY(-1px);
   }
 }
@@ -881,7 +885,7 @@ textarea.passport-field {
   padding: 0 1.25rem;
   border: 2px solid rgba(255, 255, 255, 0.95);
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--sky-500) 0%, var(--sky-700) 100%);
+  background: linear-gradient(180deg, var(--sky-600) 0%, var(--sky-800) 100%);
   color: #fff;
   box-shadow: var(--shadow-brand);
   cursor: pointer;
