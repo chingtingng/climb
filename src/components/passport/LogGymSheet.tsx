@@ -765,7 +765,7 @@ function OutletStep({
           <button
             type="button"
             onClick={() => setAddingNew(true)}
-            className="min-h-11 rounded-full border border-dashed border-pass-primary px-4 text-sm font-semibold text-pass-primary"
+            className="min-h-11 rounded-full border border-pass-primary bg-[#e7f4fb] px-4 text-sm font-semibold text-pass-navy"
           >
             + New outlet
           </button>
