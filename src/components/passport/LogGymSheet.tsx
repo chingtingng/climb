@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addVisitAction, type ActionResult } from "@/app/actions";
 import { citiesForCountry } from "@/lib/cities";
@@ -835,6 +835,154 @@ function ChoiceList({
   );
 }
 
+function SearchSelect({
+  label,
+  value,
+  options,
+  placeholder,
+  emptyMessage = "No matches",
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  placeholder?: string;
+  emptyMessage?: string;
+  onSelect: (value: string) => void;
+}) {
+  const listId = useId();
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  useEffect(() => {
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+        setQuery(value);
+      }
+    }
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [value]);
+
+  const filtered = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    const starts = options.filter((item) => item.toLowerCase().startsWith(q));
+    const contains = options.filter(
+      (item) =>
+        !item.toLowerCase().startsWith(q) && item.toLowerCase().includes(q),
+    );
+    return [...starts, ...contains];
+  })();
+
+  useEffect(() => {
+    setHighlight(0);
+  }, [query, open]);
+
+  function commit(item: string) {
+    onSelect(item);
+    setQuery(item);
+    setOpen(false);
+    inputRef.current?.blur();
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-semibold">{label}</span>
+        <input
+          ref={inputRef}
+          value={query}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            open && filtered[highlight] ? `${listId}-${highlight}` : undefined
+          }
+          autoComplete="off"
+          autoCapitalize="words"
+          placeholder={placeholder}
+          className="passport-field"
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setOpen(true);
+              setHighlight((index) =>
+                filtered.length === 0 ? 0 : Math.min(index + 1, filtered.length - 1),
+              );
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setOpen(true);
+              setHighlight((index) => Math.max(index - 1, 0));
+              return;
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const exact = options.find(
+                (item) => item.toLowerCase() === query.trim().toLowerCase(),
+              );
+              const choice = exact ?? filtered[highlight];
+              if (choice) commit(choice);
+              return;
+            }
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setOpen(false);
+              setQuery(value);
+            }
+          }}
+        />
+      </label>
+      {open ? (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-20 mt-1.5 max-h-56 w-full overflow-y-auto rounded-2xl border border-pass-line bg-white py-1.5 shadow-[0_12px_28px_rgba(27,58,82,0.12)]"
+        >
+          {filtered.length === 0 ? (
+            <li className="px-4 py-2.5 text-sm text-pass-muted">{emptyMessage}</li>
+          ) : (
+            filtered.map((item, index) => {
+              const active = index === highlight;
+              return (
+                <li key={item} role="option" aria-selected={active} id={`${listId}-${index}`}>
+                  <button
+                    type="button"
+                    className={`flex min-h-11 w-full items-center px-4 text-left text-sm font-semibold ${
+                      active ? "bg-[#e7f4fb] text-pass-navy" : "text-pass-navy"
+                    }`}
+                    onMouseEnter={() => setHighlight(index)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => commit(item)}
+                  >
+                    {item}
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function CountryStep({
   country,
   catalogGyms,
@@ -856,24 +1004,14 @@ function CountryStep({
 
   return (
     <div className="space-y-3">
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">Country</span>
-        <select
-          value={country}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete="country-name"
-          className="passport-field"
-        >
-          <option value="" disabled>
-            Select a country
-          </option>
-          {options.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SearchSelect
+        label="Country"
+        value={country}
+        options={options}
+        placeholder="Search countries"
+        emptyMessage="No countries match that search"
+        onSelect={onChange}
+      />
       {featured.length > 0 ? (
         <ChoiceList
           label="With known gyms"
