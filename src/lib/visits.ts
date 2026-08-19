@@ -279,7 +279,7 @@ async function ensureGymCatalog(
         city,
         created_by: profileId,
       })
-      .select("id")
+      .select("id, name")
       .single();
 
     if (createdOutlet.error) {
