@@ -86,7 +86,7 @@ Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 w
 - **Create account** requires username, email, and password. After signup, confirm the email before signing in.
 - **Sign in** accepts username **or** email plus password.
 - Legacy accounts created as `username@chalk.local` can still sign in with username until they migrate to a real email.
-- After login: **Home**, **Gyms**, and **Profile**, with a stepped **+ Log a gym** flow
+- After login: **Home**, **Gyms**, and **Profile**, with a stepped **+ Log a visit** flow
 - Repeat visits to the same gym add another stamp, not a duplicate gym. Multi-location gyms (e.g. Boulder Planet Sembawang / Tai Seng) use an **outlet** selector.
 - Grade systems: V-scale, Font, French, **Numbers**, **Colours**, and custom house scales
 - The first person to add a gym with a house scale uploads a photo of the grade chart plus a V-scale mapping

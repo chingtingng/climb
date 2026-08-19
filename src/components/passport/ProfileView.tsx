@@ -35,7 +35,7 @@ export function ProfileView() {
         </h1>
         <p className="mt-2 text-sm text-pass-muted">
           {empty
-            ? "Log your first gym to start filling this in."
+            ? "Log your first visit to start filling this in."
             : "Here’s where you’ve been climbing."}
         </p>
 
@@ -64,7 +64,7 @@ export function ProfileView() {
               : "mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-pass-soft text-[0.95rem] font-semibold text-pass-primary disabled:cursor-not-allowed disabled:opacity-55"
           }
         >
-          {empty ? "+ Log your first gym" : "+ Log a gym"}
+          {empty ? "+ Log your first visit" : "+ Log a visit"}
         </button>
       </section>
 
@@ -80,7 +80,7 @@ export function ProfileView() {
               disabled={!configured}
               className="font-semibold text-pass-primary"
             >
-              Log a gym
+              Log a visit
             </button>{" "}
             to fill this in.
           </>

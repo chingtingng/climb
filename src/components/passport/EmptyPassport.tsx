@@ -20,7 +20,7 @@ export function EmptyPassport({
         disabled={disabled}
         className="passport-btn mt-6 max-w-[17rem]"
       >
-        + Log your first gym
+        + Log your first visit
       </button>
     </div>
   );

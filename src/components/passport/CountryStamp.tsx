@@ -58,7 +58,7 @@ export function AddStampButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label="Log a gym"
+      aria-label="Log a visit"
       className="relative size-[4.35rem] shrink-0 snap-start"
     >
       <span className="absolute inset-0 rounded-full border border-dashed border-pass-primary/50" />
