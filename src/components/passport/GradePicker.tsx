@@ -1,14 +1,16 @@
 "use client";
 
 import {
-  COLOR_GRADES,
   colorHex,
-  displayGrade,
   formatBandV,
   GRADE_SYSTEMS,
   gradesForSystem,
 } from "@/lib/grades";
 import type { GradeScale, GradeSystem } from "@/lib/types";
+import { Chip } from "@/components/ui/Chip";
+import { ChoiceTile } from "@/components/ui/ChoiceTile";
+import { GradeBadge } from "@/components/ui/GradeBadge";
+import { cx } from "@/components/ui/cx";
 
 export function GradeLabel({
   system,
@@ -21,20 +23,9 @@ export function GradeLabel({
   vEquiv?: string | null;
   color?: string;
 }) {
-  const shown = displayGrade(system, grade, vEquiv);
-  if (shown.system === "color" || (system === "color" && !vEquiv)) {
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        <span
-          className="size-2.5 rounded-full border border-black/10"
-          style={{ background: colorHex(grade, color) }}
-          aria-hidden
-        />
-        {shown.grade}
-      </span>
-    );
-  }
-  return <>{shown.grade}</>;
+  return (
+    <GradeBadge system={system} grade={grade} vEquiv={vEquiv} color={color} className="bg-transparent px-0 py-0 text-ink" />
+  );
 }
 
 export function GradePicker({
@@ -62,27 +53,20 @@ export function GradePicker({
         <fieldset>
           <legend className="mb-1.5 text-sm font-semibold">Grade system</legend>
           <div className="grid grid-cols-3 gap-2">
-            {GRADE_SYSTEMS.filter((item) => item.value !== "custom").map((item) => {
-              const selected = item.value === system;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => onSystem(item.value)}
-                  className={`min-h-11 rounded-full border text-sm font-semibold ${
-                    selected
-                      ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                      : "border-pass-line bg-white text-pass-muted"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+            {GRADE_SYSTEMS.filter((item) => item.value !== "custom").map((item) => (
+              <Chip
+                key={item.value}
+                selected={item.value === system}
+                onClick={() => onSystem(item.value)}
+                className="w-full justify-center"
+              >
+                {item.label}
+              </Chip>
+            ))}
           </div>
         </fieldset>
       ) : (
-        <p className="text-sm text-pass-muted">
+        <p className="text-sm text-ink-soft">
           {locked
             ? `This place uses ${labelFor(scale?.kind ?? system)}.`
             : `Using ${labelFor(system)}.`}
@@ -90,7 +74,7 @@ export function GradePicker({
       )}
 
       {scale?.chartPath ? (
-        <p className="text-xs text-pass-muted">
+        <p className="text-xs text-ink-soft">
           Grades come from this place’s chart. Pick the highest you sent.
         </p>
       ) : null}
@@ -98,16 +82,17 @@ export function GradePicker({
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold">Highest grade</legend>
         {grades.length === 0 ? (
-          <p className="text-sm text-pass-muted">Add this place’s grades first.</p>
+          <p className="text-sm text-ink-soft">Add this place’s grades first.</p>
         ) : (
           <div
-            className={`grid gap-2 ${
+            className={cx(
+              "grid gap-2",
               isColor
                 ? "grid-cols-2 min-[380px]:grid-cols-3"
                 : locked && grades.some((g) => g.length > 4)
                   ? "grid-cols-2 min-[380px]:grid-cols-3"
-                  : "grid-cols-4 min-[380px]:grid-cols-5"
-            }`}
+                  : "grid-cols-4 min-[380px]:grid-cols-5",
+            )}
           >
             {grades.map((item) => {
               const selected = item === grade;
@@ -116,46 +101,38 @@ export function GradePicker({
               if (isColor) {
                 const hex = colorHex(item, band?.color);
                 return (
-                  <button
+                  <ChoiceTile
                     key={item}
-                    type="button"
+                    selected={selected}
                     onClick={() => onGrade(item)}
-                    className={`flex min-h-12 items-center gap-2 rounded-2xl border px-3 text-left text-sm font-semibold ${
-                      selected
-                        ? "border-pass-primary ring-2 ring-pass-primary/25"
-                        : "border-pass-line"
-                    }`}
+                    className="flex min-h-12 items-center gap-2 px-3 text-sm font-semibold"
                   >
                     <span
-                      className="size-6 shrink-0 rounded-full border border-black/10"
+                      className="size-6 shrink-0 rounded-full border border-ink/15"
                       style={{ background: hex }}
                       aria-hidden
                     />
                     <span className="min-w-0">
-                      <span className="block truncate">{item}</span>
+                      <span className="grade-text block truncate">{item}</span>
                       {vHint ? (
-                        <span className="block text-[11px] font-medium text-pass-muted">{vHint}</span>
+                        <span className="block text-micro font-medium text-ink-soft">{vHint}</span>
                       ) : null}
                     </span>
-                  </button>
+                  </ChoiceTile>
                 );
               }
               return (
-                <button
+                <ChoiceTile
                   key={item}
-                  type="button"
+                  selected={selected}
                   onClick={() => onGrade(item)}
-                  className={`flex min-h-11 flex-col items-center justify-center rounded-xl border px-1.5 text-sm font-semibold ${
-                    selected
-                      ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-                      : "border-pass-line bg-white text-pass-navy"
-                  }`}
+                  className="flex min-h-11 flex-col items-center justify-center px-1.5 text-sm font-semibold"
                 >
-                  <span className="max-w-full truncate">{item}</span>
+                  <span className="grade-text max-w-full truncate">{item}</span>
                   {vHint ? (
-                    <span className="text-[10px] font-medium text-pass-muted">{vHint}</span>
+                    <span className="text-micro font-medium text-ink-soft">{vHint}</span>
                   ) : null}
-                </button>
+                </ChoiceTile>
               );
             })}
           </div>
@@ -169,4 +146,4 @@ function labelFor(system: GradeSystem): string {
   return GRADE_SYSTEMS.find((item) => item.value === system)?.label ?? system;
 }
 
-export { COLOR_GRADES };
+export { COLOR_GRADES } from "@/lib/grades";

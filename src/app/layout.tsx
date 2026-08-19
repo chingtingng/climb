@@ -1,41 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Montserrat, Poppins } from "next/font/google";
-import localFont from "next/font/local";
+import { Plus_Jakarta_Sans, Poppins } from "next/font/google";
 import "./globals.css";
-
-const glacialIndifference = localFont({
-  src: [
-    {
-      path: "./fonts/GlacialIndifference-Regular.otf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "./fonts/GlacialIndifference-Italic.otf",
-      weight: "400",
-      style: "italic",
-    },
-    {
-      path: "./fonts/GlacialIndifference-Bold.otf",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-glacial",
-  display: "swap",
-});
 
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["600", "700"],
 });
 
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -49,8 +25,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  themeColor: "#cfe8f6",
+  // Matches --paper in globals.css, the colour painted at the top of the viewport.
+  themeColor: "#f7fbfe",
   viewportFit: "cover",
 };
 
@@ -58,9 +34,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${glacialIndifference.variable} ${poppins.variable} ${montserrat.variable} h-full`}
+      className={`${poppins.variable} ${jakarta.variable} h-full`}
     >
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full font-sans antialiased">{children}</body>
     </html>
   );
 }

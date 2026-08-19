@@ -6,7 +6,6 @@ import { addVisitAction, type ActionResult } from "@/app/actions";
 import { citiesForCountry } from "@/lib/cities";
 import {
   CLIMBING_TYPES,
-  CLIMBING_TYPE_LABELS,
   DEFAULT_CLIMBING_TYPES,
   formatClimbingType,
   normalizeClimbingTypes,
@@ -34,7 +33,6 @@ import { gymSlug } from "@/lib/gyms";
 import {
   PLACE_KINDS,
   PLACE_KIND_HELP,
-  PLACE_KIND_LABELS,
   defaultGradeSystemForPlaceKind,
   normalizePlaceKind,
   type PlaceKind,
@@ -48,11 +46,19 @@ import type {
 } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { FlashToast } from "./FlashToast";
-import { CloseIcon, MountainIcon } from "./icons";
+import { CloseIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { ScaleSetup } from "./ScaleSetup";
 import { uploadVisitMediaFile, VisitMediaFields } from "./VisitMediaFields";
+import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
+import { ChoiceTile } from "@/components/ui/ChoiceTile";
+import { Field, TextArea } from "@/components/ui/Field";
+import { DisciplineMark, PlaceKindMark } from "@/components/ui/Marks";
+import { Stamp, placeInk } from "@/components/ui/Stamp";
+import { Stepper } from "@/components/ui/Stepper";
+import { cx } from "@/components/ui/cx";
 
 const initial: ActionResult | null = null;
 const NOTES_MAX = 400;
@@ -446,10 +452,12 @@ function LogGymSheetInner({
           name={name}
           place={[outlet || city, country].filter(Boolean).join(" · ")}
           climbLabel={formatClimbingType(climbType)}
+          climbType={climbType}
           gradeLabel={
             displayGrade(pickerSystem, grade, vEquivFor(pickerSystem, grade, activeScale)).grade
           }
           date={visitedOn}
+          placeKind={resolvedPlaceKind}
           onViewGym={() => onViewGym(slug)}
           onHome={onHome}
         />
@@ -464,19 +472,19 @@ function LogGymSheetInner({
         role="dialog"
         aria-modal="true"
         aria-labelledby="log-title"
-        className="passport-sheet-in flex max-h-[min(92dvh,760px)] w-full max-w-[480px] flex-col rounded-t-[1.6rem] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_18px_50px_rgba(27,58,82,0.18)] sm:rounded-[1.6rem]"
+        className="passport-sheet-in sheet flex max-h-[min(92dvh,760px)] w-full max-w-[480px] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-pass-line" />
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-pass-muted">
+            <p className="label-micro">
               Step {stepIndex + 1} of {steps.length}
             </p>
-            <h2 id="log-title" className="passport-mark text-2xl text-pass-navy">
+            <h2 id="log-title" className="mark text-2xl text-ink">
               {titleFor(step)}
             </h2>
             {step !== "country" && (name || country) ? (
-              <p className="mt-1 text-sm text-pass-muted">
+              <p className="mt-1 text-sm text-ink-soft">
                 {[name, outlet || (!skipCity ? city : ""), country]
                   .filter(Boolean)
                   .join(" · ")}
@@ -487,25 +495,17 @@ function LogGymSheetInner({
             ref={closeRef}
             type="button"
             onClick={onClose}
-            className="inline-flex size-11 items-center justify-center rounded-full bg-pass-soft text-pass-muted"
+            className="inline-flex size-11 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
             aria-label="Close"
           >
             <CloseIcon />
           </button>
         </div>
 
-        <ol className="mb-4 flex gap-1.5" aria-hidden>
-          {steps.map((item, index) => (
-            <li
-              key={item}
-              className={`h-1 flex-1 rounded-full ${
-                index <= stepIndex ? "bg-pass-primary" : "bg-pass-line"
-              }`}
-            />
-          ))}
-        </ol>
+        <Stepper step={step} steps={steps} />
 
         <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+          <div key={step} className="sheet-step">
           {step === "country" && (
             <CountryStep
               country={country}
@@ -698,11 +698,10 @@ function LogGymSheetInner({
           {step === "date" && (
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Visited on</span>
-              <input
+              <Field
                 type="date"
                 value={visitedOn}
                 onChange={(e) => setVisitedOn(e.target.value)}
-                className="passport-field"
                 required
               />
             </label>
@@ -712,16 +711,15 @@ function LogGymSheetInner({
             <div className="space-y-4">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold">
-                  Notes <span className="font-medium text-pass-muted">(optional)</span>
+                  Notes <span className="font-medium text-ink-soft">(optional)</span>
                 </span>
-                <textarea
+                <TextArea
                   value={notes}
                   maxLength={NOTES_MAX}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="That blue slab was harder than it looked..."
-                  className="passport-field"
                 />
-                <p className="mt-1.5 text-right text-xs text-pass-muted">
+                <p className="mt-1.5 text-right text-xs text-ink-soft">
                   {notes.length}/{NOTES_MAX}
                 </p>
               </label>
@@ -734,6 +732,7 @@ function LogGymSheetInner({
               />
             </div>
           )}
+          </div>
         </div>
 
         {/* Keep errors outside the scroll region so they stay visible above the CTA. */}
@@ -741,23 +740,24 @@ function LogGymSheetInner({
           <p
             ref={errorBannerRef}
             role="alert"
-            className="mt-1 shrink-0 rounded-xl bg-[#ffe8e8] px-3 py-2 text-sm text-[#8a2f2f]"
+            className="mt-1 shrink-0 rounded-md bg-danger-fill px-3 py-2 text-sm text-danger-ink"
           >
             {sheetError}
           </p>
         ) : null}
 
         <div className="flex gap-2 pt-2">
-          <button
+          <Button
             type="button"
+            variant="tertiary"
             onClick={goBack}
             disabled={pending}
-            className="passport-btn-ghost min-w-[5.5rem]"
+            className="min-w-22"
           >
             {step === steps[0] ? "Cancel" : "Back"}
-          </button>
+          </Button>
           {step === "notes" ? (
-            <button
+            <Button
               type="button"
               disabled={
                 pending ||
@@ -817,19 +817,19 @@ function LogGymSheetInner({
                   }
                 })();
               }}
-              className="passport-btn flex-1"
+              className="flex-1"
             >
               <ActionButtonLabel pending={pending} idle="Add stamp" busy="Saving…" />
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={goNext}
               disabled={!canNext}
-              className="passport-btn flex-1"
+              className="flex-1"
             >
               Next
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -849,7 +849,7 @@ function Overlay({
       <button
         type="button"
         aria-label="Close dialog"
-        className="absolute inset-0 bg-[#1b3a52]/35"
+        className="absolute inset-0 bg-ink/35"
         onClick={onClose}
       />
       <div className="relative w-full sm:px-3">{children}</div>
@@ -907,33 +907,30 @@ function PlaceKindStep({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-pass-muted">
+      <p className="text-sm text-ink-soft">
         Pick what you’re climbing on. Outdoor plastic walls still count as Gym.
       </p>
       <div className="grid gap-2">
         {PLACE_KINDS.map((kind) => {
           const active = selected === kind;
           return (
-            <button
+            <ChoiceTile
               key={kind}
-              type="button"
+              selected={active}
               onClick={() => onSelect(kind)}
-              aria-pressed={active}
-              className={`rounded-[1.15rem] px-4 py-3.5 text-left transition ${
-                active
-                  ? "bg-pass-primary text-white"
-                  : "bg-pass-soft text-pass-navy"
-              }`}
             >
-              <span className="block text-base font-semibold">{PLACE_KIND_LABELS[kind]}</span>
+              <span className="flex items-center gap-2">
+                <PlaceKindMark kind={kind} />
+              </span>
               <span
-                className={`mt-1 block text-sm leading-snug ${
-                  active ? "text-white/85" : "text-pass-muted"
-                }`}
+                className={cx(
+                  "mt-1 block text-sm leading-snug",
+                  active ? "text-ink-soft" : "text-ink-soft",
+                )}
               >
                 {PLACE_KIND_HELP[kind]}
               </span>
-            </button>
+            </ChoiceTile>
           );
         })}
       </div>
@@ -950,7 +947,7 @@ function ClimbOfferStep({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-pass-muted">
+      <p className="text-sm text-ink-soft">
         Pick every discipline this place has. If there’s only one, you won’t be asked again when
         logging.
       </p>
@@ -958,19 +955,14 @@ function ClimbOfferStep({
         {CLIMBING_TYPES.map((type) => {
           const active = selected.includes(type);
           return (
-            <button
+            <ChoiceTile
               key={type}
-              type="button"
+              selected={active}
               onClick={() => onToggle(type)}
-              aria-pressed={active}
-              className={`rounded-[1.15rem] px-4 py-3.5 text-left text-base font-semibold transition ${
-                active
-                  ? "bg-pass-primary text-white"
-                  : "bg-pass-soft text-pass-navy"
-              }`}
+              className="text-base font-semibold"
             >
-              {CLIMBING_TYPE_LABELS[type]}
-            </button>
+              <DisciplineMark type={type} />
+            </ChoiceTile>
           );
         })}
       </div>
@@ -989,24 +981,19 @@ function ClimbTypeStep({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-pass-muted">This place offers more than one style — which was today?</p>
+      <p className="text-sm text-ink-soft">This place offers more than one style — which was today?</p>
       <div className="grid gap-2">
         {options.map((type) => {
           const active = selected === type;
           return (
-            <button
+            <ChoiceTile
               key={type}
-              type="button"
+              selected={active}
               onClick={() => onSelect(type)}
-              aria-pressed={active}
-              className={`rounded-[1.15rem] px-4 py-3.5 text-left text-base font-semibold transition ${
-                active
-                  ? "bg-pass-primary text-white"
-                  : "bg-pass-soft text-pass-navy"
-              }`}
+              className="text-base font-semibold"
             >
-              {CLIMBING_TYPE_LABELS[type]}
-            </button>
+              <DisciplineMark type={type} />
+            </ChoiceTile>
           );
         })}
       </div>
@@ -1065,7 +1052,7 @@ function GymStep({
     <div className="space-y-3">
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">Place name</span>
-        <input
+        <Field
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -1078,14 +1065,13 @@ function GymStep({
           autoComplete="off"
           autoCapitalize="words"
           enterKeyHint="next"
-          className="passport-field"
         />
       </label>
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">
-          Outlet <span className="font-medium text-pass-muted">(optional)</span>
+          Outlet <span className="font-medium text-ink-soft">(optional)</span>
         </span>
-        <input
+        <Field
           value={outlet}
           onChange={(e) => onOutlet(e.target.value)}
           onKeyDown={(e) => {
@@ -1098,7 +1084,6 @@ function GymStep({
           autoComplete="off"
           autoCapitalize="words"
           enterKeyHint="next"
-          className="passport-field"
         />
       </label>
       {recent.length > 0 && (
@@ -1142,9 +1127,9 @@ function GymStep({
         />
       )}
       {query.trim() && (
-        <p className="text-sm text-pass-muted">
+        <p className="text-sm text-ink-soft">
           New place? Continue to add{" "}
-          <span className="font-semibold text-pass-navy">
+          <span className="font-semibold text-ink">
             {[query.trim(), outlet.trim()].filter(Boolean).join(" · ")}
           </span>
           .
@@ -1163,25 +1148,23 @@ function ChoiceList({
 }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-pass-muted">
-        {label}
-      </p>
+      <p className="label-micro mb-2">{label}</p>
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.key}>
             <button
               type="button"
               onClick={item.onClick}
-              className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-pass-line bg-pass-soft px-3 py-2 text-left"
+              className="flex min-h-12 w-full items-center justify-between rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left"
             >
               <span>
                 <span className="block font-semibold leading-tight">{item.title}</span>
                 {item.subtitle ? (
-                  <span className="text-sm text-pass-muted">{item.subtitle}</span>
+                  <span className="text-sm text-ink-soft">{item.subtitle}</span>
                 ) : null}
               </span>
               {item.meta ? (
-                <span className="text-xs font-semibold text-pass-primary">{item.meta}</span>
+                <span className="text-xs font-semibold text-sky-600">{item.meta}</span>
               ) : null}
             </button>
           </li>
@@ -1277,7 +1260,7 @@ function SearchSelect({
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">{label}</span>
         <span className="relative block">
-          <input
+          <Field
             ref={inputRef}
             value={query}
             role="combobox"
@@ -1290,7 +1273,7 @@ function SearchSelect({
             autoComplete="off"
             autoCapitalize="words"
             placeholder={placeholder}
-            className={`passport-field${showClear ? " passport-field-clearable" : ""}`}
+            className={showClear ? "field-clearable" : undefined}
             onFocus={() => setOpenState(true)}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -1331,7 +1314,7 @@ function SearchSelect({
             <button
               type="button"
               aria-label={`Clear ${label.toLowerCase()}`}
-              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-pass-muted"
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-soft"
               onMouseDown={(e) => e.preventDefault()}
               onClick={clear}
             >
@@ -1345,10 +1328,10 @@ function SearchSelect({
           ref={listRef}
           id={listId}
           role="listbox"
-          className="mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-2xl border border-pass-line bg-white py-1.5 shadow-[0_12px_28px_rgba(27,58,82,0.12)]"
+          className="mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
         >
           {filtered.length === 0 ? (
-            <li className="px-4 py-2.5 text-sm text-pass-muted">{emptyMessage}</li>
+            <li className="px-4 py-2.5 text-sm text-ink-soft">{emptyMessage}</li>
           ) : (
             filtered.map((item, index) => {
               const active = index === highlight;
@@ -1356,9 +1339,10 @@ function SearchSelect({
                 <li key={item} role="option" aria-selected={active} id={`${listId}-${index}`}>
                   <button
                     type="button"
-                    className={`flex min-h-11 w-full items-center px-4 text-left text-sm font-semibold ${
-                      active ? "bg-[#e7f4fb] text-pass-navy" : "text-pass-navy"
-                    }`}
+                    className={cx(
+                      "flex min-h-11 w-full items-center px-4 text-left text-sm font-semibold",
+                      active ? "bg-sky-100 text-ink" : "text-ink",
+                    )}
                     onMouseEnter={() => setHighlight(index)}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => commit(item)}
@@ -1470,7 +1454,7 @@ function CityStep({
           }))}
         />
       ) : (
-        <p className="text-sm text-pass-muted">
+        <p className="text-sm text-ink-soft">
           Search for a city, then continue to choose or add the place.
         </p>
       )}
@@ -1502,13 +1486,6 @@ function OutletStep({
     if (addingNew) newInputRef.current?.focus();
   }, [addingNew]);
 
-  const chipClass = (active: boolean) =>
-    `min-h-11 rounded-full border px-4 text-sm font-semibold ${
-      active
-        ? "border-pass-primary bg-[#e7f4fb] text-pass-navy"
-        : "border-pass-line bg-white text-pass-navy"
-    }`;
-
   function handleSelectOutlet(item: GymOutlet) {
     setAddingNew(false);
     onSelect(item);
@@ -1532,31 +1509,29 @@ function OutletStep({
         {outlets.map((item) => {
           const active = !addingNew && item.name === selected;
           return (
-            <button
+            <Chip
               key={item.name}
-              type="button"
+              selected={active}
               onClick={() => handleSelectOutlet(item)}
-              className={chipClass(active)}
             >
               {item.name}
-            </button>
+            </Chip>
           );
         })}
-        <button
-          type="button"
+        <Chip
+          selected={addingNew}
           onClick={handleSelectNew}
           aria-pressed={addingNew}
-          className={chipClass(addingNew)}
         >
           + New outlet
-        </button>
+        </Chip>
       </div>
 
       {addingNew ? (
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">New outlet</span>
           <div className="flex gap-2">
-            <input
+            <Field
               ref={newInputRef}
               value={newName}
               onChange={(e) => onNewName(e.target.value)}
@@ -1567,15 +1542,15 @@ function OutletStep({
                 }
               }}
               placeholder="Outlet name"
-              className="passport-field"
             />
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleAddNew}
-              className="min-h-12 shrink-0 rounded-full bg-pass-soft px-4 text-sm font-semibold"
+              className="w-auto shrink-0 px-4"
             >
               Add
-            </button>
+            </Button>
           </div>
         </label>
       ) : null}
@@ -1587,16 +1562,20 @@ function SuccessState({
   name,
   place,
   climbLabel,
+  climbType,
   gradeLabel,
   date,
+  placeKind,
   onViewGym,
   onHome,
 }: {
   name: string;
   place: string;
   climbLabel: string;
+  climbType: ClimbingType;
   gradeLabel: string;
   date: string;
+  placeKind: PlaceKind;
   onViewGym: () => void;
   onHome: () => void;
 }) {
@@ -1611,31 +1590,35 @@ function SuccessState({
       role="dialog"
       aria-modal="true"
       aria-labelledby="success-title"
-      className="passport-sheet-in mx-auto flex w-full max-w-[480px] flex-col items-center rounded-t-[1.6rem] bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-8 text-center shadow-[0_18px_50px_rgba(27,58,82,0.18)] sm:rounded-[1.6rem]"
+      className="passport-sheet-in sheet mx-auto flex w-full max-w-[480px] flex-col items-center px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-8 text-center"
     >
-      <div className="stamp-press text-pass-primary">
-        <div className="relative flex size-36 items-center justify-center rounded-full border-[3px] border-dashed border-current">
-          <div className="flex size-[7.4rem] flex-col items-center justify-center rounded-full border-2 border-current">
-            <MountainIcon className="h-8 w-12" />
-            <p className="mt-1 text-[0.62rem] font-bold tracking-[0.18em]">STAMP ADDED</p>
-            <p className="text-[0.65rem] font-semibold tracking-wide">{prettyDate}</p>
-          </div>
-        </div>
+      <div className="stamp-press">
+        <Stamp
+          variant="hero"
+          size="hero"
+          ink={placeInk(placeKind)}
+          seed={`${name}-${date}`}
+          label={gradeLabel}
+          sublabel={climbLabel}
+          caption={prettyDate}
+        />
       </div>
-      <h2 id="success-title" className="passport-mark mt-5 text-3xl text-pass-navy">
+      <h2 id="success-title" className="mark mt-5 text-3xl text-ink">
         Stamp added ✦
       </h2>
       <p className="mt-3 text-lg font-semibold leading-tight">{name}</p>
-      <p className="text-sm text-pass-muted">{place}</p>
-      <p className="mt-2 text-sm font-semibold text-pass-primary">{climbLabel}</p>
-      <p className="mt-1 text-xl font-semibold text-pass-navy">{gradeLabel}</p>
-      <p className="mt-1 text-sm text-pass-muted">Added to your passport</p>
-      <button type="button" onClick={onViewGym} className="passport-btn mt-6">
+      <p className="text-sm text-ink-soft">{place}</p>
+      <p className="mt-2 text-sm font-semibold">
+        <DisciplineMark type={climbType} />
+      </p>
+      <p className="grade-text mt-1 text-xl text-ink">{gradeLabel}</p>
+      <p className="mt-1 text-sm text-ink-soft">Added to your passport</p>
+      <Button type="button" onClick={onViewGym} className="mt-6">
         View place
-      </button>
-      <button type="button" onClick={onHome} className="passport-btn-ghost mt-1">
+      </Button>
+      <Button type="button" variant="tertiary" onClick={onHome} className="mt-1 w-full">
         Back to home
-      </button>
+      </Button>
     </div>
   );
 }

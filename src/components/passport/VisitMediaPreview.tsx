@@ -55,14 +55,14 @@ export function VisitMediaPreview({
         <img
           src={photoUrl}
           alt="Visit photo"
-          className="max-h-48 w-full rounded-xl object-cover"
+          className="max-h-48 w-full rounded-md object-cover"
         />
       ) : null}
       {videoUrl ? (
         <video
           src={videoUrl}
           controls
-          className="max-h-56 w-full rounded-xl bg-black object-contain"
+          className="max-h-56 w-full rounded-md bg-ink object-contain"
         />
       ) : null}
     </div>

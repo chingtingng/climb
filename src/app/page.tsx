@@ -25,7 +25,7 @@ export default async function HomePage({
           href="https://www.instagram.com/chalkchingup"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline decoration-[#9fd0ea] underline-offset-4 transition hover:text-ink"
+          className="underline decoration-sky-300 underline-offset-4 transition hover:text-ink"
         >
           @chalkchingup
         </a>

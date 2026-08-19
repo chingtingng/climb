@@ -1,38 +1,122 @@
 @import "tailwindcss";
 
 :root {
-  --sky-soft: #eaf5fc;
-  --sky: #cfe8f6;
-  --baby: #9fd0ea;
-  --baby-deep: #6bb3d9;
-  --ink: #1f3a4d;
-  --ink-soft: #4a6a7d;
-  --white: #ffffff;
-  --mist: #f7fbfe;
-  --blush: #d9eef8;
-  --shadow: 0 18px 50px rgba(107, 179, 217, 0.18);
-  --radius: 1.25rem;
+  color-scheme: light; /* native date input chrome stays light inside the sheet */
+
+  /* Paper & surface */
+  --paper: #f7fbfe; /* app background, cool white — also theme-color in layout.tsx */
+  --surface: #ffffff; /* cards, sheets */
+
+  /* Ink */
+  --ink: #163043; /* headings, primary text — 13.7:1 */
+  --ink-soft: #55707f; /* secondary text, placeholders — 5.3:1 */
+  --ink-faint: #8ca3b0; /* 2.6:1 — dividers, decorative icons, DISABLED ONLY */
+
+  /* Baby blue — primary family */
+  --sky-50: #f2f9fd; /* tinted section backgrounds */
+  --sky-100: #e3f1fa; /* chips, soft fills, pressed tint */
+  --sky-200: #cfe8f6; /* brand hue */
+  --sky-300: #a9d4ea; /* borders, dividers, secondary icons */
+  --sky-500: #5fa8d3; /* 2.6:1 — ILLUSTRATION AND FILLS ONLY */
+  --sky-600: #2c7099; /* primary actions, links — 5.4:1 with white text */
+  --sky-700: #1f5476; /* pressed state, stamp ink, headings on sky tints */
+
+  /* Clay — warm accent. Means natural rock (place_kind = rock). */
+  --clay-50: #fef7f1;
+  --clay-100: #fbebdf;
+  --clay-300: #f3c7a3; /* fills only */
+  --clay-600: #a95a2a; /* clay ink — 5.0:1 */
+
+  /* Feedback — already used in the codebase and already pass contrast */
+  --success-fill: #e8f6ee;
+  --success-ink: #1f5c3a;
+  --danger-fill: #fdecec;
+  --danger-ink: #8a2f2f;
+  --danger-solid: #b42318; /* destructive buttons, white text */
+
+  /* Radii */
+  --r-xs: 10px;
+  --r-sm: 14px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --r-xl: 28px;
+  --r-full: 999px;
+
+  /* Shadows — tinted blue, never neutral black */
+  --elev-soft: 0 4px 16px rgba(44, 112, 153, 0.1);
+  --elev-lifted: 0 10px 28px rgba(44, 112, 153, 0.16);
+  --elev-sheet: 0 18px 50px rgba(22, 48, 67, 0.18);
+
+  /* Type scale */
+  --fs-micro: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 26px;
+  --fs-3xl: 32px;
+  --fs-mark: 38px;
 }
 
 @theme inline {
-  --color-sky-soft: var(--sky-soft);
-  --color-sky: var(--sky);
-  --color-baby: var(--baby);
-  --color-baby-deep: var(--baby-deep);
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-poppins);
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-mist: var(--mist);
-  --color-blush: var(--blush);
-  --color-pass-bg: #dceef8;
-  --color-pass-navy: #1b3a52;
-  --color-pass-muted: #5a7588;
-  --color-pass-primary: #347ea8;
-  --color-pass-line: #c3d7e5;
-  --color-pass-soft: #eef6fb;
-  --font-display: var(--font-glacial);
-  --font-sans: var(--font-poppins);
-  --font-pass: var(--font-montserrat);
-  --font-pass-display: var(--font-glacial);
+  --color-ink-faint: var(--ink-faint);
+  --color-sky-50: var(--sky-50);
+  --color-sky-100: var(--sky-100);
+  --color-sky-200: var(--sky-200);
+  --color-sky-300: var(--sky-300);
+  --color-sky-500: var(--sky-500);
+  --color-sky-600: var(--sky-600);
+  --color-sky-700: var(--sky-700);
+  --color-clay-50: var(--clay-50);
+  --color-clay-100: var(--clay-100);
+  --color-clay-300: var(--clay-300);
+  --color-clay-600: var(--clay-600);
+  --color-success-fill: var(--success-fill);
+  --color-success-ink: var(--success-ink);
+  --color-danger-fill: var(--danger-fill);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-solid: var(--danger-solid);
+
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-full: var(--r-full);
+
+  --shadow-soft: var(--elev-soft);
+  --shadow-lifted: var(--elev-lifted);
+  --shadow-sheet: var(--elev-sheet);
+
+  --text-micro: var(--fs-micro);
+  --text-micro--line-height: 1.3;
+  --text-xs: var(--fs-xs);
+  --text-xs--line-height: 1.35;
+  --text-sm: var(--fs-sm);
+  --text-sm--line-height: 1.4;
+  --text-base: var(--fs-base);
+  --text-base--line-height: 1.45;
+  --text-md: var(--fs-md);
+  --text-md--line-height: 1.4;
+  --text-lg: var(--fs-lg);
+  --text-lg--line-height: 1.35;
+  --text-xl: var(--fs-xl);
+  --text-xl--line-height: 1.2;
+  --text-2xl: var(--fs-2xl);
+  --text-2xl--line-height: 1.15;
+  --text-3xl: var(--fs-3xl);
+  --text-3xl--line-height: 1.1;
+  --text-mark: var(--fs-mark);
+  --text-mark--line-height: 0.92;
 }
 
 * {
@@ -42,16 +126,16 @@
 html,
 body {
   min-height: 100%;
+  background-color: var(--paper);
 }
 
 body {
   margin: 0;
   color: var(--ink);
   background:
-    radial-gradient(1200px 600px at 10% -10%, #dff1fb 0%, transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, #c9e6f6 0%, transparent 50%),
-    linear-gradient(180deg, var(--sky-soft) 0%, var(--mist) 42%, #ffffff 100%);
-  background-attachment: fixed;
+    radial-gradient(1200px 600px at 10% -10%, var(--sky-100) 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, var(--sky-200) 0%, transparent 50%),
+    var(--paper);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -68,17 +152,41 @@ textarea {
   font: inherit;
 }
 
-.app-shell {
-  width: min(100%, 430px);
+:focus-visible {
+  outline: 2px solid var(--sky-600);
+  outline-offset: 2px;
+}
+
+/* Outer rings clip inside overflow containers; inputs use a border change instead. */
+:is(input, textarea, select):focus,
+:is(input, textarea, select):focus-visible {
+  outline: none;
+}
+
+.app-shell,
+.passport-frame {
+  width: min(100%, 480px);
   margin: 0 auto;
   min-height: 100dvh;
+}
+
+.app-shell {
   padding: 1.25rem 1.1rem 2.5rem;
   position: relative;
 }
 
-.brand-mark {
+.mark {
   font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.03em;
+}
+
+.label-micro {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .fade-up {
@@ -97,8 +205,25 @@ textarea {
   animation: float-soft 5.5s ease-in-out infinite;
 }
 
-.sheet-in {
-  animation: sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+.sheet-in,
+.passport-sheet-in {
+  animation: sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sheet-step {
+  animation: sheet-step 190ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stamp-press {
+  animation: stamp-press 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-in {
+  animation: toast-in 200ms ease both;
+}
+
+.toast-out {
+  animation: toast-out 200ms ease both;
 }
 
 @keyframes fade-up {
@@ -133,38 +258,89 @@ textarea {
   }
 }
 
-.field-input {
-  width: 100%;
-  border-radius: 1rem;
-  border: 1px solid rgba(159, 208, 234,.7);
-  background: #f7fbfe;
-  padding: 0.8rem 0.95rem;
-  color: #1f3a4d;
-  outline: none;
+@keyframes sheet-step {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.field-input:focus {
-  border-color: #6bb3d9;
-  box-shadow: 0 0 0 4px rgba(159, 208, 234, 0.35);
+@keyframes stamp-press {
+  from {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes fade-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out-only {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .auth-card {
   position: relative;
   overflow: hidden;
   width: 100%;
-  background: rgba(255, 255, 255, 0.78);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--surface) 80%, var(--sky-200));
+  border-radius: var(--r-xl);
   padding: 36px 28px 28px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--elev-sheet);
   text-align: center;
 }
 
 .auth-subtitle {
   margin: 12px auto 24px;
   max-width: 18rem;
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   line-height: 1.45;
   color: var(--ink-soft);
 }
@@ -180,144 +356,72 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--ink);
 }
 
-.auth-form input {
-  padding: 12px 14px;
-  border: 1px solid rgba(159, 208, 234, 0.7);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
+.field,
+.passport-field {
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--sky-300);
+  background: var(--surface);
+  padding-block: 0.75rem;
+  padding-inline: 1rem;
   color: var(--ink);
+  font-size: var(--fs-md);
   outline: none;
 }
 
-.auth-form input:focus {
-  border-color: var(--baby-deep);
-  box-shadow: 0 0 0 4px rgba(159, 208, 234, 0.35);
+.field-clearable,
+.passport-field-clearable {
+  padding-inline-end: 2.75rem;
 }
 
-.auth-form input:disabled {
-  opacity: 0.6;
+select.field,
+select.passport-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231F5476' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1rem;
+  padding-inline-end: 2.5rem;
 }
 
-.auth-form input[aria-invalid="true"] {
-  border-color: #d46a6a;
+.field-icon,
+.passport-field-icon {
+  padding-inline-start: 3rem;
 }
 
-.auth-field-error {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #8a2f2f;
-  line-height: 1.35;
+.field:focus,
+.passport-field:focus {
+  border-color: var(--sky-600);
+  box-shadow: 0 0 0 4px var(--sky-100);
 }
 
-.auth-error {
-  margin: 0;
-  border-radius: 1rem;
-  background: #ffe8e8;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  color: #8a2f2f;
+.field:disabled,
+.passport-field:disabled {
+  color: var(--ink-faint);
+  background: var(--sky-50);
+  cursor: not-allowed;
 }
 
-.auth-success {
-  margin: 0;
-  border-radius: 1rem;
-  background: #e8f6ee;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  color: #1f5c3a;
+.field[aria-invalid="true"],
+.passport-field[aria-invalid="true"] {
+  border-color: var(--danger-ink);
+}
+
+textarea.field,
+textarea.passport-field {
+  min-height: 7.5rem;
+  border-radius: var(--r-md);
+  resize: none;
   line-height: 1.45;
 }
 
-.auth-submit {
-  margin-top: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background: var(--ink);
-  color: white;
-  border-radius: 999px;
-  font-weight: 600;
-  transition: background 0.15s, transform 0.15s, opacity 0.15s;
-}
-
-.auth-submit:hover:not(:disabled) {
-  background: #163040;
-  transform: translateY(-1px);
-}
-
-.auth-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.auth-toggle {
-  margin-top: 16px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.8125rem;
-  color: var(--baby-deep);
-  font-weight: 600;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fade-up,
-  .fade-up-delay,
-  .fade-up-delay-2,
-  .float-soft,
-  .sheet-in {
-    animation: none;
-  }
-}
-
-/* Authenticated passport shell — login/auth styles above stay untouched */
-.passport-root {
-  min-height: 100dvh;
-  overflow-x: clip;
-  background: var(--color-pass-bg);
-  color: var(--color-pass-navy);
-  font-family: var(--font-pass), var(--font-sans), system-ui, sans-serif;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.passport-root :focus-visible {
-  outline: 2px solid var(--color-pass-primary);
-  outline-offset: 2px;
-}
-
-/* Inputs already use a border change; outer rings clip inside overflow containers. */
-.passport-root :is(input, textarea, select):focus,
-.passport-root :is(input, textarea, select):focus-visible {
-  outline: none;
-}
-
-.passport-frame {
-  width: min(100%, 480px);
-  margin: 0 auto;
-  min-height: 100dvh;
-  overflow-wrap: break-word;
-  padding: max(0.7rem, env(safe-area-inset-top))
-    max(1.05rem, env(safe-area-inset-right))
-    calc(5.75rem + env(safe-area-inset-bottom))
-    max(1.05rem, env(safe-area-inset-left));
-}
-
-.passport-mark {
-  font-family: var(--font-pass-display), var(--font-pass), system-ui, sans-serif;
-  letter-spacing: -0.03em;
-}
-
-.passport-btn {
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -326,87 +430,97 @@ textarea {
   width: 100%;
   padding: 0.7rem 1.1rem;
   border: none;
-  border-radius: 999px;
-  background: var(--color-pass-primary);
-  color: #fff;
+  border-radius: var(--r-full);
   font-weight: 600;
-  font-size: 1rem;
-  box-shadow: 0 8px 18px rgba(52, 126, 168, 0.22);
+  font-size: var(--fs-md);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
-.passport-btn:enabled:active {
-  transform: scale(0.98);
+.btn-primary {
+  background: var(--sky-600);
+  color: var(--surface);
+  box-shadow: var(--elev-soft);
 }
 
-.passport-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+.btn-primary:enabled:active {
+  background: var(--sky-700);
+  box-shadow: var(--elev-lifted);
+  transform: scale(0.97);
 }
 
-.passport-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0.5rem 0.9rem;
-  border: none;
+.btn-secondary {
+  background: var(--sky-100);
+  color: var(--sky-700);
+}
+
+.btn-secondary:enabled:active {
+  background: var(--sky-200);
+  transform: scale(0.97);
+}
+
+.btn-tertiary {
   background: none;
-  color: var(--color-pass-muted);
-  font-weight: 600;
+  color: var(--ink-soft);
+  min-height: 44px;
+  width: auto;
+  padding: 0.5rem 0.9rem;
 }
 
-.passport-field {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  border: 1px solid var(--color-pass-line);
-  background: #fff;
-  /* Separate axes so utilities / .passport-field-icon can set inline-start. */
-  padding-block: 0.75rem;
-  padding-inline: 1rem;
-  color: var(--color-pass-navy);
-  font-size: 16px;
-  outline: none;
+.btn-tertiary:enabled:active {
+  transform: scale(0.97);
 }
 
-.passport-field-clearable {
-  padding-inline-end: 2.75rem;
+.btn-destructive {
+  background: var(--danger-solid);
+  color: var(--surface);
 }
 
-select.passport-field {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a7388' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1rem;
-  padding-inline-end: 2.5rem;
+.btn-destructive:enabled:active {
+  transform: scale(0.97);
 }
 
-.passport-field-icon {
-  padding-inline-start: 3rem;
+.btn:disabled {
+  background: var(--sky-50);
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
-.passport-field:focus {
-  border-color: var(--color-pass-primary);
+.btn-tertiary:disabled {
+  background: none;
 }
 
-textarea.passport-field {
-  min-height: 7.5rem;
-  border-radius: 1.15rem;
-  resize: none;
-  line-height: 1.45;
+.passport-root {
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.passport-frame {
+  overflow-wrap: break-word;
+  padding: max(0.7rem, env(safe-area-inset-top))
+    max(1.05rem, env(safe-area-inset-right))
+    calc(10.25rem + env(safe-area-inset-bottom))
+    max(1.05rem, env(safe-area-inset-left));
 }
 
 .stamp-row {
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  margin-inline: -0.15rem;
-  padding: 0.15rem 0.15rem 0.4rem;
+  margin-inline: -0.35rem;
+  padding: 0.6rem 0.35rem 0.75rem;
 }
 
 .stamp-row::-webkit-scrollbar {
@@ -416,59 +530,195 @@ textarea.passport-field {
 .passport-nav {
   position: fixed;
   z-index: 40;
-  bottom: 0;
+  bottom: calc(0.7rem + env(safe-area-inset-bottom));
   left: 50%;
-  width: min(100%, 480px);
+  width: min(calc(100% - 1.6rem), 22.75rem);
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: rgba(255, 255, 255, 0.94);
-  border-top: 1px solid var(--color-pass-line);
-  padding: 0.2rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom));
-  backdrop-filter: blur(10px);
+  gap: 0.15rem;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--sky-200);
+  border-radius: var(--r-full);
+  padding: 0.28rem;
+  box-shadow: var(--elev-lifted);
+  backdrop-filter: blur(14px);
 }
 
-.passport-sheet-in {
-  animation: passport-sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+.passport-fab {
+  position: fixed;
+  z-index: 45;
+  left: 50%;
+  width: min(100%, 480px);
+  transform: translateX(-50%);
+  bottom: calc(5.35rem + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: flex-end;
+  padding-inline: max(1.05rem, env(safe-area-inset-right));
+  pointer-events: none;
 }
 
-.stamp-press {
-  animation: stamp-press 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+.passport-fab > * {
+  pointer-events: auto;
 }
 
-@keyframes passport-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(28px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+.stamp {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stamp-sm {
+  width: 44px;
+  height: 44px;
+}
+
+.stamp-md {
+  width: 68px;
+  height: 68px;
+}
+
+.stamp-lg {
+  width: 88px;
+  height: 88px;
+}
+
+.stamp-hero {
+  width: 144px;
+  height: 144px;
+}
+
+.stamp-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.stamp-ring-outer,
+.stamp-ring-inner {
+  position: absolute;
+  border-radius: var(--r-full);
+  pointer-events: none;
+}
+
+.stamp-ring-outer {
+  inset: 0;
+  border: 1.5px dashed currentColor;
+}
+
+.stamp-ring-inner {
+  inset: 4px;
+  border: 1px solid color-mix(in srgb, currentColor 55%, var(--sky-300));
+  background: var(--surface);
+  box-shadow: var(--elev-soft);
+}
+
+.stamp-hero .stamp-ring-inner {
+  inset: 8px;
+}
+
+.stamp-ink-sky {
+  color: var(--sky-700);
+}
+
+.stamp-ink-clay {
+  color: var(--clay-600);
+}
+
+.stamp-core {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  max-width: 86%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  padding: 0.2rem;
+  text-align: center;
+  line-height: 1.05;
+}
+
+.stamp-code {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.stamp-sm .stamp-code {
+  font-size: 11px;
+}
+
+.stamp-md .stamp-code {
+  font-size: 13px;
+}
+
+.stamp-lg .stamp-code {
+  font-size: 15px;
+}
+
+.stamp-flag {
+  font-size: 0.7em;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.stamp-plus {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sheet {
+  background: var(--surface);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--elev-sheet);
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    border-radius: var(--r-xl);
   }
 }
 
-@keyframes stamp-press {
-  from {
-    opacity: 0;
-    transform: scale(1.28) rotate(-10deg);
-  }
-  62% {
-    opacity: 1;
-    transform: scale(0.94) rotate(2deg);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(-6deg);
-  }
+.grade-text {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant: normal;
+  font-variant-caps: normal;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fade-up,
+  .fade-up-delay,
+  .fade-up-delay-2,
+  .float-soft,
+  .sheet-in,
   .passport-sheet-in,
   .stamp-press {
     animation: none;
   }
 
-  .passport-btn:enabled:active {
+  .sheet-step {
+    animation: fade-only 190ms ease both;
+  }
+
+  .toast-in {
+    animation: fade-only 200ms ease both;
+  }
+
+  .toast-out {
+    animation: fade-out-only 200ms ease both;
+  }
+
+  .btn:enabled:active,
+  .btn-primary:enabled:active,
+  .btn-secondary:enabled:active,
+  .btn-tertiary:enabled:active,
+  .btn-destructive:enabled:active {
     transform: none;
   }
 }

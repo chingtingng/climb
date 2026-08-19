@@ -121,7 +121,7 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
     <div className="space-y-3">
       <div>
         <p className="text-sm font-semibold">Media (optional)</p>
-        <p className="mt-1 text-xs leading-relaxed text-pass-muted">
+        <p className="mt-1 text-xs leading-relaxed text-ink-soft">
           Up to 1 photo and 1 video (under {MAX_VIDEO_SECONDS}s). Large videos are compressed
           when needed so uploads stay light.
         </p>
@@ -129,7 +129,7 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
 
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">
-          Photo <span className="font-medium text-pass-muted">(optional)</span>
+          Photo <span className="font-medium text-ink-soft">(optional)</span>
         </span>
         <input
           type="file"
@@ -139,14 +139,14 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
             void handlePhoto(e.target.files?.[0] ?? null);
             e.target.value = "";
           }}
-          className="block w-full text-sm text-pass-muted file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-pass-soft file:px-4 file:font-semibold file:text-pass-navy"
+          className="block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-sky-100 file:px-4 file:font-semibold file:text-sky-700"
         />
         {photoPreview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photoPreview}
             alt="Visit photo preview"
-            className="mt-3 max-h-40 w-full rounded-2xl object-cover"
+            className="mt-3 max-h-40 w-full rounded-lg object-cover"
           />
         ) : null}
         {photo ? (
@@ -154,7 +154,7 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
             type="button"
             disabled={busy}
             onClick={() => onPhoto(null)}
-            className="mt-2 text-xs font-semibold text-pass-primary"
+            className="mt-2 text-xs font-semibold text-sky-600"
           >
             Remove photo
           </button>
@@ -163,7 +163,7 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
 
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">
-          Video <span className="font-medium text-pass-muted">(optional, &lt;1 min)</span>
+          Video <span className="font-medium text-ink-soft">(optional, &lt;1 min)</span>
         </span>
         <input
           type="file"
@@ -173,13 +173,13 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
             void handleVideo(e.target.files?.[0] ?? null);
             e.target.value = "";
           }}
-          className="block w-full text-sm text-pass-muted file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-pass-soft file:px-4 file:font-semibold file:text-pass-navy"
+          className="block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-sky-100 file:px-4 file:font-semibold file:text-sky-700"
         />
         {videoPreview ? (
           <video
             src={videoPreview}
             controls
-            className="mt-3 max-h-48 w-full rounded-2xl bg-black object-contain"
+            className="mt-3 max-h-48 w-full rounded-lg bg-ink object-contain"
           />
         ) : null}
         {video ? (
@@ -187,7 +187,7 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
             type="button"
             disabled={busy}
             onClick={() => onVideo(null)}
-            className="mt-2 text-xs font-semibold text-pass-primary"
+            className="mt-2 text-xs font-semibold text-sky-600"
           >
             Remove video
           </button>
@@ -195,16 +195,16 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
       </label>
 
       {progress != null ? (
-        <div className="h-1.5 overflow-hidden rounded-full bg-pass-line">
+        <div className="h-1.5 overflow-hidden rounded-full bg-sky-200">
           <div
-            className="h-full rounded-full bg-pass-primary transition-[width]"
+            className="h-full rounded-full bg-sky-600 transition-[width]"
             style={{ width: `${Math.round(progress * 100)}%` }}
           />
         </div>
       ) : null}
-      {status ? <p className="text-xs text-pass-muted">{status}</p> : null}
+      {status ? <p className="text-xs text-ink-soft">{status}</p> : null}
       {error ? (
-        <p role="alert" className="text-xs font-medium text-[#8a2f2f]">
+        <p role="alert" className="text-xs font-medium text-danger-ink">
           {error}
         </p>
       ) : null}

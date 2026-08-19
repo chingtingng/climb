@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { CatalogGym, GymVisit } from "@/lib/types";
+import { LogVisitFab } from "@/components/ui/LogVisitFab";
 import { BottomNav } from "./BottomNav";
 import { LogGymSheet } from "./LogGymSheet";
 import { PassportProvider } from "./PassportContext";
@@ -32,6 +33,7 @@ export function PassportShell({
       <div className="passport-root">
         <div className="passport-frame">{children}</div>
         <BottomNav />
+        <LogVisitFab />
         <LogGymSheet />
       </div>
     </PassportProvider>

@@ -26,8 +26,8 @@ export function GymsIcon({ filled }: { filled?: boolean }) {
         cx="12"
         cy="10.6"
         r="2.15"
-        fill={filled ? "#fff" : "none"}
-        stroke={filled ? "#fff" : "currentColor"}
+        fill={filled ? "white" : "none"}
+        stroke={filled ? "white" : "currentColor"}
         strokeWidth="1.6"
       />
     </svg>
