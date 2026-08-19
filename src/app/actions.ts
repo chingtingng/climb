@@ -72,6 +72,12 @@ function parsePassword(formData: FormData): string | ActionResult {
 }
 
 const DUPLICATE_ACCOUNT_ERROR = "Username or email already in use.";
+const USERNAME_IN_USE_ERROR = "Username already in use.";
+
+export type UsernameCheckResult = {
+  available: boolean | null;
+  error?: string;
+};
 
 function mapAuthError(message: string, context: "signup" | "login" = "login"): string {
   const lower = message.toLowerCase();
@@ -122,6 +128,35 @@ async function isUsernameFree(
     error:
       "Could not check username availability. Run supabase/email-auth.sql in the Supabase SQL Editor.",
   };
+}
+
+/** Live signup check — call after the user pauses typing. */
+export async function checkUsernameAvailableAction(
+  rawUsername: string,
+): Promise<UsernameCheckResult> {
+  if (!isSupabaseConfigured()) {
+    return { available: null };
+  }
+
+  let username: string;
+  try {
+    username = normalizeUsername(rawUsername);
+  } catch (error) {
+    return {
+      available: null,
+      error: error instanceof Error ? error.message : "Invalid username",
+    };
+  }
+
+  const supabase = await createClient();
+  const availability = await isUsernameFree(supabase, username);
+  if (!availability.ok) {
+    return { available: null, error: availability.error };
+  }
+
+  return availability.available
+    ? { available: true }
+    : { available: false, error: USERNAME_IN_USE_ERROR };
 }
 
 async function resolveAuthEmailForLogin(

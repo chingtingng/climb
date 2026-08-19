@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
+  checkUsernameAvailableAction,
   createAccountAction,
   loginAction,
   type ActionResult,
@@ -14,6 +15,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   confirm:
     "That verification link is invalid or expired. Sign in if you already confirmed, or create the account again.",
 };
+
+const USERNAME_CHECK_DELAY_MS = 450;
 
 export function LoginForm({
   configured,
@@ -31,12 +34,55 @@ export function LoginForm({
     authError ? AUTH_ERROR_MESSAGES[authError] ?? "Could not complete sign-in." : null,
   );
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "signup" || !configured) {
+      setUsernameError(null);
+      setUsernameChecking(false);
+      return;
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+      setUsernameError(null);
+      setUsernameChecking(false);
+      return;
+    }
+
+    let cancelled = false;
+    setUsernameChecking(true);
+    setUsernameError(null);
+
+    const timer = window.setTimeout(async () => {
+      const result = await checkUsernameAvailableAction(trimmed);
+      if (cancelled) return;
+
+      setUsernameChecking(false);
+      if (result.available === false || result.error) {
+        setUsernameError(result.error ?? "Username already in use.");
+      } else {
+        setUsernameError(null);
+      }
+    }, USERNAME_CHECK_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [username, mode, configured]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setVerifyMessage(null);
+
+    if (mode === "signup" && usernameError) {
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();
@@ -69,6 +115,8 @@ export function LoginForm({
       setLoading(false);
     }
   }
+
+  const signupBlocked = Boolean(usernameError) || usernameChecking;
 
   return (
     <div className="auth-card">
@@ -129,7 +177,14 @@ export function LoginForm({
                 pattern="[A-Za-z0-9_]+"
                 title="Letters, numbers, and underscores only"
                 disabled={!configured || loading}
+                aria-invalid={Boolean(usernameError)}
+                aria-describedby={usernameError ? "username-availability" : undefined}
               />
+              {usernameError && (
+                <span id="username-availability" className="auth-field-error" role="alert">
+                  {usernameError}
+                </span>
+              )}
             </label>
 
             <label>
@@ -182,7 +237,7 @@ export function LoginForm({
         <button
           type="submit"
           className="auth-submit"
-          disabled={loading || !configured}
+          disabled={loading || !configured || (mode === "signup" && signupBlocked)}
           aria-busy={loading}
         >
           <ActionButtonLabel
@@ -201,6 +256,7 @@ export function LoginForm({
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
           setVerifyMessage(null);
+          setUsernameError(null);
         }}
       >
         {mode === "signin"
