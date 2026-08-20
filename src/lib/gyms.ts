@@ -103,6 +103,7 @@ export function groupVisitsByGym(
       slug: gymSlug(label.name, label.country),
       gymId: label.gymId,
       name: label.name,
+      // Outlet label for display (e.g. Sunway Square), not gym_outlets.city.
       city: sorted[0] ? visitOutlet(sorted[0]) : "",
       country: label.country,
       place_kind,

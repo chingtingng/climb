@@ -294,6 +294,7 @@ export function gymsInCountry(gyms: CatalogGym[], country: string): CatalogGym[]
   return gyms.filter((gym) => sameCountry(gym.country, country));
 }
 
+/** Cities that have catalog places in this country — outlet `city`, never outlet name. */
 export function catalogCities(gyms: CatalogGym[], country: string): string[] {
   return unique(
     gyms.flatMap((gym) =>

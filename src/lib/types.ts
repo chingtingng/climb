@@ -91,6 +91,7 @@ export type GymGroup = {
   slug: string;
   gymId: string;
   name: string;
+  /** Latest visit's outlet label (mall / branch), not `gym_outlets.city`. */
   city: string;
   country: string;
   place_kind: PlaceKind;
