@@ -778,40 +778,37 @@ textarea.passport-field {
   box-shadow: var(--elev-sheet);
 }
 
-/* Keyboard open: pin the sheet to the visual viewport so a shrinking
-   search list cannot collapse the sheet behind the iOS keyboard. */
-.passport-overlay[data-keyboard="true"] {
-  align-items: stretch;
-  overscroll-behavior: none;
-}
+/* Phone: keep the log sheet full-screen from the bottom, including the
+   area the keyboard covers, so a short search list cannot collapse it. */
+@media (max-width: 639px) {
+  .passport-overlay .passport-overlay-frame {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
 
-.passport-overlay[data-keyboard="true"] .passport-overlay-frame {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  flex-direction: column;
-}
+  .passport-overlay .sheet-expandable {
+    height: 100%;
+    max-height: none;
+    min-height: 0;
+  }
 
-.passport-overlay[data-keyboard="true"] .sheet-expandable {
-  flex: 1 1 auto;
-  height: 100%;
-  max-height: none;
-  min-height: 0;
-}
+  .passport-overlay .sheet-body,
+  .passport-overlay .sheet-step,
+  .passport-overlay .sheet-search {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+  }
 
-.passport-overlay[data-keyboard="true"] .sheet-body,
-.passport-overlay[data-keyboard="true"] .sheet-step,
-.passport-overlay[data-keyboard="true"] .sheet-search {
-  display: flex;
-  min-height: 0;
-  flex: 1 1 0;
-  flex-direction: column;
-}
-
-.passport-overlay[data-keyboard="true"] .sheet-search-list {
-  flex: 1 1 0;
-  min-height: 0;
-  max-height: none;
+  .passport-overlay .sheet-search-list {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+  }
 }
 
 @media (min-width: 640px) {

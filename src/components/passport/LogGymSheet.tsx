@@ -831,70 +831,6 @@ function LogGymSheetInner({
   );
 }
 
-const KEYBOARD_DELTA_PX = 120;
-
-function isFormField(el: EventTarget | null) {
-  return (
-    el instanceof HTMLElement &&
-    (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")
-  );
-}
-
-function useSheetKeyboard() {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const [expand, setExpand] = useState(false);
-  const [frame, setFrame] = useState({ top: 0, height: 0 });
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const compactMq = window.matchMedia("(max-width: 639px), (pointer: coarse)");
-    let fieldFocused = false;
-
-    function sync() {
-      const top = vv?.offsetTop ?? 0;
-      const height = vv?.height ?? window.innerHeight;
-      const keyboardOpen = window.innerHeight - height >= KEYBOARD_DELTA_PX;
-      const next = (compactMq.matches && fieldFocused) || keyboardOpen;
-      setFrame({ top, height });
-      setExpand(next);
-    }
-
-    function onFocusIn(event: FocusEvent) {
-      if (!overlayRef.current?.contains(event.target as Node)) return;
-      if (!isFormField(event.target)) return;
-      fieldFocused = true;
-      sync();
-    }
-
-    function onFocusOut() {
-      requestAnimationFrame(() => {
-        const active = document.activeElement;
-        fieldFocused = Boolean(
-          overlayRef.current?.contains(active) && isFormField(active),
-        );
-        sync();
-      });
-    }
-
-    vv?.addEventListener("resize", sync);
-    vv?.addEventListener("scroll", sync);
-    window.addEventListener("resize", sync);
-    compactMq.addEventListener("change", sync);
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
-    return () => {
-      vv?.removeEventListener("resize", sync);
-      vv?.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-      compactMq.removeEventListener("change", sync);
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("focusout", onFocusOut);
-    };
-  }, []);
-
-  return { overlayRef, expand, top: frame.top, height: frame.height };
-}
-
 function Overlay({
   onClose,
   children,
@@ -902,19 +838,8 @@ function Overlay({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  const { overlayRef, expand, top, height } = useSheetKeyboard();
-
   return (
-    <div
-      ref={overlayRef}
-      className="passport-overlay fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-      data-keyboard={expand ? "true" : undefined}
-      style={
-        expand
-          ? { top, height, bottom: "auto" }
-          : undefined
-      }
-    >
+    <div className="passport-overlay fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
         aria-label="Close dialog"
