@@ -35,6 +35,7 @@ export const V_GRADES = [
   "V14",
   "V15",
   "V16",
+  "V17",
 ];
 
 export const FONT_GRADES = [
@@ -61,6 +62,7 @@ export const FONT_GRADES = [
   "8B+",
   "8C",
   "8C+",
+  "9A",
 ];
 
 export const FRENCH_GRADES = [
@@ -89,9 +91,13 @@ export const FRENCH_GRADES = [
   "8c",
   "8c+",
   "9a",
+  "9a+",
+  "9b",
+  "9b+",
+  "9c",
 ];
 
-/** Yosemite Decimal System — 5.4 through 5.15c. */
+/** Yosemite Decimal System — 5.4 through 5.15d. */
 export const YDS_GRADES = [
   "5.4",
   "5.5",
@@ -122,6 +128,7 @@ export const YDS_GRADES = [
   "5.15a",
   "5.15b",
   "5.15c",
+  "5.15d",
 ];
 
 export const NUMBER_GRADES = Array.from({ length: 21 }, (_, i) => String(i));
@@ -170,6 +177,7 @@ export const GRADE_COMPARISON: GradeComparisonRow[] = [
   { v: "V14", font: "8B+", yds: "5.14d", french: "9a+" },
   { v: "V15", font: "8C", yds: "5.15a", french: "9b" },
   { v: "V16", font: "8C+", yds: "5.15b–c", french: "9b+" },
+  { v: "V17", font: "9A", yds: "5.15d", french: "9c" },
 ];
 
 /** 1:1-ish sport/trad conversion. More agreed-upon than boulder ↔ route. */
@@ -203,6 +211,7 @@ export const SPORT_GRADE_COMPARISON: { yds: string; french: string }[] = [
   { yds: "5.15a", french: "9b" },
   { yds: "5.15b", french: "9b+" },
   { yds: "5.15c", french: "9c" },
+  { yds: "5.15d", french: "9c" },
 ];
 
 export function colorHex(label: string, fallback?: string): string {
@@ -274,9 +283,9 @@ export function isGradeSystem(value: string): value is GradeSystem {
   return GRADE_SYSTEMS.some((item) => item.value === value);
 }
 
-/** Accept only VB / V0–V16 (matches supabase/schema.sql is_v_grade). */
+/** Accept only VB / V0–V17 (matches supabase/schema.sql is_v_grade). */
 export function isVGrade(value: string): boolean {
-  return /^(VB|V([0-9]|1[0-6]))$/.test(value.trim());
+  return /^(VB|V([0-9]|1[0-7]))$/.test(value.trim());
 }
 
 export function normalizeVEquiv(value: unknown): string | undefined {
@@ -299,7 +308,7 @@ export function canonicalVGrade(value: string | undefined | null): string | unde
   if (!trimmed) return undefined;
   if (isVGrade(trimmed)) return trimmed;
   const range = trimmed.match(
-    /^(VB|V(?:[0-9]|1[0-6]))\s*[-–—]\s*(VB|V(?:[0-9]|1[0-6]))$/i,
+    /^(VB|V(?:[0-9]|1[0-7]))\s*[-–—]\s*(VB|V(?:[0-9]|1[0-7]))$/i,
   );
   if (range) {
     const a = normalizeVEquiv(range[1]);
@@ -307,7 +316,7 @@ export function canonicalVGrade(value: string | undefined | null): string | unde
     if (!a || !b) return undefined;
     return V_GRADES.indexOf(a) >= V_GRADES.indexOf(b) ? a : b;
   }
-  const open = trimmed.match(/^(VB|V(?:[0-9]|1[0-6]))\+$/i);
+  const open = trimmed.match(/^(VB|V(?:[0-9]|1[0-7]))\+$/i);
   if (open) return normalizeVEquiv(open[1]);
   return undefined;
 }
