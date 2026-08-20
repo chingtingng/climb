@@ -25,7 +25,7 @@ export function HomeView() {
       className={cx(
         "space-y-6",
         visits.length > 0 &&
-          "desktop:grid desktop:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] desktop:items-start desktop:gap-10 desktop:space-y-0",
+          "wide:grid wide:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] wide:items-start wide:gap-10 wide:space-y-0",
       )}
     >
       <div className="space-y-6">

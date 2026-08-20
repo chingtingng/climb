@@ -159,12 +159,12 @@ function CompareChart({
   return (
     <>
       <div className="space-y-3">
-      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
+      <div className="flex flex-col gap-3 wide:flex-row wide:items-center wide:justify-between">
         {chartSwitch}
         <button
           type="button"
           onClick={() => setPicker({ mode: "add" })}
-          className="inline-flex min-h-9 shrink-0 items-center gap-1.5 self-end rounded-full border border-dashed border-sky-300 px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 tablet:self-auto"
+          className="inline-flex min-h-9 shrink-0 items-center gap-1.5 self-end rounded-full border border-dashed border-sky-300 px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 wide:self-auto"
         >
           <PlusIcon className="size-4" />
           Add gym
@@ -196,7 +196,7 @@ function CompareChart({
                   <th
                     key={key}
                     scope="col"
-                    className="min-w-[6.5rem] max-w-[8.5rem] px-1 py-2 align-bottom tablet:max-w-none tablet:min-w-[8rem] desktop:min-w-[9.5rem] desktop:px-2"
+                    className="min-w-[6.5rem] max-w-[8.5rem] px-1 py-2 align-bottom wide:max-w-none wide:min-w-[8rem] desktop:min-w-[9.5rem] desktop:px-2"
                   >
                     <div className="flex flex-col items-center gap-1">
                       <button
@@ -471,13 +471,13 @@ function SportChart() {
         <caption className="sr-only">YDS compared with French sport grades</caption>
         <thead>
           <tr className="bg-sky-50 text-ink">
-            <th scope="col" className="px-3 py-2.5 tablet:px-6">
+            <th scope="col" className="px-3 py-2.5 wide:px-6">
               <span className="grade-text text-sm">YDS</span>
               <span className="label-micro mt-0.5 block tracking-wider">
                 Sport
               </span>
             </th>
-            <th scope="col" className="px-3 py-2.5 tablet:px-6">
+            <th scope="col" className="px-3 py-2.5 wide:px-6">
               <span className="grade-text text-sm">French</span>
               <span className="label-micro mt-0.5 block tracking-wider">
                 Sport
@@ -488,10 +488,10 @@ function SportChart() {
         <tbody>
           {SPORT_GRADE_COMPARISON.map((row) => (
             <tr key={row.yds} className="border-t border-sky-100 bg-surface">
-              <th scope="row" className="bg-sky-50/80 px-3 py-2.5 text-ink tablet:px-6">
+              <th scope="row" className="bg-sky-50/80 px-3 py-2.5 text-ink wide:px-6">
                 <span className="grade-text text-sm">{row.yds}</span>
               </th>
-              <td className="grade-text px-3 py-2.5 text-sm text-ink tablet:px-6">
+              <td className="grade-text px-3 py-2.5 text-sm text-ink wide:px-6">
                 {row.french}
               </td>
             </tr>

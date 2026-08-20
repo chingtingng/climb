@@ -72,7 +72,7 @@ export function GymDetailView({ slug }: { slug: string }) {
         </section>
       ) : null}
 
-      <section className="grid grid-cols-2 gap-2.5 tablet:grid-cols-3">
+      <section className="grid grid-cols-2 gap-2.5 wide:grid-cols-3">
         <Card className="px-4 py-4">
           <p className="label-micro">Highest grade</p>
           <p className="mt-2">
@@ -87,7 +87,7 @@ export function GymDetailView({ slug }: { slug: string }) {
           <p className="label-micro">Visits</p>
           <p className="mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
         </Card>
-        <Card className="hidden px-4 py-4 tablet:block">
+        <Card className="hidden px-4 py-4 wide:block">
           <p className="label-micro">Last visit</p>
           <p className="mark mt-1 text-lg leading-tight">
             {formatStampDate(gym.lastVisited)}

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* tablet: iPad portrait / small laptop. Height guard keeps iPhone landscape on the phone layout. */
-@custom-variant tablet (@media (min-width: 768px) and (min-height: 700px));
+/* wide: enough horizontal room (iPhone landscape, iPad, desktop) */
+@custom-variant wide (@media (min-width: 768px));
 /* desktop: iPad Pro landscape, laptop, monitor */
 @custom-variant desktop (@media (min-width: 1100px));
 
@@ -740,7 +740,17 @@ textarea.passport-field {
   }
 }
 
-/* iPad portrait / small laptop — widen the frame, keep the bottom pill. */
+/* Wider than phone portrait (incl. iPhone landscape): fill the screen.
+   Tablet/desktop queries below re-cap the frame when they match. */
+@media (min-width: 481px) {
+  :root {
+    --frame-max: 100%;
+    --content-pad-x: 1.5rem;
+    --nav-pill-max: 36rem;
+  }
+}
+
+/* iPad portrait / small laptop — cap the frame, keep the bottom pill. */
 @media (min-width: 768px) and (min-height: 700px) {
   :root {
     --frame-max: 840px;

@@ -73,7 +73,7 @@ export function GymsView() {
           <div
             role="group"
             aria-label="Filter by country"
-          className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] tablet:flex-wrap tablet:overflow-visible [&::-webkit-scrollbar]:hidden"
+          className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] wide:flex-wrap wide:overflow-visible [&::-webkit-scrollbar]:hidden"
           >
             {["All", ...countries].map((item) => {
               const selected = item === country;
@@ -126,7 +126,7 @@ export function GymsView() {
           body="No places match that search. Try another country, or clear the search."
         />
       ) : (
-        <ul className="relative z-0 grid grid-cols-1 gap-2.5 tablet:grid-cols-2 desktop:grid-cols-3">
+        <ul className="relative z-0 grid grid-cols-1 gap-2.5 wide:grid-cols-2 desktop:grid-cols-3">
           {filtered.map((gym) => (
             <li key={gym.slug}>
               <Link href={`/passport/gyms/${gym.slug}`}>

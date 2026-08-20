@@ -45,7 +45,7 @@ export function ProfileView() {
   const placesLabel = `${stats.gyms} ${stats.gyms === 1 ? "place" : "places"} visited`;
 
   return (
-    <div className="space-y-4 desktop:grid desktop:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] desktop:items-start desktop:gap-8 desktop:space-y-0">
+    <div className="space-y-4 wide:grid wide:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] wide:items-start wide:gap-8 wide:space-y-0">
       <div className="space-y-4">
       <section>
         <header className="flex items-center justify-between gap-3">

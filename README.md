@@ -75,7 +75,7 @@ cp .env.example .env.local   # fill in values
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (~390px). iPad portrait and small laptops widen the frame; desktop (≥1100px) uses a left nav. iPhone landscape stays on the phone layout.
+Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (~390px). Landscape phones and anything wider than 480px fill the screen; iPad and small laptops cap around 840px; desktop (≥1100px) uses a left nav.
 
 ## Deploy to Vercel
 
