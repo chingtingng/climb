@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   SPORT_GRADE_COMPARISON,
   V_GRADES,
@@ -32,6 +32,30 @@ export function GradesView() {
   const { visits } = usePassport();
   const [chart, setChart] = useState<Chart>("compare");
   const bestV = bestSendV(visits);
+  const chartSwitch = (
+    <div
+      role="group"
+      aria-label="Grade charts"
+      className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      <Chip
+        selected={chart === "compare"}
+        aria-pressed={chart === "compare"}
+        onClick={() => setChart("compare")}
+        className="!min-h-9"
+      >
+        Compare
+      </Chip>
+      <Chip
+        selected={chart === "sport"}
+        aria-pressed={chart === "sport"}
+        onClick={() => setChart("sport")}
+        className="!min-h-9"
+      >
+        Sport
+      </Chip>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -43,30 +67,14 @@ export function GradesView() {
         </p>
       </header>
 
-      <div
-        role="group"
-        aria-label="Grade charts"
-        className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        <Chip
-          selected={chart === "compare"}
-          aria-pressed={chart === "compare"}
-          onClick={() => setChart("compare")}
-          className="!min-h-9"
-        >
-          Compare
-        </Chip>
-        <Chip
-          selected={chart === "sport"}
-          aria-pressed={chart === "sport"}
-          onClick={() => setChart("sport")}
-          className="!min-h-9"
-        >
-          Sport
-        </Chip>
-      </div>
-
-      {chart === "compare" ? <CompareChart bestV={bestV} /> : <SportChart />}
+      {chart === "compare" ? (
+        <CompareChart bestV={bestV} chartSwitch={chartSwitch} />
+      ) : (
+        <>
+          {chartSwitch}
+          <SportChart />
+        </>
+      )}
 
       <p className="text-xs leading-relaxed text-ink-soft">
         {chart === "compare"
@@ -77,7 +85,13 @@ export function GradesView() {
   );
 }
 
-function CompareChart({ bestV }: { bestV?: string }) {
+function CompareChart({
+  bestV,
+  chartSwitch,
+}: {
+  bestV?: string;
+  chartSwitch: ReactNode;
+}) {
   const { catalogGyms, gyms } = usePassport();
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -145,11 +159,12 @@ function CompareChart({ bestV }: { bestV?: string }) {
   return (
     <>
       <div className="space-y-3">
-      <div className="flex items-center justify-end">
+      <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
+        {chartSwitch}
         <button
           type="button"
           onClick={() => setPicker({ mode: "add" })}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-dashed border-sky-300 px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
+          className="inline-flex min-h-9 shrink-0 items-center gap-1.5 self-end rounded-full border border-dashed border-sky-300 px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 tablet:self-auto"
         >
           <PlusIcon className="size-4" />
           Add gym
@@ -181,7 +196,7 @@ function CompareChart({ bestV }: { bestV?: string }) {
                   <th
                     key={key}
                     scope="col"
-                    className="min-w-[6.5rem] max-w-[8.5rem] px-1 py-2 align-bottom"
+                    className="min-w-[6.5rem] max-w-[8.5rem] px-1 py-2 align-bottom tablet:max-w-none tablet:min-w-[8rem] desktop:min-w-[9.5rem] desktop:px-2"
                   >
                     <div className="flex flex-col items-center gap-1">
                       <button
@@ -368,9 +383,9 @@ function GymPickerSheet({
           role="dialog"
           aria-modal="true"
           aria-labelledby="compare-gym-title"
-          className="passport-sheet-in sheet mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[480px] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="passport-sheet-in sheet mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
+          <div className="sheet-handle mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <p className="label-micro">Compare</p>
@@ -456,13 +471,13 @@ function SportChart() {
         <caption className="sr-only">YDS compared with French sport grades</caption>
         <thead>
           <tr className="bg-sky-50 text-ink">
-            <th scope="col" className="px-3 py-2.5">
+            <th scope="col" className="px-3 py-2.5 tablet:px-6">
               <span className="grade-text text-sm">YDS</span>
               <span className="label-micro mt-0.5 block tracking-wider">
                 Sport
               </span>
             </th>
-            <th scope="col" className="px-3 py-2.5">
+            <th scope="col" className="px-3 py-2.5 tablet:px-6">
               <span className="grade-text text-sm">French</span>
               <span className="label-micro mt-0.5 block tracking-wider">
                 Sport
@@ -473,10 +488,10 @@ function SportChart() {
         <tbody>
           {SPORT_GRADE_COMPARISON.map((row) => (
             <tr key={row.yds} className="border-t border-sky-100 bg-surface">
-              <th scope="row" className="bg-sky-50/80 px-3 py-2.5 text-ink">
+              <th scope="row" className="bg-sky-50/80 px-3 py-2.5 text-ink tablet:px-6">
                 <span className="grade-text text-sm">{row.yds}</span>
               </th>
-              <td className="grade-text px-3 py-2.5 text-sm text-ink">
+              <td className="grade-text px-3 py-2.5 text-sm text-ink tablet:px-6">
                 {row.french}
               </td>
             </tr>

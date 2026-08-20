@@ -44,7 +44,7 @@ export function FlashToast({ message, durationMs = 5000 }: Props) {
     <div
       role="alert"
       aria-live="assertive"
-      className={`pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[70] flex justify-center px-3 ${
+      className={`pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[70] flex justify-center px-3 desktop:left-[var(--rail-width)] ${
         leaving ? "toast-out" : "toast-in"
       }`}
     >

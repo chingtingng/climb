@@ -75,7 +75,7 @@ cp .env.example .env.local   # fill in values
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Designed around iPhone 15 width (~390px) and responsive across phone sizes.
+Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (~390px). iPad portrait and small laptops widen the frame; desktop (≥1100px) uses a left nav. iPhone landscape stays on the phone layout.
 
 ## Deploy to Vercel
 

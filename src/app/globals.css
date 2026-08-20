@@ -1,7 +1,20 @@
 @import "tailwindcss";
 
+/* tablet: iPad portrait / small laptop. Height guard keeps iPhone landscape on the phone layout. */
+@custom-variant tablet (@media (min-width: 768px) and (min-height: 700px));
+/* desktop: iPad Pro landscape, laptop, monitor */
+@custom-variant desktop (@media (min-width: 1100px));
+
 :root {
   color-scheme: light; /* native date input chrome stays light inside the sheet */
+
+  /* Layout — phone defaults match the iPhone 15 frame */
+  --frame-max: 480px;
+  --content-pad-x: 1.05rem;
+  --nav-reserve: 10.25rem;
+  --nav-pill-max: 22.75rem;
+  --rail-width: 14.5rem;
+  --sheet-max: 480px;
 
   /* Paper & surface */
   --paper: #f7fbfe; /* app background, cool white — also theme-color in layout.tsx */
@@ -167,14 +180,18 @@ a {
 
 .app-shell,
 .passport-frame {
-  width: min(100%, 480px);
   margin: 0 auto;
   min-height: 100dvh;
 }
 
 .app-shell {
+  width: min(100%, 480px);
   padding: 1.25rem 1.1rem 2.5rem;
   position: relative;
+}
+
+.passport-frame {
+  width: min(100%, var(--frame-max));
 }
 
 .mark {
@@ -501,6 +518,16 @@ textarea.passport-field {
   background: none;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:enabled:hover {
+    background: var(--sky-700);
+  }
+
+  .btn-secondary:enabled:hover {
+    background: var(--sky-200);
+  }
+}
+
 .passport-root {
   min-height: 100dvh;
   overflow-x: clip;
@@ -513,9 +540,9 @@ textarea.passport-field {
 .passport-frame {
   overflow-wrap: break-word;
   padding: max(0.7rem, env(safe-area-inset-top))
-    max(1.05rem, env(safe-area-inset-right))
-    calc(10.25rem + env(safe-area-inset-bottom))
-    max(1.05rem, env(safe-area-inset-left));
+    max(var(--content-pad-x), env(safe-area-inset-right))
+    calc(var(--nav-reserve) + env(safe-area-inset-bottom))
+    max(var(--content-pad-x), env(safe-area-inset-left));
 }
 
 .stamp-row {
@@ -539,7 +566,7 @@ textarea.passport-field {
   z-index: 40;
   bottom: calc(0.7rem + env(safe-area-inset-bottom));
   left: 50%;
-  width: min(calc(100% - 1.6rem), 22.75rem);
+  width: min(calc(100% - 1.6rem), var(--nav-pill-max));
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -552,16 +579,21 @@ textarea.passport-field {
   backdrop-filter: blur(14px);
 }
 
+.passport-nav-brand,
+.passport-nav-log {
+  display: none;
+}
+
 .passport-fab {
   position: fixed;
   z-index: 45;
   left: 50%;
-  width: min(100%, 480px);
+  width: min(100%, var(--frame-max));
   transform: translateX(-50%);
   bottom: calc(5.35rem + env(safe-area-inset-bottom));
   display: flex;
   justify-content: flex-end;
-  padding-inline: max(1.05rem, env(safe-area-inset-right));
+  padding-inline: max(var(--content-pad-x), env(safe-area-inset-right));
   pointer-events: none;
 }
 
@@ -701,6 +733,118 @@ textarea.passport-field {
 @media (min-width: 640px) {
   .sheet {
     border-radius: var(--r-xl);
+  }
+
+  .sheet-handle {
+    display: none;
+  }
+}
+
+/* iPad portrait / small laptop — widen the frame, keep the bottom pill. */
+@media (min-width: 768px) and (min-height: 700px) {
+  :root {
+    --frame-max: 840px;
+    --content-pad-x: 1.75rem;
+    --nav-reserve: 9.5rem;
+    --nav-pill-max: 36rem;
+  }
+}
+
+/* Desktop / iPad Pro landscape — left rail, no floating FAB. */
+@media (min-width: 1100px) {
+  :root {
+    --frame-max: 1120px;
+    --content-pad-x: 2rem;
+    --nav-reserve: 2rem;
+    --sheet-max: 32rem;
+  }
+
+  .app-shell {
+    width: min(100%, 56rem);
+  }
+
+  .passport-root {
+    padding-left: var(--rail-width);
+  }
+
+  .passport-nav {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--rail-width);
+    height: auto;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
+    border: none;
+    border-right: 1px solid var(--sky-200);
+    border-radius: 0;
+    padding: max(1.5rem, env(safe-area-inset-top)) 0.85rem
+      max(1.25rem, env(safe-area-inset-bottom));
+    box-shadow: none;
+    background: color-mix(in srgb, var(--surface) 88%, var(--paper));
+    backdrop-filter: blur(18px);
+  }
+
+  .passport-nav a {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.7rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.875rem;
+    border-radius: var(--r-md);
+  }
+
+  .passport-nav-brand {
+    display: block;
+    padding: 0.2rem 0.85rem 1.15rem;
+    font-size: 1.15rem;
+    line-height: 1.15;
+    color: var(--ink);
+  }
+
+  .passport-nav-log {
+    display: inline-flex;
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .passport-fab {
+    display: none;
+  }
+
+  .auth-card {
+    max-width: none;
+    padding: 2.75rem 2.5rem;
+    text-align: left;
+  }
+
+  .auth-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 0 2.25rem;
+  }
+
+  .auth-brand {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-self: stretch;
+    padding-right: 2rem;
+    border-right: 1px solid var(--sky-200);
+  }
+
+  .auth-stamps {
+    justify-content: flex-start;
+  }
+
+  .auth-subtitle {
+    margin-inline: 0;
   }
 }
 

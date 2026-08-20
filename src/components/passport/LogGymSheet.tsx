@@ -472,9 +472,9 @@ function LogGymSheetInner({
         role="dialog"
         aria-modal="true"
         aria-labelledby="log-title"
-        className="passport-sheet-in sheet flex max-h-[min(92dvh,760px)] w-full max-w-[480px] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="passport-sheet-in sheet mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
+        <div className="sheet-handle mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <p className="label-micro">
@@ -1590,7 +1590,7 @@ function SuccessState({
       role="dialog"
       aria-modal="true"
       aria-labelledby="success-title"
-      className="passport-sheet-in sheet mx-auto flex w-full max-w-[480px] flex-col items-center px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-8 text-center"
+      className="passport-sheet-in sheet mx-auto flex w-full max-w-[var(--sheet-max)] flex-col items-center px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-8 text-center"
     >
       <div className="stamp-press">
         <Stamp

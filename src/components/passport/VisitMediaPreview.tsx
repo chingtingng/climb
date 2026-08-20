@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { cx } from "@/components/ui/cx";
 import { VISIT_MEDIA_BUCKET } from "./VisitMediaFields";
 
 export function VisitMediaPreview({
   photoPath,
   videoPath,
+  className,
 }: {
   photoPath?: string | null;
   videoPath?: string | null;
+  className?: string;
 }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -49,7 +52,7 @@ export function VisitMediaPreview({
   if (!photoPath && !videoPath) return null;
 
   return (
-    <div className="mt-2.5 space-y-2">
+    <div className={cx("mt-2.5 space-y-2", className)}>
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

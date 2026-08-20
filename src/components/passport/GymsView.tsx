@@ -73,7 +73,7 @@ export function GymsView() {
           <div
             role="group"
             aria-label="Filter by country"
-            className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] tablet:flex-wrap tablet:overflow-visible [&::-webkit-scrollbar]:hidden"
           >
             {["All", ...countries].map((item) => {
               const selected = item === country;
@@ -87,7 +87,7 @@ export function GymsView() {
                     "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold",
                     selected
                       ? "border-sky-300 bg-sky-300 text-ink"
-                      : "border-sky-300 bg-surface text-ink active:bg-sky-50",
+                      : "border-sky-300 bg-surface text-ink hover:bg-sky-50 active:bg-sky-50",
                   )}
                 >
                   {item}
@@ -126,11 +126,11 @@ export function GymsView() {
           body="No places match that search. Try another country, or clear the search."
         />
       ) : (
-        <ul className="relative z-0 space-y-2.5">
+        <ul className="relative z-0 grid grid-cols-1 gap-2.5 tablet:grid-cols-2 desktop:grid-cols-3">
           {filtered.map((gym) => (
             <li key={gym.slug}>
               <Link href={`/passport/gyms/${gym.slug}`}>
-                <Card className="flex min-h-16 items-center gap-3 px-3 py-3">
+                <Card className="flex min-h-16 items-center gap-3 px-3 py-3 transition-colors hover:bg-sky-50">
                   <CountryStamp
                     country={gym.country}
                     size="sm"

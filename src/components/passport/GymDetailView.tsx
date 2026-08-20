@@ -72,7 +72,7 @@ export function GymDetailView({ slug }: { slug: string }) {
         </section>
       ) : null}
 
-      <section className="grid grid-cols-2 gap-2.5">
+      <section className="grid grid-cols-2 gap-2.5 tablet:grid-cols-3">
         <Card className="px-4 py-4">
           <p className="label-micro">Highest grade</p>
           <p className="mt-2">
@@ -87,6 +87,12 @@ export function GymDetailView({ slug }: { slug: string }) {
           <p className="label-micro">Visits</p>
           <p className="mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
         </Card>
+        <Card className="hidden px-4 py-4 tablet:block">
+          <p className="label-micro">Last visit</p>
+          <p className="mark mt-1 text-lg leading-tight">
+            {formatStampDate(gym.lastVisited)}
+          </p>
+        </Card>
       </section>
 
       <section>
@@ -95,7 +101,8 @@ export function GymDetailView({ slug }: { slug: string }) {
           {gym.visits.map((visit) => (
             <li key={visit.id}>
               <Card className="px-3 py-2.5">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 desktop:flex-row desktop:items-start">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
                     <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-soft">
@@ -123,7 +130,12 @@ export function GymDetailView({ slug }: { slug: string }) {
                     }}
                   />
                 </div>
-                <VisitMediaPreview photoPath={visit.photo_path} videoPath={visit.video_path} />
+                <VisitMediaPreview
+                  photoPath={visit.photo_path}
+                  videoPath={visit.video_path}
+                  className="desktop:mt-0 desktop:w-52 desktop:shrink-0"
+                />
+                </div>
               </Card>
             </li>
           ))}
@@ -133,6 +145,7 @@ export function GymDetailView({ slug }: { slug: string }) {
       <Button
         type="button"
         disabled={!configured}
+        className="desktop:!w-auto desktop:min-w-56"
         onClick={() =>
           openLog({
             name: gym.name,

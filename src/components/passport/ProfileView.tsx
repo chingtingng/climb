@@ -45,7 +45,8 @@ export function ProfileView() {
   const placesLabel = `${stats.gyms} ${stats.gyms === 1 ? "place" : "places"} visited`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 desktop:grid desktop:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] desktop:items-start desktop:gap-8 desktop:space-y-0">
+      <div className="space-y-4">
       <section>
         <header className="flex items-center justify-between gap-3">
           <p className="min-w-0 truncate text-sm font-semibold text-ink">
@@ -99,7 +100,9 @@ export function ProfileView() {
         <PlusIcon className="size-4 shrink-0" />
         {empty ? "Log your first visit" : "Log a visit"}
       </Button>
+      </div>
 
+      <div className="space-y-4">
       <Card className="overflow-hidden !p-0">
         <h2 className="mark px-4 pt-3.5 pb-1 text-lg leading-none text-ink">
           Your climbing
@@ -193,6 +196,7 @@ export function ProfileView() {
           </Card>
         </section>
       ) : null}
+      </div>
     </div>
   );
 }
@@ -251,9 +255,9 @@ function AccountMenu() {
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
-              className="passport-sheet-in sheet mx-auto w-full max-w-[480px] pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
+              className="passport-sheet-in sheet mx-auto w-full max-w-[var(--sheet-max)] pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
             >
-              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-sky-300" />
+              <div className="sheet-handle mx-auto mb-2 h-1 w-10 rounded-full bg-sky-300" />
               <h2 id={titleId} className="label-micro px-4 pt-1">
                 Account
               </h2>
@@ -362,7 +366,7 @@ function HighlightRow({
         <Link
           href={href}
           aria-label={label}
-          className={`${rowClass} active:bg-sky-50`}
+          className={`${rowClass} hover:bg-sky-50 active:bg-sky-50`}
         >
           {body}
         </Link>
@@ -422,7 +426,7 @@ function RecentRow({ visit }: { visit: GymVisit }) {
     <li className="border-b border-sky-200 last:border-b-0">
       <Link
         href={`/passport/gyms/${gymSlug(visit.gym_name, visit.country)}`}
-        className="flex min-h-16 items-center gap-3 px-3 py-2.5 active:bg-sky-50"
+        className="flex min-h-16 items-center gap-3 px-3 py-2.5 hover:bg-sky-50 active:bg-sky-50"
       >
         <span className="w-9 shrink-0 text-center leading-tight">
           <span className="mark block text-[15px] leading-none text-ink">

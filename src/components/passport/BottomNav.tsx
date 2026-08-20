@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/components/ui/cx";
-import { GradesIcon, GymsIcon, HomeIcon, ProfileIcon } from "./icons";
+import { GradesIcon, GymsIcon, HomeIcon, PlusIcon, ProfileIcon } from "./icons";
+import { usePassport } from "./PassportContext";
 
 const ITEMS = [
   { href: "/passport", label: "Home", match: "home" as const },
@@ -22,9 +23,11 @@ function activeMatch(pathname: string) {
 export function BottomNav() {
   const pathname = usePathname();
   const current = activeMatch(pathname);
+  const { configured, openLog } = usePassport();
 
   return (
     <nav className="passport-nav" aria-label="Primary">
+      <p className="passport-nav-brand mark">Chalk Passport</p>
       {ITEMS.map((item) => {
         const active = current === item.match;
         const Icon =
@@ -42,7 +45,9 @@ export function BottomNav() {
             aria-current={active ? "page" : undefined}
             className={cx(
               "flex min-h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-full py-1 text-xs font-semibold",
-              active ? "bg-sky-100 text-ink" : "text-ink-soft",
+              active
+                ? "bg-sky-100 text-ink"
+                : "text-ink-soft hover:bg-sky-50 hover:text-ink",
             )}
           >
             <Icon filled={active} />
@@ -50,6 +55,15 @@ export function BottomNav() {
           </Link>
         );
       })}
+      <button
+        type="button"
+        className="passport-nav-log btn btn-primary"
+        onClick={() => openLog()}
+        disabled={!configured}
+      >
+        <PlusIcon className="size-4" />
+        Log a visit
+      </button>
     </nav>
   );
 }

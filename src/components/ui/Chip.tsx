@@ -13,7 +13,7 @@ export function Chip({
         "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold",
         selected
           ? "bg-sky-100 text-sky-700"
-          : "border border-sky-300 bg-surface text-ink",
+          : "border border-sky-300 bg-surface text-ink hover:bg-sky-50",
         className,
       )}
       {...props}
