@@ -142,14 +142,10 @@ export function LoginForm({
 
   return (
     <div className="auth-card">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-surface/50 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-sky-500/35 blur-3xl"
-      />
+      <div className="auth-card-glows" aria-hidden>
+        <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-surface/50 blur-2xl" />
+        <div className="absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-sky-500/35 blur-3xl" />
+      </div>
       <div className="auth-layout">
       <div className="auth-brand">
       <div aria-hidden className="auth-stamps mb-3 flex justify-center gap-3">

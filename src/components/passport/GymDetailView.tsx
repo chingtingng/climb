@@ -11,7 +11,6 @@ import { DisciplineMark, PlaceKindMark } from "@/components/ui/Marks";
 import { placeInk } from "@/components/ui/Stamp";
 import { BackIcon, ChevronIcon } from "./icons";
 import { CountryStamp } from "./CountryStamp";
-import { DeleteStampDialog } from "./DeleteStampDialog";
 import { usePassport } from "./PassportContext";
 import { VisitMediaPreview } from "./VisitMediaPreview";
 
@@ -85,7 +84,7 @@ export function GymDetailView({ slug }: { slug: string }) {
         </Card>
         <Card className="px-4 py-4">
           <p className="label-micro">Visits</p>
-          <p className="mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
+          <p className="mark mt-1 text-xl leading-none tabular-nums">{gym.visitCount}</p>
         </Card>
         <Card className="hidden px-4 py-4 wide:block">
           <p className="label-micro">Last visit</p>
@@ -102,43 +101,34 @@ export function GymDetailView({ slug }: { slug: string }) {
             <li key={visit.id}>
               <Card className="px-3 py-2.5">
                 <div className="flex flex-col gap-3 desktop:flex-row desktop:items-start">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={!configured}
-                    onClick={() => openEdit(visit)}
-                    className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md text-left hover:bg-sky-50 disabled:text-ink"
-                    aria-label={`Edit visit on ${formatStampDate(visit.visited_on)}`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
-                      <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-soft">
-                        <span>{formatVisitPlace(visit)}</span>
-                        <span aria-hidden>·</span>
-                        <DisciplineMark type={visit.climbing_type} />
-                        <span aria-hidden>·</span>
-                        <GradeBadge
-                          system={visit.grade_system}
-                          grade={visit.highest_grade}
-                          vEquiv={visit.v_equiv}
-                        />
+                <button
+                  type="button"
+                  disabled={!configured}
+                  onClick={() => openEdit(visit)}
+                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md text-left hover:bg-sky-50 disabled:text-ink"
+                  aria-label={`Edit visit on ${formatStampDate(visit.visited_on)}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
+                    <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-soft">
+                      <span>{formatVisitPlace(visit)}</span>
+                      <span aria-hidden>·</span>
+                      <DisciplineMark type={visit.climbing_type} />
+                      <span aria-hidden>·</span>
+                      <GradeBadge
+                        system={visit.grade_system}
+                        grade={visit.highest_grade}
+                        vEquiv={visit.v_equiv}
+                      />
+                    </p>
+                    {visit.notes ? (
+                      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                        {visit.notes}
                       </p>
-                      {visit.notes ? (
-                        <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-                          {visit.notes}
-                        </p>
-                      ) : null}
-                    </div>
-                    <ChevronIcon className="size-4 shrink-0 -rotate-90 text-ink-soft" />
-                  </button>
-                  <DeleteStampDialog
-                    visitId={visit.id}
-                    onDeleted={() => {
-                      if (gym.visitCount <= 1) router.replace("/passport/gyms");
-                      router.refresh();
-                    }}
-                  />
-                </div>
+                    ) : null}
+                  </div>
+                  <ChevronIcon className="size-4 shrink-0 -rotate-90 text-ink-soft" />
+                </button>
                 <VisitMediaPreview
                   photoPath={visit.photo_path}
                   videoPath={visit.video_path}

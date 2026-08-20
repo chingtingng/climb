@@ -365,15 +365,32 @@ a {
 
 .auth-card {
   position: relative;
-  overflow: hidden;
+  isolation: isolate;
   width: 100%;
   background: color-mix(in srgb, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   border: 1px solid color-mix(in srgb, var(--surface) 80%, var(--sky-200));
   border-radius: var(--r-xl);
   padding: 36px 28px 28px;
   box-shadow: var(--elev-sheet);
   text-align: center;
+}
+
+/* Clip decorative blurs to the card radius. overflow:hidden + filter:blur
+   can paint a square corner (Safari/Chrome) and would also clip box-shadow. */
+.auth-card-glows {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  clip-path: inset(0 round var(--r-xl));
+  pointer-events: none;
+}
+
+.auth-layout {
+  position: relative;
+  z-index: 1;
 }
 
 .auth-subtitle {
@@ -711,6 +728,12 @@ textarea.passport-field {
   line-height: 1.05;
 }
 
+.stamp-sm .stamp-core:has(.stamp-flag) {
+  gap: 0;
+  padding-block: 0;
+  line-height: 1;
+}
+
 .stamp-code {
   font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   font-weight: 700;
@@ -730,11 +753,16 @@ textarea.passport-field {
 }
 
 .stamp-flag {
+  display: block;
   font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji",
     sans-serif;
   font-size: 0.7em;
   line-height: 1;
   opacity: 0.9;
+}
+
+.stamp-sm .stamp-flag {
+  margin-top: -0.12em;
 }
 
 .stamp-plus {
