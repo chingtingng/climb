@@ -1,3 +1,4 @@
+import { countryCode, countryMeta } from "./countries";
 import { displayGrade, gradeSortValue } from "./grades";
 import { normalizePlaceKind } from "./placeKinds";
 import type { CatalogGym, GymGroup, GymVisit, PassportStats } from "./types";
@@ -32,13 +33,14 @@ export function visitOutlet(visit: GymVisit): string {
 
 export function formatVisitPlace(visit: GymVisit): string {
   const outlet = visitOutlet(visit);
+  const country = countryCode(visit.country) || visit.country.trim();
   if (outlet.toLowerCase() === visit.country.trim().toLowerCase()) {
-    return visit.country;
+    return country;
   }
   if (outlet.toLowerCase() === visit.city.trim().toLowerCase()) {
-    return `${visit.city} · ${visit.country}`;
+    return `${visit.city} · ${country}`;
   }
-  return `${outlet} · ${visit.country}`;
+  return `${outlet} · ${country}`;
 }
 
 export function groupVisitsByGym(
@@ -207,7 +209,8 @@ export function uniqueCountries(gyms: GymGroup[]): string[] {
   const seen = new Set<string>();
   const ordered: string[] = [];
   for (const gym of gyms) {
-    const key = gym.country.trim().toLowerCase();
+    const meta = countryMeta(gym.country);
+    const key = meta.iso2 || gym.country.trim().toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
     ordered.push(gym.country);
@@ -216,9 +219,10 @@ export function uniqueCountries(gyms: GymGroup[]): string[] {
 }
 
 export function formatGymPlace(gym: GymGroup): string {
+  const country = countryCode(gym.country) || gym.country.trim();
   if (gym.outlets.length > 1) {
-    return `${gym.outlets.join(" · ")} · ${gym.country}`;
+    return `${gym.outlets.join(" · ")} · ${country}`;
   }
-  if (gym.city) return `${gym.city} · ${gym.country}`;
-  return gym.country;
+  if (gym.city) return `${gym.city} · ${country}`;
+  return country;
 }

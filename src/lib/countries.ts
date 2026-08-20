@@ -296,6 +296,18 @@ function normalize(value: string): string {
 
 export const COUNTRY_NAMES = COUNTRIES.map((country) => country.name);
 
+/** Official ISO 3166-1 Alpha-2 code for display (MY, SG, …). */
+export function countryCode(country: string): string {
+  if (!country.trim()) return "";
+  return countryMeta(country).code;
+}
+
+/** Official ISO 3166-1 English short name for display (Malaysia, Singapore, …). */
+export function countryName(country: string): string {
+  if (!country.trim()) return "";
+  return countryMeta(country).name;
+}
+
 export function countryMeta(country: string): CountryMeta {
   const match = LOOKUP.get(normalize(country));
   if (match) {

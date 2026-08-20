@@ -11,7 +11,7 @@ import {
   normalizeClimbingTypes,
   type ClimbingType,
 } from "@/lib/climbingTypes";
-import { COUNTRY_NAMES } from "@/lib/countries";
+import { COUNTRY_NAMES, countryCode } from "@/lib/countries";
 import { todayISO } from "@/lib/dates";
 import { displayGrade, isHouseSystem, vEquivFor } from "@/lib/grades";
 import {
@@ -450,7 +450,7 @@ function LogGymSheetInner({
       <Overlay onClose={onHome}>
         <SuccessState
           name={name}
-          place={[outlet || city, country].filter(Boolean).join(" · ")}
+          place={[outlet || city, countryCode(country) || country].filter(Boolean).join(" · ")}
           climbLabel={formatClimbingType(climbType)}
           climbType={climbType}
           gradeLabel={
@@ -485,7 +485,7 @@ function LogGymSheetInner({
             </h2>
             {step !== "country" && (name || country) ? (
               <p className="mt-1 text-sm text-ink-soft">
-                {[name, outlet || (!skipCity ? city : ""), country]
+                {[name, outlet || (!skipCity ? city : ""), countryCode(country) || country]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
@@ -1030,7 +1030,7 @@ function GymStep({
   const inCountry = gyms.filter((gym) => sameCountry(gym.country, country));
   const recent = (q
     ? inCountry.filter((gym) =>
-        `${gym.name} ${gym.outlets.join(" ")} ${gym.country}`.toLowerCase().includes(q),
+        `${gym.name} ${gym.outlets.join(" ")} ${gym.country} ${countryCode(gym.country)}`.toLowerCase().includes(q),
       )
     : inCountry
   ).slice(0, 5);
@@ -1450,7 +1450,7 @@ function CityStep({
           items={withGyms.map((item) => ({
             key: item,
             title: item,
-            subtitle: country,
+            subtitle: countryCode(country) || country,
             onClick: () => onPick(item),
           }))}
         />

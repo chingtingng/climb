@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { countryCode } from "@/lib/countries";
 import {
   SPORT_GRADE_COMPARISON,
   V_GRADES,
@@ -216,7 +217,7 @@ function CompareChart({
                           {gym.name}
                         </span>
                         <span className="mt-0.5 block truncate text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
-                          {gradeSystemLabel(gym.scale!.kind)} · {gym.country}
+                          {gradeSystemLabel(gym.scale!.kind)} · {countryCode(gym.country) || gym.country}
                         </span>
                       </button>
                     </div>
@@ -349,7 +350,9 @@ function GymPickerSheet({
     const filtered = gyms.filter((gym) => {
       if (!q) return true;
       const outlets = gym.outlets.map((item) => item.name).join(" ");
-      return `${gym.name} ${gym.country} ${outlets}`.toLowerCase().includes(q);
+      return `${gym.name} ${gym.country} ${countryCode(gym.country)} ${outlets}`
+        .toLowerCase()
+        .includes(q);
     });
     return [...filtered].sort((a, b) => {
       const aMapped = hasVMapping(a.scale) ? 0 : 1;
@@ -449,7 +452,7 @@ function GymPickerSheet({
                         {mapped
                           ? already
                             ? "Already in the table"
-                            : `${gradeSystemLabel(gym.scale!.kind)} · ${gym.country}`
+                            : `${gradeSystemLabel(gym.scale!.kind)} · ${countryCode(gym.country) || gym.country}`
                           : "No V mapping yet"}
                       </span>
                     </span>
