@@ -31,7 +31,7 @@
 --     {"label":"White","color":"#f4f1ea","v_equiv":"V1"}
 --   ]
 --   label     required house-grade label (number, colour name, custom, …)
---   v_equiv   optional V-scale low (or only): VB | V0 … V16
+--   v_equiv   optional V-scale low (or only): VB | V0 … V17
 --   v_max     optional V-scale high when the band is a range (e.g. V3–V4)
 --   color     optional hex, for colour systems
 --
@@ -278,7 +278,7 @@ language sql
 immutable
 as $$
   select value is null
-    or value ~ '^(VB|V([0-9]|1[0-6]))$';$$;
+    or value ~ '^(VB|V([0-9]|1[0-7]))$';$$;
 
 create or replace function public.grade_bands_valid(bands jsonb)
 returns boolean
