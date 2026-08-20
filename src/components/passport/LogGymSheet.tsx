@@ -1421,11 +1421,12 @@ function CityStep({
   onNext: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  // GymGroup.city is the latest outlet name (Jaya One, Sunway Square), not the city.
   const gymCities = [
     ...catalogCities(catalogGyms, country),
     ...gyms
       .filter((gym) => sameCountry(gym.country, country))
-      .map((gym) => gym.city),
+      .flatMap((gym) => gym.visits.map((visit) => visit.city)),
   ];
   const cities = citiesForCountry(country, [...gymCities, city]).sort((a, b) =>
     a.localeCompare(b),
