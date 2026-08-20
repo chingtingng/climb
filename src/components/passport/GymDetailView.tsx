@@ -84,7 +84,7 @@ export function GymDetailView({ slug }: { slug: string }) {
         </Card>
         <Card className="px-4 py-4">
           <p className="label-micro">Visits</p>
-          <p className="mark mt-1 text-3xl leading-none">{gym.visitCount}</p>
+          <p className="mark mt-1 text-xl leading-none tabular-nums">{gym.visitCount}</p>
         </Card>
         <Card className="hidden px-4 py-4 wide:block">
           <p className="label-micro">Last visit</p>
