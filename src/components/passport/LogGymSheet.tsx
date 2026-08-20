@@ -471,10 +471,10 @@ function LogGymSheetInner({
         role="dialog"
         aria-modal="true"
         aria-labelledby="log-title"
-        className="passport-sheet-in sheet mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="passport-sheet-in sheet sheet-expandable mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        <div className="sheet-handle mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
-        <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="sheet-handle mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-sky-300" />
+        <div className="mb-3 flex shrink-0 items-start justify-between gap-3">
           <div>
             <p className="label-micro">
               Step {stepIndex + 1} of {steps.length}
@@ -501,9 +501,11 @@ function LogGymSheetInner({
           </button>
         </div>
 
-        <Stepper step={step} steps={steps} />
+        <div className="shrink-0">
+          <Stepper step={step} steps={steps} />
+        </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <div className="sheet-body min-h-0 flex-1 overflow-y-auto pb-3">
           <div key={step} className="sheet-step">
           {step === "country" && (
             <CountryStep
@@ -743,7 +745,7 @@ function LogGymSheetInner({
           </p>
         ) : null}
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex shrink-0 gap-2 pt-2">
           <Button
             type="button"
             variant="tertiary"
@@ -829,6 +831,70 @@ function LogGymSheetInner({
   );
 }
 
+const KEYBOARD_DELTA_PX = 120;
+
+function isFormField(el: EventTarget | null) {
+  return (
+    el instanceof HTMLElement &&
+    (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT")
+  );
+}
+
+function useSheetKeyboard() {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [expand, setExpand] = useState(false);
+  const [frame, setFrame] = useState({ top: 0, height: 0 });
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const compactMq = window.matchMedia("(max-width: 639px), (pointer: coarse)");
+    let fieldFocused = false;
+
+    function sync() {
+      const top = vv?.offsetTop ?? 0;
+      const height = vv?.height ?? window.innerHeight;
+      const keyboardOpen = window.innerHeight - height >= KEYBOARD_DELTA_PX;
+      const next = (compactMq.matches && fieldFocused) || keyboardOpen;
+      setFrame({ top, height });
+      setExpand(next);
+    }
+
+    function onFocusIn(event: FocusEvent) {
+      if (!overlayRef.current?.contains(event.target as Node)) return;
+      if (!isFormField(event.target)) return;
+      fieldFocused = true;
+      sync();
+    }
+
+    function onFocusOut() {
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        fieldFocused = Boolean(
+          overlayRef.current?.contains(active) && isFormField(active),
+        );
+        sync();
+      });
+    }
+
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    compactMq.addEventListener("change", sync);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      compactMq.removeEventListener("change", sync);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
+
+  return { overlayRef, expand, top: frame.top, height: frame.height };
+}
+
 function Overlay({
   onClose,
   children,
@@ -836,15 +902,26 @@ function Overlay({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { overlayRef, expand, top, height } = useSheetKeyboard();
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      ref={overlayRef}
+      className="passport-overlay fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      data-keyboard={expand ? "true" : undefined}
+      style={
+        expand
+          ? { top, height, bottom: "auto" }
+          : undefined
+      }
+    >
       <button
         type="button"
         aria-label="Close dialog"
         className="absolute inset-0 bg-ink/35"
         onClick={onClose}
       />
-      <div className="relative w-full sm:px-3">{children}</div>
+      <div className="passport-overlay-frame relative w-full sm:px-3">{children}</div>
     </div>
   );
 }
@@ -1189,7 +1266,6 @@ function SearchSelect({
   const [highlight, setHighlight] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
   const showClear = query.length > 0 || value.length > 0;
 
   function setOpenState(next: boolean) {
@@ -1228,11 +1304,6 @@ function SearchSelect({
     setHighlight(0);
   }, [query, open]);
 
-  useEffect(() => {
-    if (!open) return;
-    listRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [open]);
-
   function commit(item: string) {
     onSelect(item);
     setQuery(item);
@@ -1248,8 +1319,8 @@ function SearchSelect({
   }
 
   return (
-    <div ref={rootRef} className="relative">
-      <label className="block">
+    <div ref={rootRef} className={cx("relative", open && "sheet-search")}>
+      <label className="block shrink-0">
         <span className="mb-1.5 block text-sm font-semibold">{label}</span>
         <span className="relative block">
           <Field
@@ -1317,10 +1388,9 @@ function SearchSelect({
       </label>
       {open ? (
         <ul
-          ref={listRef}
           id={listId}
           role="listbox"
-          className="mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
+          className="sheet-search-list mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
         >
           {filtered.length === 0 ? (
             <li className="px-4 py-2.5 text-sm text-ink-soft">{emptyMessage}</li>
@@ -1372,7 +1442,7 @@ function CountryStep({
   ]).sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className="space-y-3">
+    <div className={cx("space-y-3", searchOpen && "sheet-search")}>
       <SearchSelect
         label="Country"
         value={country}
@@ -1426,7 +1496,7 @@ function CityStep({
   const withGyms = uniqueNames(gymCities).sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className="space-y-3">
+    <div className={cx("space-y-3", searchOpen && "sheet-search")}>
       <SearchSelect
         label="City"
         value={city}
