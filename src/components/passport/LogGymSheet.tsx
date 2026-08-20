@@ -1244,7 +1244,7 @@ function SearchSelect({
   }
 
   return (
-    <div ref={rootRef} className={cx("relative", open && "sheet-search")}>
+    <div ref={rootRef} className="relative">
       <label className="block shrink-0">
         <span className="mb-1.5 block text-sm font-semibold">{label}</span>
         <span className="relative block">
@@ -1315,7 +1315,7 @@ function SearchSelect({
         <ul
           id={listId}
           role="listbox"
-          className="sheet-search-list mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
+          className="mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
         >
           {filtered.length === 0 ? (
             <li className="px-4 py-2.5 text-sm text-ink-soft">{emptyMessage}</li>
@@ -1367,7 +1367,7 @@ function CountryStep({
   ]).sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className={cx("space-y-3", searchOpen && "sheet-search")}>
+    <div className="space-y-3">
       <SearchSelect
         label="Country"
         value={country}
@@ -1421,7 +1421,7 @@ function CityStep({
   const withGyms = uniqueNames(gymCities).sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className={cx("space-y-3", searchOpen && "sheet-search")}>
+    <div className="space-y-3">
       <SearchSelect
         label="City"
         value={city}
