@@ -359,8 +359,8 @@ create table public.visits (
   highest_grade text not null,
   v_equiv text,
   notes text,
-  photo_path text,
-  video_path text,
+  photo_path text, -- unused for new stamps; kept for older file uploads
+  video_path text, -- public TikTok / Instagram / YouTube URL (or legacy storage path)
   visited_on date not null default current_date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -548,65 +548,8 @@ create policy "Anyone can view grade charts"
   on storage.objects for select
   using (bucket_id = 'gym-grade-charts');
 
--- ---------------------------------------------------------------------------
--- Storage: visit photos / videos (private, owner-only)
--- ---------------------------------------------------------------------------
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'visit-media',
-  'visit-media',
-  false,
-  41943040,
-  array[
-    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
-    'video/mp4', 'video/webm', 'video/quicktime'
-  ]
-)
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
-drop policy if exists "Users can upload own visit media" on storage.objects;
-drop policy if exists "Users can view own visit media" on storage.objects;
-drop policy if exists "Users can update own visit media" on storage.objects;
-drop policy if exists "Users can delete own visit media" on storage.objects;
-
-create policy "Users can upload own visit media"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'visit-media'
-    and name like auth.uid()::text || '/%'
-  );
-
-create policy "Users can view own visit media"
-  on storage.objects for select
-  to authenticated
-  using (
-    bucket_id = 'visit-media'
-    and name like auth.uid()::text || '/%'
-  );
-
-create policy "Users can update own visit media"
-  on storage.objects for update
-  to authenticated
-  using (
-    bucket_id = 'visit-media'
-    and name like auth.uid()::text || '/%'
-  )
-  with check (
-    bucket_id = 'visit-media'
-    and name like auth.uid()::text || '/%'
-  );
-
-create policy "Users can delete own visit media"
-  on storage.objects for delete
-  to authenticated
-  using (
-    bucket_id = 'visit-media'
-    and name like auth.uid()::text || '/%'
-  );
+-- Visit clips are public TikTok / Instagram / YouTube URLs on visits.video_path.
+-- Files are not stored in Supabase.
 
 -- ---------------------------------------------------------------------------
 -- Seed known gyms (shared catalog)

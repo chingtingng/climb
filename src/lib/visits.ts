@@ -19,6 +19,7 @@ import type {
   Profile,
 } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseVisitMediaUrl } from "./visitMedia";
 
 const CHART_BUCKET = "gym-grade-charts";
 const MAX_CHART_BYTES = 8 * 1024 * 1024;
@@ -628,8 +629,8 @@ export async function createVisit(
     scale: undefined,
     chartFile: null,
   });
-  const photo_path = ownedMediaPath(profileId, input.photo_path);
-  const video_path = ownedMediaPath(profileId, input.video_path);
+  const photo_path = null;
+  const video_path = storedVisitClipUrl(input.video_path);
 
   const { data, error } = await supabase
     .from("visits")
@@ -664,7 +665,7 @@ export async function createVisit(
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
       throw new Error(
-        "Visit media isn’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+        "Visit clip links aren’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
       );
     }
     const retry = await supabase
@@ -743,8 +744,8 @@ export async function updateVisit(
     scale: undefined,
     chartFile: null,
   });
-  const photo_path = ownedMediaPath(profileId, input.photo_path);
-  const video_path = ownedMediaPath(profileId, input.video_path);
+  const photo_path = null;
+  const video_path = storedVisitClipUrl(input.video_path);
 
   const { data, error } = await supabase
     .from("visits")
@@ -778,7 +779,7 @@ export async function updateVisit(
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
       throw new Error(
-        "Visit media isn’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+        "Visit clip links aren’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
       );
     }
     const retry = await supabase
@@ -840,14 +841,9 @@ export function chartPublicUrl(path: string | null | undefined): string | null {
   return `${base}/storage/v1/object/public/${CHART_BUCKET}/${path}`;
 }
 
-function ownedMediaPath(
-  profileId: string,
-  path: string | null | undefined,
-): string | null {
-  const trimmed = path?.trim();
-  if (!trimmed) return null;
-  if (!trimmed.startsWith(`${profileId}/`)) {
-    throw new Error("That media upload doesn’t belong to your account.");
-  }
-  return trimmed;
+function storedVisitClipUrl(path: string | null | undefined): string | null {
+  const parsed = parseVisitMediaUrl(path ?? "");
+  if (!parsed) return null;
+  if ("error" in parsed) throw new Error(parsed.error);
+  return parsed.url;
 }

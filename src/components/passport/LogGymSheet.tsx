@@ -50,7 +50,8 @@ import { CloseIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { ScaleSetup } from "./ScaleSetup";
-import { uploadVisitMediaFile, VisitMediaFields } from "./VisitMediaFields";
+import { parseVisitMediaUrl } from "@/lib/visitMedia";
+import { VisitMediaFields } from "./VisitMediaFields";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { ChoiceTile } from "@/components/ui/ChoiceTile";
@@ -135,10 +136,8 @@ function LogGymSheetInner({
   const [scale, setScale] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
   const [scaleDraft, setScaleDraft] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
   const [chartFile, setChartFile] = useState<File | null>(null);
-  const [visitPhoto, setVisitPhoto] = useState<File | null>(null);
-  const [visitVideo, setVisitVideo] = useState<File | null>(null);
+  const [visitMediaUrl, setVisitMediaUrl] = useState("");
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [mediaUploading, setMediaUploading] = useState(false);
   const [newOutletName, setNewOutletName] = useState("");
   const [gymOfferTypes, setGymOfferTypes] = useState<ClimbingType[]>(DEFAULT_CLIMBING_TYPES);
   const [climbType, setClimbType] = useState<ClimbingType>("bouldering");
@@ -146,7 +145,7 @@ function LogGymSheetInner({
   const closeRef = useRef<HTMLButtonElement>(null);
   const errorBannerRef = useRef<HTMLParagraphElement>(null);
   const prevStepRef = useRef<Step | null>(null);
-  const pending = actionPending || isPending || mediaUploading;
+  const pending = actionPending || isPending;
   const sheetError = mediaError || state?.error || null;
 
   useEffect(() => {
@@ -724,10 +723,8 @@ function LogGymSheetInner({
                 </p>
               </label>
               <VisitMediaFields
-                photo={visitPhoto}
-                video={visitVideo}
-                onPhoto={setVisitPhoto}
-                onVideo={setVisitVideo}
+                url={visitMediaUrl}
+                onUrl={setVisitMediaUrl}
                 busy={pending}
               />
             </div>
@@ -771,51 +768,46 @@ function LogGymSheetInner({
               onClick={() => {
                 if (pending) return;
                 setMediaError(null);
-                void (async () => {
-                  setMediaUploading(true);
-                  try {
-                    const data = new FormData();
-                    data.set("gym_name", name.trim());
-                    data.set("city", (city.trim() || (skipCity ? "Singapore" : "")).trim());
-                    data.set("country", country.trim());
-                    const outletValue = (outlet || city).trim();
-                    data.set("outlet", outletValue);
-                    if (catalogMatch?.id) {
-                      data.set("gym_id", catalogMatch.id);
-                      const matchedOutlet = catalogMatch.outlets.find(
-                        (item) => item.name.toLowerCase() === outletValue.toLowerCase(),
-                      );
-                      if (matchedOutlet?.id) data.set("outlet_id", matchedOutlet.id);
-                    }
-                    data.set("grade_system", pickerSystem);
-                    data.set("highest_grade", grade);
-                    data.set("climbing_type", climbType);
-                    data.set("climbing_types", offeredTypes.join(","));
-                    data.set("place_kind", resolvedPlaceKind);
-                    data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
-                    data.set("visited_on", visitedOn);
-                    data.set("notes", notes);
-                    data.set("is_new_gym", isNewGym ? "1" : "0");
-                    data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
-                    if (needsScale) data.set("scale_json", JSON.stringify(scale));
-                    if (chartFile) data.set("grade_chart", chartFile);
-                    if (visitPhoto) {
-                      data.set("photo_path", await uploadVisitMediaFile("photo", visitPhoto));
-                    }
-                    if (visitVideo) {
-                      data.set("video_path", await uploadVisitMediaFile("video", visitVideo));
-                    }
-                    startTransition(() => {
-                      formAction(data);
-                    });
-                  } catch (err) {
+                if (visitMediaUrl.trim()) {
+                  const media = parseVisitMediaUrl(visitMediaUrl);
+                  if (!media || "error" in media) {
                     setMediaError(
-                      err instanceof Error ? err.message : "Couldn't upload visit media.",
+                      media && "error" in media
+                        ? media.error
+                        : "Paste a public TikTok, Instagram, or YouTube link.",
                     );
-                  } finally {
-                    setMediaUploading(false);
+                    return;
                   }
-                })();
+                }
+                const data = new FormData();
+                data.set("gym_name", name.trim());
+                data.set("city", (city.trim() || (skipCity ? "Singapore" : "")).trim());
+                data.set("country", country.trim());
+                const outletValue = (outlet || city).trim();
+                data.set("outlet", outletValue);
+                if (catalogMatch?.id) {
+                  data.set("gym_id", catalogMatch.id);
+                  const matchedOutlet = catalogMatch.outlets.find(
+                    (item) => item.name.toLowerCase() === outletValue.toLowerCase(),
+                  );
+                  if (matchedOutlet?.id) data.set("outlet_id", matchedOutlet.id);
+                }
+                data.set("grade_system", pickerSystem);
+                data.set("highest_grade", grade);
+                data.set("climbing_type", climbType);
+                data.set("climbing_types", offeredTypes.join(","));
+                data.set("place_kind", resolvedPlaceKind);
+                data.set("v_equiv", vEquivFor(pickerSystem, grade, activeScale) ?? "");
+                data.set("visited_on", visitedOn);
+                data.set("notes", notes);
+                data.set("is_new_gym", isNewGym ? "1" : "0");
+                data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
+                if (needsScale) data.set("scale_json", JSON.stringify(scale));
+                if (chartFile) data.set("grade_chart", chartFile);
+                if (visitMediaUrl.trim()) data.set("media_url", visitMediaUrl.trim());
+                startTransition(() => {
+                  formAction(data);
+                });
               }}
               className="flex-1"
             >
