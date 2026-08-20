@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { DisciplineMark, PlaceKindMark } from "@/components/ui/Marks";
 import { placeInk } from "@/components/ui/Stamp";
-import { BackIcon } from "./icons";
+import { BackIcon, ChevronIcon } from "./icons";
 import { CountryStamp } from "./CountryStamp";
 import { DeleteStampDialog } from "./DeleteStampDialog";
 import { usePassport } from "./PassportContext";
@@ -17,7 +17,7 @@ import { VisitMediaPreview } from "./VisitMediaPreview";
 
 export function GymDetailView({ slug }: { slug: string }) {
   const router = useRouter();
-  const { gyms, configured, openLog } = usePassport();
+  const { gyms, configured, openLog, openEdit } = usePassport();
   const gym = findGymBySlug(gyms, slug);
 
   if (!gym) {
@@ -102,26 +102,35 @@ export function GymDetailView({ slug }: { slug: string }) {
             <li key={visit.id}>
               <Card className="px-3 py-2.5">
                 <div className="flex flex-col gap-3 desktop:flex-row desktop:items-start">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
-                    <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-soft">
-                      <span>{formatVisitPlace(visit)}</span>
-                      <span aria-hidden>·</span>
-                      <DisciplineMark type={visit.climbing_type} />
-                      <span aria-hidden>·</span>
-                      <GradeBadge
-                        system={visit.grade_system}
-                        grade={visit.highest_grade}
-                        vEquiv={visit.v_equiv}
-                      />
-                    </p>
-                    {visit.notes ? (
-                      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-                        {visit.notes}
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!configured}
+                    onClick={() => openEdit(visit)}
+                    className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md text-left hover:bg-sky-50 disabled:text-ink"
+                    aria-label={`Edit visit on ${formatStampDate(visit.visited_on)}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{formatStampDate(visit.visited_on)}</p>
+                      <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-ink-soft">
+                        <span>{formatVisitPlace(visit)}</span>
+                        <span aria-hidden>·</span>
+                        <DisciplineMark type={visit.climbing_type} />
+                        <span aria-hidden>·</span>
+                        <GradeBadge
+                          system={visit.grade_system}
+                          grade={visit.highest_grade}
+                          vEquiv={visit.v_equiv}
+                        />
                       </p>
-                    ) : null}
-                  </div>
+                      {visit.notes ? (
+                        <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                          {visit.notes}
+                        </p>
+                      ) : null}
+                    </div>
+                    <ChevronIcon className="size-4 shrink-0 -rotate-90 text-ink-soft" />
+                  </button>
                   <DeleteStampDialog
                     visitId={visit.id}
                     onDeleted={() => {

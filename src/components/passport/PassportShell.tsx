@@ -5,6 +5,7 @@ import type { CatalogGym, GymVisit } from "@/lib/types";
 import { LogVisitFab } from "@/components/ui/LogVisitFab";
 import { BottomNav } from "./BottomNav";
 import { LogGymSheet } from "./LogGymSheet";
+import { EditVisitSheet } from "./EditVisitSheet";
 import { PassportProvider } from "./PassportContext";
 
 export function PassportShell({
@@ -35,6 +36,7 @@ export function PassportShell({
         <BottomNav />
         <LogVisitFab />
         <LogGymSheet />
+        <EditVisitSheet />
       </div>
     </PassportProvider>
   );

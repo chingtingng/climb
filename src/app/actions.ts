@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getSiteUrl } from "@/lib/site-url";
+import { parseVisitMediaUrl, resolveVisitMediaUrl, type VisitMediaLink } from "@/lib/visitMedia";
 import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
 import {
   CLIMBING_TYPES,
@@ -370,8 +371,10 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const hasCatalogScale = String(formData.get("has_catalog_scale") ?? "") === "1";
   const chart = formData.get("grade_chart");
   const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
-  const photo_path = String(formData.get("photo_path") ?? "").trim();
-  const video_path = String(formData.get("video_path") ?? "").trim();
+  const media_url = String(
+    formData.get("media_url") || formData.get("video_path") || "",
+  ).trim();
+  const clear_media = String(formData.get("clear_media") ?? "") === "1";
   const climbing_typeRaw = String(formData.get("climbing_type") ?? "").trim();
   const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
   const placeKindRaw = String(formData.get("place_kind") ?? "").trim();
@@ -404,7 +407,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     climbing_types = ["bouldering"];
   }
 
-  let climbing_type: ClimbingType = isClimbingType(climbing_typeRaw)
+  const climbing_type: ClimbingType = isClimbingType(climbing_typeRaw)
     ? climbing_typeRaw
     : climbing_types[0];
   if (!climbing_types.includes(climbing_type)) {
@@ -422,11 +425,13 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     return "That grade is too long.";
   }
 
-  if (photo_path && !isOwnedMediaPath(photo_path)) {
-    return "That photo upload looks invalid. Try again.";
-  }
-  if (video_path && !isOwnedMediaPath(video_path)) {
-    return "That video upload looks invalid. Try again.";
+  if (media_url) {
+    const media = parseVisitMediaUrl(media_url);
+    if (!media || "error" in media) {
+      return media && "error" in media
+        ? media.error
+        : "Paste a public TikTok, Instagram, or YouTube link.";
+    }
   }
 
   let scale: GradeScale | undefined;
@@ -478,14 +483,39 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     visited_on,
     scale,
     chartFile,
-    photo_path: photo_path || null,
-    video_path: video_path || null,
+    photo_path: null,
+    video_path: media_url || null,
+    clear_media,
   };
 }
 
-function isOwnedMediaPath(path: string): boolean {
-  // {uuid}/{uuid}/photo.jpg or video.webm — validated against session in createVisit.
-  return /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/(photo|video)\.[a-z0-9]+$/i.test(path);
+export type ResolveVisitMediaResult =
+  | { ok: true; link: VisitMediaLink }
+  | { ok: false; error: string };
+
+/** Resolve a pasted share URL into a canonical embeddable clip (TikTok short links). */
+export async function resolveVisitMediaAction(
+  raw: string,
+): Promise<ResolveVisitMediaResult> {
+  const resolved = await resolveVisitMediaUrl(raw);
+  if (resolved === null) {
+    return { ok: false, error: "Paste a public TikTok, Instagram, or YouTube link." };
+  }
+  if ("error" in resolved) return { ok: false, error: resolved.error };
+  return { ok: true, link: resolved };
+}
+
+async function withResolvedClip(
+  input: GymVisitInput,
+): Promise<GymVisitInput | string> {
+  if (input.clear_media && !input.video_path) {
+    return { ...input, photo_path: null, video_path: null, clear_media: true };
+  }
+  if (!input.video_path) return { ...input, photo_path: null, video_path: null };
+  const resolved = await resolveVisitMediaUrl(input.video_path);
+  if (resolved === null) return { ...input, photo_path: null, video_path: null };
+  if ("error" in resolved) return resolved.error;
+  return { ...input, photo_path: null, video_path: resolved.url, clear_media: false };
 }
 
 async function requireSessionProfile() {
@@ -507,8 +537,11 @@ export async function addVisitAction(
   const parsed = parseVisitInput(formData);
   if (typeof parsed === "string") return { ok: false, error: parsed };
 
+  const withMedia = await withResolvedClip(parsed);
+  if (typeof withMedia === "string") return { ok: false, error: withMedia };
+
   try {
-    await createVisit(auth.session.id, parsed);
+    await createVisit(auth.session.id, withMedia);
   } catch (error) {
     return {
       ok: false,
@@ -536,8 +569,11 @@ export async function updateVisitAction(
   const parsed = parseVisitInput(formData);
   if (typeof parsed === "string") return { ok: false, error: parsed };
 
+  const withMedia = await withResolvedClip(parsed);
+  if (typeof withMedia === "string") return { ok: false, error: withMedia };
+
   try {
-    await updateVisit(auth.session.id, visitId, parsed);
+    await updateVisit(auth.session.id, visitId, withMedia);
   } catch (error) {
     return {
       ok: false,

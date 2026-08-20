@@ -1,208 +1,100 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+import { Field } from "@/components/ui/Field";
+import { resolveVisitMediaAction } from "@/app/actions";
 import {
-  compressPhotoTo1080p,
-  compressVideoTo1080p,
-  MAX_VIDEO_SECONDS,
-} from "@/lib/mediaCompress";
-
-export const VISIT_MEDIA_BUCKET = "visit-media";
-
-export async function uploadVisitMediaFile(
-  kind: "photo" | "video",
-  file: File,
-): Promise<string> {
-  const supabase = createClient();
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-  if (authError || !auth.user) {
-    throw new Error("Please sign in again to upload media.");
-  }
-  const profileId = auth.user.id;
-  const ext = (file.name.split(".").pop() || (kind === "photo" ? "jpg" : "webm")).toLowerCase();
-  const path = `${profileId}/${crypto.randomUUID()}/${kind}.${ext}`;
-  const { error } = await supabase.storage.from(VISIT_MEDIA_BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type || (kind === "photo" ? "image/jpeg" : "video/webm"),
-  });
-  if (error) {
-    throw new Error(
-      "Couldn't upload visit media. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
-    );
-  }
-  return path;
-}
+  MEDIA_LINK_HELP,
+  parseVisitMediaUrl,
+  providerLabel,
+  type VisitMediaLink,
+} from "@/lib/visitMedia";
+import { VisitMediaEmbed } from "./VisitMediaEmbed";
 
 type Props = {
-  photo: File | null;
-  video: File | null;
-  onPhoto: (file: File | null) => void;
-  onVideo: (file: File | null) => void;
+  url: string;
+  onUrl: (url: string) => void;
   busy?: boolean;
 };
 
-function useObjectUrl(file: File | null): string | null {
-  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+export function VisitMediaFields({ url, onUrl, busy }: Props) {
+  const value = url.trim();
+  const parsed = parseVisitMediaUrl(value);
+  const parsedLink = parsed && !("error" in parsed) ? parsed : null;
+  const parsedError = parsed && "error" in parsed ? parsed.error : null;
+  const needsResolve = Boolean(
+    parsedLink && parsedLink.provider === "tiktok" && !parsedLink.embedSrc,
+  );
+
+  const [resolved, setResolved] = useState<{ value: string; link: VisitMediaLink } | null>(
+    null,
+  );
+
   useEffect(() => {
-    if (!url) return;
-    return () => URL.revokeObjectURL(url);
-  }, [url]);
-  return url;
-}
-
-export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props) {
-  const photoPreview = useObjectUrl(photo);
-  const videoPreview = useObjectUrl(video);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number | null>(null);
-
-  async function handlePhoto(file: File | null) {
-    setError(null);
-    setStatus(null);
-    if (!file) {
-      onPhoto(null);
-      return;
-    }
-    try {
-      setStatus("Preparing photo…");
-      const result = await compressPhotoTo1080p(file);
-      onPhoto(result.file);
-      setStatus(
-        result.compressed
-          ? "Photo resized to 1080p to save storage space."
-          : "Photo ready (already within 1080p).",
-      );
-    } catch (err) {
-      onPhoto(null);
-      setError(err instanceof Error ? err.message : "Couldn't use that photo.");
-      setStatus(null);
-    }
-  }
-
-  async function handleVideo(file: File | null) {
-    setError(null);
-    setStatus(null);
-    setProgress(null);
-    if (!file) {
-      onVideo(null);
-      return;
-    }
-    try {
-      setStatus("Checking video…");
-      let sawCompressProgress = false;
-      const result = await compressVideoTo1080p(file, (ratio) => {
-        if (ratio > 0 && ratio < 1) {
-          sawCompressProgress = true;
-          setProgress(ratio);
-          setStatus(`Compressing video to 1080p… ${Math.round(ratio * 100)}%`);
-        } else if (ratio >= 1 && sawCompressProgress) {
-          setProgress(1);
-        }
+    if (!needsResolve) return;
+    const current = value;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void resolveVisitMediaAction(current).then((result) => {
+        if (cancelled || !result.ok) return;
+        setResolved({ value: current, link: result.link });
       });
-      onVideo(result.file);
-      setProgress(null);
-      setStatus(
-        result.compressed
-          ? "Video compressed to 1080p — quality may be a bit lower than 2K/4K."
-          : "Video ready.",
-      );
-    } catch (err) {
-      onVideo(null);
-      setProgress(null);
-      setError(err instanceof Error ? err.message : "Couldn't use that video.");
-      setStatus(null);
-    }
-  }
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [needsResolve, value]);
+
+  const link =
+    parsedLink?.embedSrc
+      ? parsedLink
+      : resolved?.value === value
+        ? resolved.link
+        : parsedLink;
+  const resolving = needsResolve && resolved?.value !== value;
+  const error = parsedError && looksLikeClipUrl(value) ? parsedError : null;
 
   return (
     <div className="space-y-3">
-      <div>
-        <p className="text-sm font-semibold">Media (optional)</p>
-        <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-          Up to 1 photo and 1 video (under {MAX_VIDEO_SECONDS}s). Large videos are compressed
-          when needed so uploads stay light.
-        </p>
-      </div>
-
       <label className="block">
         <span className="mb-1.5 block text-sm font-semibold">
-          Photo <span className="font-medium text-ink-soft">(optional)</span>
+          Clip or post <span className="font-medium text-ink-soft">(optional)</span>
         </span>
-        <input
-          type="file"
-          accept="image/*"
+        <p className="mb-2 text-xs leading-relaxed text-ink-soft">{MEDIA_LINK_HELP}</p>
+        <Field
+          type="text"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="https://www.tiktok.com/@you/video/…"
+          value={url}
           disabled={busy}
-          onChange={(e) => {
-            void handlePhoto(e.target.files?.[0] ?? null);
-            e.target.value = "";
-          }}
-          className="block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-sky-100 file:px-4 file:font-semibold file:text-sky-700"
+          aria-invalid={error ? true : undefined}
+          onChange={(e) => onUrl(e.target.value)}
         />
-        {photoPreview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photoPreview}
-            alt="Visit photo preview"
-            className="mt-3 max-h-40 w-full rounded-lg object-cover"
-          />
-        ) : null}
-        {photo ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onPhoto(null)}
-            className="mt-2 text-xs font-semibold text-sky-600"
-          >
-            Remove photo
-          </button>
-        ) : null}
       </label>
 
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">
-          Video <span className="font-medium text-ink-soft">(optional, &lt;1 min)</span>
-        </span>
-        <input
-          type="file"
-          accept="video/*"
+      {value ? (
+        <button
+          type="button"
           disabled={busy}
-          onChange={(e) => {
-            void handleVideo(e.target.files?.[0] ?? null);
-            e.target.value = "";
-          }}
-          className="block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-sky-100 file:px-4 file:font-semibold file:text-sky-700"
-        />
-        {videoPreview ? (
-          <video
-            src={videoPreview}
-            controls
-            className="mt-3 max-h-48 w-full rounded-lg bg-ink object-contain"
-          />
-        ) : null}
-        {video ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onVideo(null)}
-            className="mt-2 text-xs font-semibold text-sky-600"
-          >
-            Remove video
-          </button>
-        ) : null}
-      </label>
-
-      {progress != null ? (
-        <div className="h-1.5 overflow-hidden rounded-full bg-sky-200">
-          <div
-            className="h-full rounded-full bg-sky-600 transition-[width]"
-            style={{ width: `${Math.round(progress * 100)}%` }}
-          />
-        </div>
+          onClick={() => onUrl("")}
+          className="text-xs font-semibold text-sky-600"
+        >
+          Remove link
+        </button>
       ) : null}
-      {status ? <p className="text-xs text-ink-soft">{status}</p> : null}
+
+      {resolving ? (
+        <p className="text-xs text-ink-soft">
+          Finding that {link ? providerLabel(link.provider) : "clip"}…
+        </p>
+      ) : null}
+
+      {link ? <VisitMediaEmbed link={link} /> : null}
+
       {error ? (
         <p role="alert" className="text-xs font-medium text-danger-ink">
           {error}
@@ -210,4 +102,8 @@ export function VisitMediaFields({ photo, video, onPhoto, onVideo, busy }: Props
       ) : null}
     </div>
   );
+}
+
+function looksLikeClipUrl(value: string): boolean {
+  return /(?:tiktok|instagram|instagr\.am|youtu\.?be)/i.test(value) && /\/\S+/.test(value);
 }

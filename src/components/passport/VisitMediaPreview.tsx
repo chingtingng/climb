@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cx } from "@/components/ui/cx";
-import { VISIT_MEDIA_BUCKET } from "./VisitMediaFields";
+import {
+  isLegacyVisitMediaPath,
+  visitMediaLinkFromStored,
+} from "@/lib/visitMedia";
+import { VisitMediaEmbed } from "./VisitMediaEmbed";
+
+const VISIT_MEDIA_BUCKET = "visit-media";
 
 export function VisitMediaPreview({
   photoPath,
@@ -14,17 +20,40 @@ export function VisitMediaPreview({
   videoPath?: string | null;
   className?: string;
 }) {
+  const link = visitMediaLinkFromStored(photoPath, videoPath);
+  const legacyPhoto = isLegacyVisitMediaPath(photoPath) ? photoPath ?? null : null;
+  const legacyVideo = isLegacyVisitMediaPath(videoPath) ? videoPath ?? null : null;
+
+  if (link) {
+    return <VisitMediaEmbed link={link} className={className} />;
+  }
+
+  if (!legacyPhoto && !legacyVideo) return null;
+
+  return (
+    <LegacyVisitMedia
+      photoPath={legacyPhoto}
+      videoPath={legacyVideo}
+      className={className}
+    />
+  );
+}
+
+function LegacyVisitMedia({
+  photoPath,
+  videoPath,
+  className,
+}: {
+  photoPath: string | null;
+  videoPath: string | null;
+  className?: string;
+}) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (!photoPath && !videoPath) {
-        setPhotoUrl(null);
-        setVideoUrl(null);
-        return;
-      }
       const supabase = createClient();
       if (photoPath) {
         const { data } = await supabase.storage
@@ -49,7 +78,7 @@ export function VisitMediaPreview({
     };
   }, [photoPath, videoPath]);
 
-  if (!photoPath && !videoPath) return null;
+  if (!photoUrl && !videoUrl) return null;
 
   return (
     <div className={cx("mt-2.5 space-y-2", className)}>

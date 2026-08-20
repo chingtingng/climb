@@ -15,7 +15,7 @@ Shared catalog, private stamps:
 - `gyms` — brand/place (Boulder Planet, BFF Climbing, …) plus `place_kind` (`gym` | `rock`) and `climbing_types` offered
 - `gym_outlets` — locations of that brand (Sembawang, Tai Seng, …)
 - `gym_grade_scales` — one grade chart per gym (numbers, colours, V-scale, custom) plus an optional photo
-- `visits` — your stamps: which gym + outlet, climbing type, grade, date, notes, optional photo/video
+- `visits` — your stamps: which gym + outlet, climbing type, grade, date, notes, optional TikTok / Instagram / YouTube clip link
 - `profiles` — username + email (for recovery / username login lookup)
 
 Place kind: **Gym** = artificial walls/holds (including outdoor plastic walls); **Rock** = natural stone.
@@ -37,7 +37,7 @@ When creating the project, use these **Security** checkboxes:
 Then:
 
 1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops old stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `visits`. Profiles and Auth users are kept. Re-run it whenever the schema changes.
-   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/visit-media.sql`](./supabase/visit-media.sql), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), [`supabase/place-kind.sql`](./supabase/place-kind.sql), and [`supabase/yds-grades.sql`](./supabase/yds-grades.sql) instead of a full reset.
+   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/visit-media.sql`](./supabase/visit-media.sql) (adds `video_path` for clip links), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), [`supabase/place-kind.sql`](./supabase/place-kind.sql), and [`supabase/yds-grades.sql`](./supabase/yds-grades.sql) instead of a full reset.
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:
@@ -89,6 +89,7 @@ Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (
 - **Sign in** accepts username **or** email plus password.
 - Legacy accounts created as `username@chalk.local` can still sign in with username until they migrate to a real email.
 - After login: **Home**, **Places**, and **Profile**, with a stepped **+ Log a visit** flow
+- Optional stamp clip: paste a public **TikTok**, **Instagram** Reel/post, or **YouTube Shorts** link. The clip is embedded for preview; the file stays on that platform (not in Supabase storage).
 - New places ask **Gym or Rock** (with help text). Catalog places keep that mapping on `gyms.place_kind`.
 - Repeat visits to the same place add another stamp, not a duplicate place. Multi-location gyms (e.g. Boulder Planet Sembawang / Tai Seng) use an **outlet** selector.
 - Grade systems: V-scale, Font, French, YDS, **Numbers**, **Colours**, and custom house scales

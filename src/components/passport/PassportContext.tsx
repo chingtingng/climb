@@ -29,8 +29,11 @@ type PassportContextValue = {
   loadError: string | null;
   logOpen: boolean;
   logPrefill: LogPrefill | null;
+  editVisit: GymVisit | null;
   openLog: (prefill?: LogPrefill) => void;
   closeLog: () => void;
+  openEdit: (visit: GymVisit) => void;
+  closeEdit: () => void;
 };
 
 const PassportContext = createContext<PassportContextValue | null>(null);
@@ -52,6 +55,7 @@ export function PassportProvider({
 }) {
   const [logOpen, setLogOpen] = useState(false);
   const [logPrefill, setLogPrefill] = useState<LogPrefill | null>(null);
+  const [editVisit, setEditVisit] = useState<GymVisit | null>(null);
 
   const gyms = useMemo(
     () => groupVisitsByGym(visits, catalogGyms),
@@ -60,6 +64,7 @@ export function PassportProvider({
   const stats = useMemo(() => computeStats(visits, gyms), [visits, gyms]);
 
   const openLog = useCallback((prefill?: LogPrefill) => {
+    setEditVisit(null);
     setLogPrefill(prefill ?? null);
     setLogOpen(true);
   }, []);
@@ -67,6 +72,16 @@ export function PassportProvider({
   const closeLog = useCallback(() => {
     setLogOpen(false);
     setLogPrefill(null);
+  }, []);
+
+  const openEdit = useCallback((visit: GymVisit) => {
+    setLogOpen(false);
+    setLogPrefill(null);
+    setEditVisit(visit);
+  }, []);
+
+  const closeEdit = useCallback(() => {
+    setEditVisit(null);
   }, []);
 
   const value = useMemo(
@@ -80,8 +95,11 @@ export function PassportProvider({
       loadError,
       logOpen,
       logPrefill,
+      editVisit,
       openLog,
       closeLog,
+      openEdit,
+      closeEdit,
     }),
     [
       username,
@@ -93,8 +111,11 @@ export function PassportProvider({
       loadError,
       logOpen,
       logPrefill,
+      editVisit,
       openLog,
       closeLog,
+      openEdit,
+      closeEdit,
     ],
   );
 

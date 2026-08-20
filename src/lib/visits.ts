@@ -19,6 +19,7 @@ import type {
   Profile,
 } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseVisitMediaUrl, visitMediaLinkFromStored } from "./visitMedia";
 
 const CHART_BUCKET = "gym-grade-charts";
 const MAX_CHART_BYTES = 8 * 1024 * 1024;
@@ -628,8 +629,8 @@ export async function createVisit(
     scale: undefined,
     chartFile: null,
   });
-  const photo_path = ownedMediaPath(profileId, input.photo_path);
-  const video_path = ownedMediaPath(profileId, input.video_path);
+  const photo_path = null;
+  const video_path = storedVisitClipUrl(input.video_path);
 
   const { data, error } = await supabase
     .from("visits")
@@ -664,7 +665,7 @@ export async function createVisit(
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
       throw new Error(
-        "Visit media isn’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+        "Visit clip links aren’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
       );
     }
     const retry = await supabase
@@ -743,8 +744,8 @@ export async function updateVisit(
     scale: undefined,
     chartFile: null,
   });
-  const photo_path = ownedMediaPath(profileId, input.photo_path);
-  const video_path = ownedMediaPath(profileId, input.video_path);
+  const existing = await fetchVisitMedia(supabase, profileId, visitId);
+  const { photo_path, video_path } = nextVisitMedia(existing, input);
 
   const { data, error } = await supabase
     .from("visits")
@@ -778,7 +779,7 @@ export async function updateVisit(
   if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
     if (photo_path || video_path) {
       throw new Error(
-        "Visit media isn’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+        "Visit clip links aren’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
       );
     }
     const retry = await supabase
@@ -840,14 +841,51 @@ export function chartPublicUrl(path: string | null | undefined): string | null {
   return `${base}/storage/v1/object/public/${CHART_BUCKET}/${path}`;
 }
 
-function ownedMediaPath(
+function storedVisitClipUrl(path: string | null | undefined): string | null {
+  const parsed = parseVisitMediaUrl(path ?? "");
+  if (!parsed) return null;
+  if ("error" in parsed) throw new Error(parsed.error);
+  return parsed.url;
+}
+
+async function fetchVisitMedia(
+  supabase: SupabaseClient,
   profileId: string,
-  path: string | null | undefined,
-): string | null {
-  const trimmed = path?.trim();
-  if (!trimmed) return null;
-  if (!trimmed.startsWith(`${profileId}/`)) {
-    throw new Error("That media upload doesn’t belong to your account.");
+  visitId: string,
+): Promise<{ photo_path: string | null; video_path: string | null }> {
+  const current = await supabase
+    .from("visits")
+    .select("photo_path, video_path")
+    .eq("id", visitId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  if (
+    current.error &&
+    /photo_path|video_path|schema cache|PGRST204|column/i.test(current.error.message)
+  ) {
+    return { photo_path: null, video_path: null };
   }
-  return trimmed;
+  if (current.error) throw mapDbError(current.error.message);
+  if (!current.data) throw new Error("Couldn't find that stamp.");
+  return {
+    photo_path: (current.data.photo_path as string | null) ?? null,
+    video_path: (current.data.video_path as string | null) ?? null,
+  };
+}
+
+function nextVisitMedia(
+  existing: { photo_path: string | null; video_path: string | null },
+  input: GymVisitInput,
+): { photo_path: string | null; video_path: string | null } {
+  const clip = storedVisitClipUrl(input.video_path);
+  if (clip) return { photo_path: null, video_path: clip };
+  if (input.clear_media) return { photo_path: null, video_path: null };
+  if (visitMediaLinkFromStored(existing.photo_path, existing.video_path)) {
+    return { photo_path: null, video_path: null };
+  }
+  return {
+    photo_path: existing.photo_path,
+    video_path: existing.video_path,
+  };
 }

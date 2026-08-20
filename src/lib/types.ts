@@ -54,7 +54,9 @@ export type GymVisit = {
   highest_grade: string;
   v_equiv?: string | null;
   notes: string | null;
+  /** Legacy storage path from older photo uploads; unused for new stamps. */
   photo_path?: string | null;
+  /** Public TikTok / Instagram / YouTube URL, or a legacy storage path. */
   video_path?: string | null;
   visited_on: string;
   created_at: string;
@@ -83,7 +85,10 @@ export type GymVisitInput = {
   scale?: GradeScale;
   chartFile?: File | null;
   photo_path?: string | null;
+  /** Public TikTok / Instagram / YouTube URL. */
   video_path?: string | null;
+  /** When true on update, drop any stored clip (including a legacy upload). */
+  clear_media?: boolean;
 };
 
 /** A gym brand — possibly with several outlets. */
