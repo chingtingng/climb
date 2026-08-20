@@ -55,7 +55,7 @@ export function HomeView() {
           <>
             <section
               aria-label="Passport statistics"
-              className="rounded-lg bg-sky-50 px-3 py-4 shadow-soft"
+              className="glass rounded-lg px-3 py-4"
             >
               <div className="grid grid-cols-4 gap-1 text-center">
                 <Stat value={stats.gyms} label="Places" />
