@@ -24,6 +24,7 @@ import {
 } from "@/lib/visitMedia";
 import type { CatalogGym, GradeSystem, GymGroup, GymOutlet, GymVisit } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
+import { DeleteStampDialog } from "./DeleteStampDialog";
 import { FlashToast } from "./FlashToast";
 import { CloseIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
@@ -74,6 +75,7 @@ function EditVisitSheetInner({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, actionPending] = useActionState(updateVisitAction, initial);
   const [isPending, startTransition] = useTransition();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -227,15 +229,27 @@ function EditVisitSheetInner({
                   .join(" · ")}
               </p>
             </div>
-            <button
-              ref={closeRef}
-              type="button"
-              onClick={onClose}
-              className="inline-flex size-11 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
-              aria-label="Close"
-            >
-              <CloseIcon />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              <DeleteStampDialog
+                visitId={visit.id}
+                disabled={pending || !configured}
+                onDeleted={() => {
+                  const lastVisit = (userMatch?.visitCount ?? 1) <= 1;
+                  onClose();
+                  if (lastVisit) router.replace("/passport/gyms");
+                  router.refresh();
+                }}
+              />
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={onClose}
+                className="inline-flex size-11 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
+                aria-label="Close"
+              >
+                <CloseIcon />
+              </button>
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pb-3">
