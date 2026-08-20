@@ -149,7 +149,7 @@ export function LoginForm({
       <div className="auth-layout">
       <div className="auth-brand">
       <div aria-hidden className="auth-stamps mb-3 flex justify-center gap-3">
-        <Stamp variant="grade" size="sm" seed="login-v4" label="V4" />
+        <Stamp variant="grade" size="sm" seed="login-v17" label="V17" />
         <Stamp variant="country" size="sm" country="Singapore" seed="SG" />
       </div>
 
