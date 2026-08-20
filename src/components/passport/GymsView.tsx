@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { countryCode } from "@/lib/countries";
 import { formatStampDate } from "@/lib/dates";
 import { gradeSortValue } from "@/lib/grades";
+import { sameCountry } from "@/lib/gymCatalog";
 import { formatGymPlace, uniqueCountries } from "@/lib/gyms";
 import type { GymGroup } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
@@ -37,10 +39,11 @@ export function GymsView() {
     .filter((gym) => {
       const matchesQuery =
         !q ||
-        `${gym.name} ${gym.city} ${gym.country} ${gym.outlets.join(" ")}`.toLowerCase().includes(q);
+        `${gym.name} ${gym.city} ${gym.country} ${countryCode(gym.country)} ${gym.outlets.join(" ")}`
+          .toLowerCase()
+          .includes(q);
       const matchesCountry =
-        country === "All" ||
-        gym.country.trim().toLowerCase() === country.trim().toLowerCase();
+        country === "All" || sameCountry(gym.country, country);
       return matchesQuery && matchesCountry;
     })
     .sort((a, b) => compareGyms(a, b, sort));
@@ -77,11 +80,13 @@ export function GymsView() {
           >
             {["All", ...countries].map((item) => {
               const selected = item === country;
+              const label = item === "All" ? "All" : countryCode(item) || item;
               return (
                 <button
                   key={item}
                   type="button"
                   aria-pressed={selected}
+                  aria-label={item === "All" ? "All countries" : item}
                   onClick={() => setCountry(item)}
                   className={cx(
                     "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold",
@@ -90,7 +95,7 @@ export function GymsView() {
                       : "border-sky-300 bg-surface text-ink hover:bg-sky-50 active:bg-sky-50",
                   )}
                 >
-                  {item}
+                  {label}
                 </button>
               );
             })}
@@ -265,7 +270,7 @@ function SortMenu({
 function compareGyms(a: GymGroup, b: GymGroup, sort: SortKey) {
   if (sort === "az") return a.name.localeCompare(b.name);
   if (sort === "country") {
-    const country = a.country.localeCompare(b.country);
+    const country = countryCode(a.country).localeCompare(countryCode(b.country));
     return country !== 0 ? country : a.name.localeCompare(b.name);
   }
   if (sort === "grade") {

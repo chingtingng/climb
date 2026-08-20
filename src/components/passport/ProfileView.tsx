@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
+import { countryName } from "@/lib/countries";
 import { formatStampDayMonth } from "@/lib/dates";
 import { gymSlug, uniqueCountries } from "@/lib/gyms";
 import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
@@ -19,8 +20,9 @@ const FEEDBACK_URL = "https://www.instagram.com/chalkchingup";
 const RECENT_LIMIT = 4;
 
 function countryTitle(countries: string[]): string {
-  if (countries.length <= 2) return countries.join(" · ");
-  return `${countries[0]} and ${countries.length - 1} more`;
+  const names = countries.map((country) => countryName(country) || country);
+  if (names.length <= 2) return names.join(" · ");
+  return `${names[0]} and ${names.length - 1} more`;
 }
 
 function CountryHighlight({ countries }: { countries: string[] }) {
@@ -143,7 +145,7 @@ export function ProfileView() {
                 href="/passport/gyms"
                 label={
                   countries.length > 2
-                    ? `Countries explored: ${countries.join(", ")}`
+                    ? `Countries explored: ${countries.map((country) => countryName(country) || country).join(", ")}`
                     : undefined
                 }
                 icon={<GlobeIcon />}
@@ -382,7 +384,7 @@ function GymHighlight({ gym }: { gym: GymGroup }) {
     <>
       <p className="break-words text-base font-semibold leading-tight">{gym.name}</p>
       <p className="mt-0.5 text-sm leading-tight text-ink-soft">
-        Most visited · {gym.country}
+        Most visited · {countryName(gym.country) || gym.country}
       </p>
     </>
   );
@@ -413,8 +415,8 @@ function Count({ value, label }: { value: number; label: string }) {
 
 function visitCityLabel(visit: GymVisit): string {
   const city = visit.city.trim();
-  const country = visit.country.trim();
-  if (city && city.toLowerCase() !== country.toLowerCase()) return city;
+  const country = countryName(visit.country) || visit.country.trim();
+  if (city && city.toLowerCase() !== visit.country.trim().toLowerCase()) return city;
   return city || country;
 }
 
