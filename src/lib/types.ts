@@ -87,6 +87,8 @@ export type GymVisitInput = {
   photo_path?: string | null;
   /** Public TikTok / Instagram / YouTube URL. */
   video_path?: string | null;
+  /** When true on update, drop any stored clip (including a legacy upload). */
+  clear_media?: boolean;
 };
 
 /** A gym brand — possibly with several outlets. */

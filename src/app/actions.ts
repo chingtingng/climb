@@ -374,6 +374,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const media_url = String(
     formData.get("media_url") || formData.get("video_path") || "",
   ).trim();
+  const clear_media = String(formData.get("clear_media") ?? "") === "1";
   const climbing_typeRaw = String(formData.get("climbing_type") ?? "").trim();
   const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
   const placeKindRaw = String(formData.get("place_kind") ?? "").trim();
@@ -406,7 +407,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     climbing_types = ["bouldering"];
   }
 
-  let climbing_type: ClimbingType = isClimbingType(climbing_typeRaw)
+  const climbing_type: ClimbingType = isClimbingType(climbing_typeRaw)
     ? climbing_typeRaw
     : climbing_types[0];
   if (!climbing_types.includes(climbing_type)) {
@@ -484,6 +485,7 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     chartFile,
     photo_path: null,
     video_path: media_url || null,
+    clear_media,
   };
 }
 
@@ -506,11 +508,14 @@ export async function resolveVisitMediaAction(
 async function withResolvedClip(
   input: GymVisitInput,
 ): Promise<GymVisitInput | string> {
+  if (input.clear_media && !input.video_path) {
+    return { ...input, photo_path: null, video_path: null, clear_media: true };
+  }
   if (!input.video_path) return { ...input, photo_path: null, video_path: null };
   const resolved = await resolveVisitMediaUrl(input.video_path);
   if (resolved === null) return { ...input, photo_path: null, video_path: null };
   if ("error" in resolved) return resolved.error;
-  return { ...input, photo_path: null, video_path: resolved.url };
+  return { ...input, photo_path: null, video_path: resolved.url, clear_media: false };
 }
 
 async function requireSessionProfile() {
