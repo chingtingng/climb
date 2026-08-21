@@ -5,11 +5,20 @@ import {
   normalizeClimbingTypes,
 } from "./climbingTypes";
 import { countryMeta } from "./countries";
-import { findKnownGym, isClosedGym, KNOWN_GYMS, mergeCatalogGyms, visibleOutlets } from "./gymCatalog";
+import {
+  catalogCity,
+  findKnownGym,
+  isClosedGym,
+  KNOWN_GYMS,
+  mergeCatalogGyms,
+  normalizeCatalogStatus,
+  visibleOutlets,
+} from "./gymCatalog";
 import { isGradeSystem } from "./grades";
 import { normalizePlaceKind } from "./placeKinds";
 import type {
   CatalogGym,
+  CatalogStatus,
   GradeScale,
   GradeSystem,
   GymOutlet,
@@ -34,7 +43,6 @@ const VISIT_SELECT = `
   highest_grade,
   v_equiv,
   notes,
-  photo_path,
   video_path,
   visited_on,
   created_at,
@@ -53,7 +61,6 @@ type VisitRow = {
   highest_grade: string;
   v_equiv: string | null;
   notes: string | null;
-  photo_path?: string | null;
   video_path?: string | null;
   visited_on: string;
   created_at: string;
@@ -87,7 +94,6 @@ function rowToVisit(row: VisitRow): GymVisit {
     highest_grade: row.highest_grade,
     v_equiv: row.v_equiv,
     notes: row.notes,
-    photo_path: row.photo_path ?? null,
     video_path: row.video_path ?? null,
     visited_on: row.visited_on,
     created_at: row.created_at,
@@ -102,6 +108,9 @@ function isMissingRelation(message: string) {
 }
 
 function mapDbError(message: string): Error {
+  if (/row-level security/i.test(message)) {
+    return new Error("This place isn’t available to stamp right now.");
+  }
   if (/permission denied/i.test(message)) {
     return new Error(
       "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.",
@@ -109,7 +118,7 @@ function mapDbError(message: string): Error {
   }
   if (/grade_system|gym_grade_scales_kind|visits_grade/i.test(message)) {
     return new Error(
-      "YDS isn’t set up yet. Run supabase/yds-grades.sql (or supabase/schema.sql) in the Supabase SQL Editor, then try again.",
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
   }
   if (isMissingRelation(message) || /climbing_type|climbing_types/i.test(message)) {
@@ -145,7 +154,7 @@ export async function ensureOwnProfile(
     .select("*")
     .single();
 
-  // Before email-auth.sql is applied, profiles has no email column — retry.
+  // Retry without email if the column is missing on a stale schema.
   if (
     first.error &&
     withEmail !== base &&
@@ -175,7 +184,7 @@ export async function listVisitsForProfile(profileId: string): Promise<GymVisit[
 
   if (
     primary.error &&
-    /photo_path|video_path|schema cache|PGRST204|column/i.test(primary.error.message)
+    /video_path|schema cache|PGRST204|column/i.test(primary.error.message)
   ) {
     const legacy = await supabase
       .from("visits")
@@ -211,12 +220,24 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
   const full = await supabase
     .from("gyms")
     .select(
-      "id, name, country, place_kind, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+      "id, name, country, place_kind, climbing_types, status, gym_outlets(id, name, city, status), gym_grade_scales(kind, bands, chart_path)",
     )
+    .in("status", ["pending", "published"])
     .order("name");
 
   let rows: Array<Record<string, unknown>> | null = full.data as Array<Record<string, unknown>> | null;
   let error = full.error;
+
+  if (error && /status|schema cache|PGRST204|column/i.test(error.message)) {
+    const withoutStatus = await supabase
+      .from("gyms")
+      .select(
+        "id, name, country, place_kind, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+      )
+      .order("name");
+    rows = withoutStatus.data as Array<Record<string, unknown>> | null;
+    error = withoutStatus.error;
+  }
 
   if (error && /place_kind|schema cache|PGRST204|column/i.test(error.message)) {
     const withoutKind = await supabase
@@ -242,7 +263,12 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
 
   if (error) throw mapDbError(error.message);
 
-  return (rows ?? []).map((row) => {
+  return (rows ?? []).flatMap((row) => {
+    const gymStatus = normalizeCatalogStatus(
+      "status" in row ? (row.status as string | null) : "published",
+    );
+    if (gymStatus === "rejected") return [];
+
     const scaleRaw = row.gym_grade_scales;
     const scaleRow = Array.isArray(scaleRaw) ? scaleRaw[0] : scaleRaw;
     const outlets = Array.isArray(row.gym_outlets) ? row.gym_outlets : [];
@@ -259,21 +285,31 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
             chartPath: (scaleRow as { chart_path?: string | null }).chart_path,
           }
         : null;
-    return {
-      id: row.id as string,
-      name: row.name as string,
-      country: row.country as string,
-      place_kind: normalizePlaceKind(
-        "place_kind" in row ? (row.place_kind as string | null) : null,
-      ),
-      climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
-      outlets: (outlets as GymOutlet[]).map((outlet) => ({
-        id: outlet.id,
-        name: outlet.name,
-        city: outlet.city,
-      })),
-      scale,
-    } satisfies CatalogGym;
+    return [
+      {
+        id: row.id as string,
+        name: row.name as string,
+        country: row.country as string,
+        status: gymStatus,
+        place_kind: normalizePlaceKind(
+          "place_kind" in row ? (row.place_kind as string | null) : null,
+        ),
+        climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
+        outlets: (outlets as Array<GymOutlet & { status?: string }>).flatMap((outlet) => {
+          const status = normalizeCatalogStatus(outlet.status);
+          if (status === "rejected") return [];
+          return [
+            {
+              id: outlet.id,
+              name: outlet.name,
+              city: outlet.city,
+              status,
+            },
+          ];
+        }),
+        scale,
+      } satisfies CatalogGym,
+    ];
   });
 }
 
@@ -303,12 +339,13 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
         climbing_types: normalizeClimbingTypes(gym.climbing_types).length
           ? normalizeClimbingTypes(gym.climbing_types)
           : DEFAULT_CLIMBING_TYPES,
+        status: "published" as const,
         created_by: profileId,
       })),
     );
     if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
-      // Column may be missing before place-kind.sql / climbing-types.sql — retry without.
-      if (/place_kind|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+      // Retry without newer catalog columns if the schema is stale.
+      if (/status|place_kind|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
         const retry = await supabase.from("gyms").insert(
           missingGyms.map((gym) => ({
             name: gym.name,
@@ -326,7 +363,13 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
     gyms = await fetchCatalogGyms(supabase);
   }
 
-  const outletRows: { gym_id: string; name: string; city: string; created_by: string }[] = [];
+  const outletRows: {
+    gym_id: string;
+    name: string;
+    city: string;
+    status: CatalogStatus;
+    created_by: string;
+  }[] = [];
   const scaleRows: {
     gym_id: string;
     kind: GradeSystem;
@@ -352,6 +395,7 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
           gym_id: dbGym.id,
           name: outlet.name,
           city: outlet.city,
+          status: "published",
           created_by: profileId,
         });
       }
@@ -370,7 +414,16 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
   if (outletRows.length > 0) {
     const inserted = await supabase.from("gym_outlets").insert(outletRows);
     if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
-      throw mapDbError(inserted.error.message);
+      if (/status|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+        const retry = await supabase.from("gym_outlets").insert(
+          outletRows.map(({ status: _status, ...row }) => row),
+        );
+        if (retry.error && !/duplicate|unique/i.test(retry.error.message)) {
+          throw mapDbError(retry.error.message);
+        }
+      } else {
+        throw mapDbError(inserted.error.message);
+      }
     }
   }
   if (scaleRows.length > 0) {
@@ -389,9 +442,10 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
 
 type GymCatalogRow = {
   id: string;
+  status?: string | null;
   gym_outlets:
-    | { id: string; name: string; city: string }[]
-    | { id: string; name: string; city: string }
+    | { id: string; name: string; city: string; status?: string | null }[]
+    | { id: string; name: string; city: string; status?: string | null }
     | null;
 };
 
@@ -400,6 +454,19 @@ async function findGymCatalogRow(
   name: string,
   country: string,
 ): Promise<GymCatalogRow | null> {
+  const live = await supabase
+    .from("gyms")
+    .select("id, status, gym_outlets(id, name, city, status)")
+    .ilike("name", escapeIlike(name.trim()))
+    .ilike("country", escapeIlike(country.trim()))
+    .in("status", ["pending", "published"])
+    .limit(1)
+    .maybeSingle();
+  if (!live.error) return live.data as GymCatalogRow | null;
+  if (!/status|schema cache|PGRST204|column/i.test(live.error.message)) {
+    throw mapDbError(live.error.message);
+  }
+
   const { data, error } = await supabase
     .from("gyms")
     .select("id, gym_outlets(id, name, city)")
@@ -413,9 +480,18 @@ async function findGymCatalogRow(
 
 function outletList(
   value: GymCatalogRow["gym_outlets"],
-): { id: string; name: string; city: string }[] {
+): { id: string; name: string; city: string; status?: string | null }[] {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+const HIDDEN_PLACE =
+  "This place was hidden from the catalog. Your existing stamps are still on your passport.";
+
+function assertLiveCatalogStatus(status: string | null | undefined) {
+  if (normalizeCatalogStatus(status) === "rejected") {
+    throw new Error(HIDDEN_PLACE);
+  }
 }
 
 async function ensureGymCatalog(
@@ -447,24 +523,46 @@ async function ensureGymCatalog(
     (dummyOutlet ? knownOutlets[0]?.name : typedOutlet) ||
     "Main"
   ).trim();
-  const city = (resolvedOutlet?.city || input.city.trim() || outletName).trim();
+  const city = catalogCity(
+    country,
+    resolvedOutlet?.city || input.city.trim() || outletName,
+  );
 
   // Fast path: client already resolved catalog IDs (still verify FK pairing).
   if (input.gym_id && input.outlet_id) {
     const { data: linked, error: linkedError } = await supabase
       .from("gym_outlets")
-      .select("id, gym_id")
+      .select("id, gym_id, status, gyms(status)")
       .eq("id", input.outlet_id)
       .eq("gym_id", input.gym_id)
       .maybeSingle();
-    if (linkedError) throw mapDbError(linkedError.message);
-    if (linked) {
+    if (linkedError && /status|schema cache|PGRST204|column/i.test(linkedError.message)) {
+      const fallback = await supabase
+        .from("gym_outlets")
+        .select("id, gym_id")
+        .eq("id", input.outlet_id)
+        .eq("gym_id", input.gym_id)
+        .maybeSingle();
+      if (fallback.error) throw mapDbError(fallback.error.message);
+      if (fallback.data) {
+        return { gymId: fallback.data.gym_id, outletId: fallback.data.id };
+      }
+    } else if (linkedError) {
+      throw mapDbError(linkedError.message);
+    } else if (linked) {
+      const gymStatus = unwrapOne(
+        linked.gyms as { status?: string } | { status?: string }[] | null,
+      );
+      assertLiveCatalogStatus(linked.status as string | null | undefined);
+      assertLiveCatalogStatus(gymStatus?.status);
       return { gymId: linked.gym_id, outletId: linked.id };
     }
   }
 
   let gym = await findGymCatalogRow(supabase, gymName, country);
+  if (gym) assertLiveCatalogStatus(gym.status);
   if (!gym) {
+    const gymStatus: CatalogStatus = known ? "published" : "pending";
     const inserted = await supabase
       .from("gyms")
       .insert({
@@ -472,13 +570,14 @@ async function ensureGymCatalog(
         country,
         place_kind: placeKind,
         climbing_types: resolvedClimbingTypes,
+        status: gymStatus,
         created_by: profileId,
       })
-      .select("id, gym_outlets(id, name, city)")
+      .select("id, status, gym_outlets(id, name, city, status)")
       .single();
 
     if (inserted.error) {
-      if (/place_kind|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+      if (/status|place_kind|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
         const retry = await supabase
           .from("gyms")
           .insert({
@@ -515,22 +614,58 @@ async function ensureGymCatalog(
   // backfilled by loadPassportCatalog on passport load, not on every stamp.
   const outlets = outletList(gym.gym_outlets);
   let outlet =
-    outlets.find((row) => row.name.toLowerCase() === outletName.toLowerCase()) ?? null;
+    outlets.find(
+      (row) =>
+        row.name.toLowerCase() === outletName.toLowerCase() &&
+        normalizeCatalogStatus(row.status) !== "rejected",
+    ) ?? null;
 
   if (!outlet) {
+    const seedOutlet = knownOutlets.some(
+      (item) => item.name.toLowerCase() === outletName.toLowerCase(),
+    );
+    const outletStatus: CatalogStatus = seedOutlet ? "published" : "pending";
     const createdOutlet = await supabase
       .from("gym_outlets")
       .insert({
         gym_id: gym.id,
         name: outletName,
         city,
+        status: outletStatus,
         created_by: profileId,
       })
       .select("id")
       .single();
 
     if (createdOutlet.error) {
-      if (/duplicate|unique/i.test(createdOutlet.error.message)) {
+      if (/status|schema cache|PGRST204|column/i.test(createdOutlet.error.message)) {
+        const retry = await supabase
+          .from("gym_outlets")
+          .insert({
+            gym_id: gym.id,
+            name: outletName,
+            city,
+            created_by: profileId,
+          })
+          .select("id")
+          .single();
+        if (retry.error) {
+          if (/duplicate|unique/i.test(retry.error.message)) {
+            const { data: raced, error } = await supabase
+              .from("gym_outlets")
+              .select("id")
+              .eq("gym_id", gym.id)
+              .ilike("name", escapeIlike(outletName))
+              .maybeSingle();
+            if (error) throw mapDbError(error.message);
+            outlet = raced ? { id: raced.id, name: outletName, city } : null;
+          } else {
+            throw mapDbError(retry.error.message);
+          }
+        } else {
+          outlet = { id: retry.data.id, name: outletName, city, status: outletStatus };
+        }
+      } else if (/duplicate|unique/i.test(createdOutlet.error.message)) {
         const { data: raced, error } = await supabase
           .from("gym_outlets")
           .select("id")
@@ -543,13 +678,20 @@ async function ensureGymCatalog(
         throw mapDbError(createdOutlet.error.message);
       }
     } else {
-      outlet = { id: createdOutlet.data.id, name: outletName, city };
+      outlet = {
+        id: createdOutlet.data.id,
+        name: outletName,
+        city,
+        status: outletStatus,
+      };
     }
   }
 
   if (!outlet) {
     throw new Error("Couldn't save that place location. Please try again.");
   }
+
+  assertLiveCatalogStatus(outlet.status);
 
   // Grade scale is committed after the visit insert succeeds (see createVisit /
   // updateVisit) so abandoned drafts never land in the catalog.
@@ -710,7 +852,6 @@ export async function createVisit(
     scale: undefined,
     chartFile: null,
   });
-  const photo_path = null;
   const video_path = storedVisitClipUrl(input.video_path);
 
   const { data, error } = await supabase
@@ -724,7 +865,6 @@ export async function createVisit(
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
       notes: input.notes?.trim() || null,
-      photo_path,
       video_path,
       visited_on: input.visited_on,
     })
@@ -733,20 +873,20 @@ export async function createVisit(
 
   if (error && /climbing_type/i.test(error.message)) {
     throw new Error(
-      "Climbing types aren’t set up yet. Run supabase/schema.sql (or supabase/climbing-types.sql) in the Supabase SQL Editor, then try again.",
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
   }
 
   if (error && /grade_system|gym_grade_scales_kind/i.test(error.message)) {
     throw new Error(
-      "YDS isn’t set up yet. Run supabase/yds-grades.sql (or supabase/schema.sql) in the Supabase SQL Editor, then try again.",
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
   }
 
-  if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
-    if (photo_path || video_path) {
+  if (error && /video_path|schema cache|PGRST204|column/i.test(error.message)) {
+    if (video_path) {
       throw new Error(
-        "Visit clip links aren’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+        "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
       );
     }
     const retry = await supabase
@@ -825,8 +965,8 @@ export async function updateVisit(
     scale: undefined,
     chartFile: null,
   });
-  const existing = await fetchVisitMedia(supabase, profileId, visitId);
-  const { photo_path, video_path } = nextVisitMedia(existing, input);
+  const existing = await fetchVisitClipUrl(supabase, profileId, visitId);
+  const video_path = nextVisitClipUrl(existing, input);
 
   const { data, error } = await supabase
     .from("visits")
@@ -838,7 +978,6 @@ export async function updateVisit(
       highest_grade: input.highest_grade.trim(),
       v_equiv: input.v_equiv?.trim() || null,
       notes: input.notes?.trim() || null,
-      photo_path,
       video_path,
       visited_on: input.visited_on,
     })
@@ -849,18 +988,18 @@ export async function updateVisit(
 
   if (error && /climbing_type/i.test(error.message)) {
     throw new Error(
-      "Climbing types aren’t set up yet. Run supabase/schema.sql (or supabase/climbing-types.sql) in the Supabase SQL Editor, then try again.",
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
   }
   if (error && /grade_system|gym_grade_scales_kind/i.test(error.message)) {
     throw new Error(
-      "YDS isn’t set up yet. Run supabase/yds-grades.sql (or supabase/schema.sql) in the Supabase SQL Editor, then try again.",
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
     );
   }
-  if (error && /photo_path|video_path|schema cache|PGRST204|column/i.test(error.message)) {
-    if (photo_path || video_path) {
+  if (error && /video_path|schema cache|PGRST204|column/i.test(error.message)) {
+    if (video_path) {
       throw new Error(
-        "Visit clip links aren’t set up yet. Run supabase/visit-media.sql in the Supabase SQL Editor, then try again.",
+        "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
       );
     }
     const retry = await supabase
@@ -915,6 +1054,24 @@ export async function deleteVisit(profileId: string, visitId: string): Promise<v
   if (error) throw mapDbError(error.message);
 }
 
+export async function reportCatalogGym(profileId: string, gymId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("gym_reports").insert({
+    gym_id: gymId,
+    profile_id: profileId,
+  });
+  if (!error) return;
+  if (/duplicate|unique/i.test(error.message)) {
+    throw new Error("You’ve already reported this place.");
+  }
+  if (/row-level security|permission denied/i.test(error.message)) {
+    throw new Error(
+      "You can report a place after you’ve stamped a published gym, and you can’t report one you added.",
+    );
+  }
+  throw mapDbError(error.message);
+}
+
 export function chartPublicUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
@@ -929,44 +1086,35 @@ function storedVisitClipUrl(path: string | null | undefined): string | null {
   return parsed.url;
 }
 
-async function fetchVisitMedia(
+async function fetchVisitClipUrl(
   supabase: SupabaseClient,
   profileId: string,
   visitId: string,
-): Promise<{ photo_path: string | null; video_path: string | null }> {
+): Promise<string | null> {
   const current = await supabase
     .from("visits")
-    .select("photo_path, video_path")
+    .select("video_path")
     .eq("id", visitId)
     .eq("profile_id", profileId)
     .maybeSingle();
 
   if (
     current.error &&
-    /photo_path|video_path|schema cache|PGRST204|column/i.test(current.error.message)
+    /video_path|schema cache|PGRST204|column/i.test(current.error.message)
   ) {
-    return { photo_path: null, video_path: null };
+    return null;
   }
   if (current.error) throw mapDbError(current.error.message);
   if (!current.data) throw new Error("Couldn't find that stamp.");
-  return {
-    photo_path: (current.data.photo_path as string | null) ?? null,
-    video_path: (current.data.video_path as string | null) ?? null,
-  };
+  return visitMediaLinkFromStored((current.data.video_path as string | null) ?? null)?.url ?? null;
 }
 
-function nextVisitMedia(
-  existing: { photo_path: string | null; video_path: string | null },
+function nextVisitClipUrl(
+  existing: string | null,
   input: GymVisitInput,
-): { photo_path: string | null; video_path: string | null } {
+): string | null {
   const clip = storedVisitClipUrl(input.video_path);
-  if (clip) return { photo_path: null, video_path: clip };
-  if (input.clear_media) return { photo_path: null, video_path: null };
-  if (visitMediaLinkFromStored(existing.photo_path, existing.video_path)) {
-    return { photo_path: null, video_path: null };
-  }
-  return {
-    photo_path: existing.photo_path,
-    video_path: existing.video_path,
-  };
+  if (clip) return clip;
+  if (input.clear_media) return null;
+  return existing;
 }

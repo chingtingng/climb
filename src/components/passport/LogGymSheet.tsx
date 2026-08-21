@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addVisitAction, type ActionResult } from "@/app/actions";
+import { addVisitAction, reportCatalogGymAction, type ActionResult } from "@/app/actions";
 import { citiesForCountry } from "@/lib/cities";
 import {
   CLIMBING_TYPES,
@@ -23,6 +23,7 @@ import {
   gymsInCity,
   gymsInCountry,
   hasMultipleOutlets,
+  isUnverifiedPlace,
   mergeOutlets,
   sameCountry,
   searchKnownGyms,
@@ -218,6 +219,11 @@ function LogGymSheetInner({
   const activeScale = hasCatalogScale ? resolvedScale : needsScale ? scale : resolvedScale;
   const pickerSystem =
     activeScale && activeScale.bands.length > 0 ? activeScale.kind : system;
+  const selectedOutlet = outlets.find(
+    (item) => item.name.trim().toLowerCase() === outlet.trim().toLowerCase(),
+  );
+  const unverifiedPlace =
+    isUnverifiedPlace(catalogMatch?.status) || isUnverifiedPlace(selectedOutlet?.status);
 
   const steps: Step[] = [
     "country",
@@ -724,6 +730,15 @@ function LogGymSheetInner({
               />
             </div>
           )}
+          {unverifiedPlace && (step === "scale" || step === "grade") ? (
+            <p className="mt-3 text-sm text-ink-soft">
+              This place (and its grade chart) is unverified until another climber
+              stamps it too.
+            </p>
+          ) : null}
+          {catalogMatch?.id && step !== "country" && step !== "city" ? (
+            <ReportPlaceButton gymId={catalogMatch.id} />
+          ) : null}
           </div>
         </div>
 
@@ -840,6 +855,36 @@ function Overlay({
         onClick={onClose}
       />
       <div className="passport-overlay-frame relative w-full sm:px-3">{children}</div>
+    </div>
+  );
+}
+
+function ReportPlaceButton({ gymId }: { gymId: string }) {
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  return (
+    <div className="pt-3">
+      <button
+        type="button"
+        disabled={pending || done}
+        className="text-sm font-semibold text-ink-soft underline underline-offset-2 hover:text-ink disabled:no-underline"
+        onClick={() => {
+          startTransition(async () => {
+            const result = await reportCatalogGymAction(gymId);
+            if (result.ok) {
+              setDone(true);
+              setMessage("Thanks — we’ll take a look.");
+            } else {
+              setMessage(result.error ?? "Could not send that report.");
+            }
+          });
+        }}
+      >
+        This place looks wrong
+      </button>
+      {message ? <p className="mt-1 text-sm text-ink-soft">{message}</p> : null}
     </div>
   );
 }
@@ -1014,7 +1059,15 @@ function GymStep({
   onNext: () => void;
 }) {
   const q = query.trim().toLowerCase();
-  const inCountry = gyms.filter((gym) => sameCountry(gym.country, country));
+  const catalogIds = new Set(
+    catalogGyms.map((gym) => gym.id).filter((id): id is string => Boolean(id)),
+  );
+  const catalogHasDbRows = catalogIds.size > 0;
+  const inCountry = gyms.filter((gym) => {
+    if (!sameCountry(gym.country, country)) return false;
+    if (catalogHasDbRows && gym.gymId && !catalogIds.has(gym.gymId)) return false;
+    return true;
+  });
   const recent = (q
     ? inCountry.filter((gym) =>
         `${gym.name} ${gym.outlets.join(" ")} ${gym.country} ${countryCode(gym.country)}`.toLowerCase().includes(q),
@@ -1097,7 +1150,13 @@ function GymStep({
             key: `${gym.name}-${gym.country}`,
             title: gym.name,
             subtitle: catalogGymSubtitle(gym),
-            meta: gym.scale?.kind === "color" ? "Colours" : gym.scale?.kind === "number" ? "Numbers" : undefined,
+            meta: isUnverifiedPlace(gym.status)
+              ? "Unverified"
+              : gym.scale?.kind === "color"
+                ? "Colours"
+                : gym.scale?.kind === "number"
+                  ? "Numbers"
+                  : undefined,
             onClick: () => onSelectCatalog(gym),
           }))}
         />
@@ -1109,6 +1168,7 @@ function GymStep({
             key: `cat-${gym.name}-${gym.country}`,
             title: gym.name,
             subtitle: catalogGymSubtitle(gym),
+            meta: isUnverifiedPlace(gym.status) ? "Unverified" : undefined,
             onClick: () => onSelectCatalog(gym),
           }))}
         />
@@ -1497,6 +1557,9 @@ function OutletStep({
               onClick={() => handleSelectOutlet(item)}
             >
               {item.name}
+              {isUnverifiedPlace(item.status) ? (
+                <span className="ml-1 font-medium text-ink-soft">Unverified</span>
+              ) : null}
             </Chip>
           );
         })}

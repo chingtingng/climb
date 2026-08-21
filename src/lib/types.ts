@@ -27,10 +27,14 @@ export type GradeScale = {
   chartPath?: string | null;
 };
 
+export type CatalogStatus = "pending" | "published" | "rejected";
+
 export type GymOutlet = {
   id?: string;
   name: string;
   city: string;
+  /** Omitted on seeded client-only rows — treat as published. */
+  status?: CatalogStatus;
 };
 
 export type Profile = {
@@ -54,9 +58,7 @@ export type GymVisit = {
   highest_grade: string;
   v_equiv?: string | null;
   notes: string | null;
-  /** Legacy storage path from older photo uploads; unused for new stamps. */
-  photo_path?: string | null;
-  /** Public TikTok / Instagram / YouTube URL, or a legacy storage path. */
+  /** Public TikTok / Instagram / YouTube URL. */
   video_path?: string | null;
   visited_on: string;
   created_at: string;
@@ -84,10 +86,9 @@ export type GymVisitInput = {
   visited_on: string;
   scale?: GradeScale;
   chartFile?: File | null;
-  photo_path?: string | null;
   /** Public TikTok / Instagram / YouTube URL. */
   video_path?: string | null;
-  /** When true on update, drop any stored clip (including a legacy upload). */
+  /** When true on update, drop the stored clip link. */
   clear_media?: boolean;
 };
 
@@ -117,6 +118,8 @@ export type CatalogGym = {
   place_kind: PlaceKind;
   /** Disciplines this place offers. Single-type places skip the visit type picker. */
   climbing_types: ClimbingType[];
+  /** Omitted on seeded client-only rows — treat as published. */
+  status?: CatalogStatus;
   outlets: GymOutlet[];
   scale: GradeScale | null;
 };

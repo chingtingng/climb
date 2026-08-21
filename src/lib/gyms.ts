@@ -1,5 +1,5 @@
 import { countryCode, countryMeta, countryName } from "./countries";
-import { skipsCityStep } from "./gymCatalog";
+import { catalogCity, skipsCityStep } from "./gymCatalog";
 import { displayGrade, gradeSortValue } from "./grades";
 import { normalizePlaceKind } from "./placeKinds";
 import type {
@@ -142,7 +142,10 @@ export function findGymBySlug(gyms: GymGroup[], slug: string): GymGroup | undefi
 
 export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStats {
   const cities = new Set(
-    visits.map((visit) => `${visit.city.trim().toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`),
+    visits.map((visit) => {
+      const city = visitCityLabel(visit);
+      return `${city.toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`;
+    }),
   );
   const countries = new Set(gyms.map((gym) => gym.country.trim().toLowerCase()));
 
@@ -163,7 +166,7 @@ export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStat
     { label: string; country: string; count: number; last: string; gyms: Set<string> }
   >();
   for (const visit of visits) {
-    const cityLabel = visit.city.trim() || visit.country.trim();
+    const cityLabel = visitCityLabel(visit);
     const key = `${cityLabel.toLowerCase()}\u001f${visit.country.trim().toLowerCase()}`;
     const current = cityCounts.get(key);
     const gymId = visit.gym_id || visit.gym_name.trim().toLowerCase();
@@ -301,7 +304,7 @@ function countriesMatch(a: string, b: string): boolean {
 }
 
 function visitCityLabel(visit: GymVisit): string {
-  return visit.city.trim() || visit.country.trim();
+  return catalogCity(visit.country, visit.city.trim() || visit.country.trim());
 }
 
 function maxDate(left: string, right: string): string {

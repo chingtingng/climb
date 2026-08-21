@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { unstable_rethrow } from "next/navigation";
+import { useState, useTransition } from "react";
 import {
   createAccountAction,
   loginAction,
@@ -43,51 +44,52 @@ export function LoginForm({
     deleted ? "Your account and stamps have been deleted." : null,
   );
   const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { usernameError, usernameChecking, usernameAvailable } = useUsernameCheck(
     username,
     mode === "signup" && configured,
   );
+  const busy = loading || isPending;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function handleAction(formData: FormData) {
+    if (mode === "signup" && usernameError) return;
+
     setError(null);
     setVerifyMessage(null);
-
-    if (mode === "signup" && usernameError) {
-      return;
-    }
-
     setLoading(true);
 
-    const formData = new FormData();
-    formData.set("password", password);
+    startTransition(async () => {
+      try {
+        if (mode === "signin") {
+          const result: ActionResult = await loginAction(null, formData);
+          if (result?.error) {
+            setError(result.error);
+            setLoading(false);
+          }
+          return;
+        }
 
-    try {
-      if (mode === "signin") {
-        formData.set("identifier", identifier);
-        const result: ActionResult = await loginAction(null, formData);
-        if (result?.error) setError(result.error);
-        return;
+        const result: ActionResult = await createAccountAction(null, formData);
+        if (result?.error) {
+          setError(result.error);
+          setLoading(false);
+          return;
+        }
+        if (result?.needsVerification) {
+          setVerifyMessage(
+            `Check ${email.trim() || "your inbox"} for a verification link, then sign in.`,
+          );
+          setPassword("");
+          setMode("signin");
+          setIdentifier(email.trim() || username.trim());
+          setLoading(false);
+        }
+      } catch (error) {
+        unstable_rethrow(error);
+        setError(error instanceof Error ? error.message : "Could not complete sign-in.");
+        setLoading(false);
       }
-
-      formData.set("username", username);
-      formData.set("email", email);
-      const result: ActionResult = await createAccountAction(null, formData);
-      if (result?.error) {
-        setError(result.error);
-        return;
-      }
-      if (result?.needsVerification) {
-        setVerifyMessage(
-          `Check ${email.trim() || "your inbox"} for a verification link, then sign in.`,
-        );
-        setPassword("");
-        setMode("signin");
-        setIdentifier(email.trim() || username.trim());
-      }
-    } finally {
-      setLoading(false);
-    }
+    });
   }
 
   const signupBlocked = Boolean(usernameError) || usernameChecking;
@@ -113,7 +115,7 @@ export function LoginForm({
       </div>
 
       <div className="auth-panel">
-      <form onSubmit={handleSubmit} className="auth-form">
+      <form action={handleAction} className="auth-form">
         {mode === "signin" ? (
           <label>
             Username or email
@@ -128,7 +130,7 @@ export function LoginForm({
               autoCorrect="off"
               spellCheck={false}
               placeholder="yourname or you@email.com"
-              disabled={!configured || loading}
+              disabled={!configured || busy}
               preventIosZoom
             />
           </label>
@@ -137,7 +139,7 @@ export function LoginForm({
             <UsernameField
               value={username}
               onChange={setUsername}
-              disabled={!configured || loading}
+              disabled={!configured || busy}
               error={usernameError}
               checking={usernameChecking}
               available={usernameAvailable}
@@ -156,7 +158,7 @@ export function LoginForm({
                 autoCorrect="off"
                 spellCheck={false}
                 placeholder="you@email.com"
-                disabled={!configured || loading}
+                disabled={!configured || busy}
                 preventIosZoom
               />
             </label>
@@ -174,7 +176,7 @@ export function LoginForm({
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
             placeholder="••••••••"
             minLength={6}
-            disabled={!configured || loading}
+            disabled={!configured || busy}
             preventIosZoom
           />
         </label>
@@ -198,11 +200,11 @@ export function LoginForm({
 
         <Button
           type="submit"
-          disabled={loading || !configured || (mode === "signup" && signupBlocked)}
-          aria-busy={loading}
+          disabled={busy || !configured || (mode === "signup" && signupBlocked)}
+          aria-busy={busy}
         >
           <ActionButtonLabel
-            pending={loading}
+            pending={busy}
             idle={mode === "signin" ? "Sign in" : "Sign up"}
             busy="Please wait…"
           />
@@ -220,7 +222,7 @@ export function LoginForm({
       <Button
         type="button"
         variant="tertiary"
-        disabled={loading}
+        disabled={busy}
         className="auth-switch"
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");

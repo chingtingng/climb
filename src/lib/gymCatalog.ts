@@ -12,7 +12,7 @@ import {
   type ClimbingType,
 } from "./climbingTypes";
 import { normalizePlaceKind, type PlaceKind } from "./placeKinds";
-import type { CatalogGym, GradeBand, GradeScale, GymOutlet } from "./types";
+import type { CatalogGym, CatalogStatus, GradeBand, GradeScale, GymOutlet } from "./types";
 
 function vBands(labels: string[], startV = 1): GradeBand[] {
   return labels.map((label, index) => ({
@@ -46,6 +46,7 @@ const BOULDER_PLANET_SCALE: GradeScale = {
 
 const BOULDER_ONLY: ClimbingType[] = ["bouldering"];
 const ROPE_ONLY: ClimbingType[] = ["top_rope", "lead"];
+const BOULDER_AND_ROPE: ClimbingType[] = ["bouldering", "top_rope"];
 const FULL_WALL: ClimbingType[] = ["bouldering", "top_rope", "lead"];
 
 function gym(
@@ -61,15 +62,19 @@ function gym(
     country,
     place_kind,
     climbing_types: normalizeClimbingTypes(climbing_types),
-    outlets: outlets.map(([outlet, city]) => ({ name: outlet, city })),
+    outlets: outlets.map(([outlet, city]) => ({
+      name: outlet,
+      city: catalogCity(country, city),
+    })),
     scale,
   };
 }
 
 /**
  * Climbing places used to seed `gyms` / `gym_outlets` in Supabase.
- * The stamp picker reads the database; add or remove places there (or in this seed).
+ * Keep in sync with supabase/schema.sql. The stamp picker reads the database.
  * Outlet `name` is what the gym calls that location (Bugis, Bendemeer).
+ * Outlet `city` is the city. Singapore is a city-state, so city is always Singapore.
  * Seeded catalog rows are place_kind `gym` (artificial).
  */
 export const KNOWN_GYMS: CatalogGym[] = [
@@ -77,8 +82,8 @@ export const KNOWN_GYMS: CatalogGym[] = [
     "Boulder Planet",
     "Singapore",
     [
-      ["Sembawang", "Sembawang"],
-      ["Tai Seng", "Tai Seng"],
+      ["Sembawang", "Singapore"],
+      ["Tai Seng", "Singapore"],
     ],
     BOULDER_PLANET_SCALE,
   ),
@@ -89,18 +94,29 @@ export const KNOWN_GYMS: CatalogGym[] = [
     [["Future Park Rangsit", "Bangkok"]],
     BOULDER_PLANET_SCALE,
   ),
-  gym("Boulder Movement", "Singapore", [
-    ["Bugis", "Bugis"],
-    ["Rochor", "Rochor"],
-    ["Downtown", "Downtown"],
-    ["Tai Seng", "Tai Seng"],
-  ]),
+  gym(
+    "Boulder Movement",
+    "Singapore",
+    [
+      ["Bugis", "Singapore"],
+      ["Rochor", "Singapore"],
+      ["Downtown", "Singapore"],
+      ["Tai Seng", "Singapore"],
+    ],
+    {
+      kind: "custom",
+      bands: [
+        ...Array.from({ length: 20 }, (_, index) => ({ label: String(index + 1) })),
+        ...[1, 2, 3, 4, 5].map((n) => ({ label: `Flux ${n}` })),
+      ],
+    },
+  ),
   gym(
     "Boulder+",
     "Singapore",
     [
-      ["Aperia", "Kallang"],
-      ["Chevrons", "Jurong East"],
+      ["Aperia", "Singapore"],
+      ["Chevrons", "Singapore"],
     ],
     {
       kind: "color",
@@ -120,9 +136,9 @@ export const KNOWN_GYMS: CatalogGym[] = [
     "BFF Climbing",
     "Singapore",
     [
-      ["Bendemeer", "Bendemeer"],
-      ["Tampines Yoha", "Tampines"],
-      ["Tampines Hub", "Tampines"],
+      ["Bendemeer", "Singapore"],
+      ["Tampines Yoha", "Singapore"],
+      ["Tampines Hub", "Singapore"],
     ],
     {
       kind: "number",
@@ -149,10 +165,10 @@ export const KNOWN_GYMS: CatalogGym[] = [
     "Climb Central",
     "Singapore",
     [
-      ["The Kallang", "Kallang"],
-      ["Funan", "Funan"],
-      ["Novena", "Novena"],
-      ["SAFRA Choa Chu Kang", "Choa Chu Kang"],
+      ["The Kallang", "Singapore"],
+      ["Funan", "Singapore"],
+      ["Novena", "Singapore"],
+      ["SAFRA Choa Chu Kang", "Singapore"],
     ],
     null,
     FULL_WALL,
@@ -161,48 +177,106 @@ export const KNOWN_GYMS: CatalogGym[] = [
     "Fit Bloc",
     "Singapore",
     [
-      ["Kent Ridge", "Kent Ridge"],
-      ["Depot Heights", "Depot Heights"],
-      ["Telok Ayer", "Telok Ayer"],
+      ["Kent Ridge", "Singapore"],
+      ["Depot Heights", "Singapore"],
+      ["Telok Ayer", "Singapore"],
     ],
-    { kind: "number", bands: numberBands(1, 8, 1) },
-    FULL_WALL,
+    {
+      kind: "custom",
+      bands: ["0 bar", "1 bar", "2 bar", "3 bar", "4 bar", "5 bar"].map((label) => ({
+        label,
+      })),
+    },
+    BOULDER_AND_ROPE,
   ),
-  gym("Kinetics Climbing", "Singapore", [["Serangoon", "Serangoon"]], null, FULL_WALL),
-  gym("Lighthouse", "Singapore", [["Pasir Panjang", "Pasir Panjang"]], {
+  gym(
+    "Kinetics Climbing",
+    "Singapore",
+    [["Serangoon", "Singapore"]],
+    {
+      kind: "v",
+      bands: ["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"].map((label) => ({
+        label,
+        v_equiv: label,
+      })),
+    },
+    BOULDER_AND_ROPE,
+  ),
+  gym("Lighthouse", "Singapore", [["Pasir Panjang", "Singapore"]], {
     kind: "number",
     bands: numberBands(1, 9, 1),
   }),
-  gym("Climba", "Singapore", [["Robinson", "CBD"]], {
+  gym("Climba", "Singapore", [["Robinson", "Singapore"]], {
     kind: "color",
-    bands: colorBands([
-      { label: "Blue", v: 1 },
-      { label: "Yellow", v: 3 },
-      { label: "Red", v: 7 },
-    ]),
+    bands: [
+      { label: "Blue", color: COLOR_GRADES.find((c) => c.label === "Blue")?.color, v_equiv: "V1", v_max: "V2" },
+      { label: "Yellow", color: COLOR_GRADES.find((c) => c.label === "Yellow")?.color, v_equiv: "V3", v_max: "V4" },
+      { label: "Red", color: COLOR_GRADES.find((c) => c.label === "Red")?.color, v_equiv: "V5", v_max: "V6" },
+    ],
   }),
-  gym("Ark Bloc", "Singapore", [["Punggol", "Punggol"]]),
-  gym("Ground Up", "Singapore", [["Tessensohn", "Farrer Park"]], {
-    kind: "v",
-    bands: ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"].map((label) => ({
-      label,
-      v_equiv: label,
-    })),
-  }),
-  gym("OYEYO Boulder Home", "Singapore", [["Mackenzie", "Rochor"]]),
-  gym("ClimbUp", "Singapore", [["Katong", "Katong"]], null, FULL_WALL),
-  gym("Z-Vertigo", "Singapore", [["Bukit Timah", "Bukit Timah"]]),
-  gym("Outpost Climbing", "Singapore", [["Lavender", "Lavender"]], null, FULL_WALL),
-  gym("Upwall Climbing", "Singapore", [["Downtown East", "Pasir Ris"]], null, ROPE_ONLY),
-  gym("Project Send", "Singapore", [["Esplanade", "Esplanade"]]),
-  gym("Climb@T3", "Singapore", [["T3", "Changi"]], null, ROPE_ONLY),
-  gym("SAFRA Yishun", "Singapore", [["Yishun", "Yishun"]], null, FULL_WALL),
+  gym("Ark Bloc", "Singapore", [["Punggol", "Singapore"]]),
+  gym(
+    "Ground Up",
+    "Singapore",
+    [["Tessensohn", "Singapore"]],
+    {
+      kind: "v",
+      bands: ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"].map((label) => ({
+        label,
+        v_equiv: label,
+      })),
+    },
+    FULL_WALL,
+  ),
+  gym("OYEYO Boulder Home", "Singapore", [["Mackenzie", "Singapore"]]),
+  gym("ClimbUp", "Singapore", [["Katong", "Singapore"]], null, FULL_WALL),
+  gym("Z-Vertigo", "Singapore", [["Bukit Timah", "Singapore"]]),
+  gym("Outpost Climbing", "Singapore", [["Lavender", "Singapore"]], null, FULL_WALL),
+  gym("Upwall Climbing", "Singapore", [["Downtown East", "Singapore"]], null, ROPE_ONLY),
+  gym(
+    "Climb@T3",
+    "Singapore",
+    [["T3", "Singapore"]],
+    {
+      kind: "french",
+      bands: FRENCH_GRADES.slice(0, FRENCH_GRADES.indexOf("6c+") + 1).map((label) => ({
+        label,
+      })),
+    },
+    BOULDER_AND_ROPE,
+  ),
+  gym("SAFRA Yishun", "Singapore", [["Yishun", "Singapore"]], null, FULL_WALL),
+  gym("Adventure HQ", "Singapore", [["Khatib", "Singapore"]], null, BOULDER_AND_ROPE),
 ];
 
-const CLOSED_GYMS = new Set(["boruda", "the cliff"]);
+const CLOSED_GYMS = new Set([
+  "boruda",
+  "the cliff",
+  "project send",
+  "boulder world",
+  "onsight",
+  "onsight climbing gym",
+  "origin boulder",
+  "the rock school",
+  "clip n climb",
+  "clip 'n climb",
+]);
 
 function gymKey(gym: Pick<CatalogGym, "name" | "country">): string {
   return `${gym.name.trim().toLowerCase()}\u001f${gym.country.trim().toLowerCase()}`;
+}
+
+export function normalizeCatalogStatus(
+  value: string | null | undefined,
+): CatalogStatus {
+  if (value === "pending" || value === "rejected") return value;
+  return "published";
+}
+
+export function isUnverifiedPlace(
+  status: CatalogStatus | null | undefined,
+): boolean {
+  return status === "pending";
 }
 
 export function isClosedGym(name: string): boolean {
@@ -242,13 +316,14 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
           : DEFAULT_CLIMBING_TYPES;
     map.set(gymKey(item), {
       ...item,
+      status: normalizeCatalogStatus(item.status),
       place_kind: normalizePlaceKind(item.place_kind ?? known?.place_kind),
       climbing_types,
       scale: item.scale?.bands.length ? item.scale : known?.scale ?? null,
       outlets: visibleOutlets({
         name: item.name,
         outlets: known ? mergeOutlets(known.outlets, item.outlets) : item.outlets,
-      }),
+      }).filter((outlet) => outlet.status !== "rejected"),
     });
   }
 
@@ -257,6 +332,7 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
     const climbing_types = normalizeClimbingTypes(item.climbing_types);
     map.set(gymKey(item), {
       ...item,
+      status: "published",
       place_kind: normalizePlaceKind(item.place_kind),
       climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
       outlets: visibleOutlets(item),
@@ -281,6 +357,11 @@ export function catalogCountries(gyms: CatalogGym[]): string[] {
 /** Singapore is a city-state — outlet already names the neighbourhood. */
 export function skipsCityStep(country: string): boolean {
   return countryMeta(country).iso2 === "SG";
+}
+
+/** City stored on an outlet. Singapore is the city, not the neighbourhood. */
+export function catalogCity(country: string, city: string): string {
+  return skipsCityStep(country) ? "Singapore" : city.trim();
 }
 
 export function sameCountry(a: string, b: string): boolean {
@@ -423,6 +504,7 @@ export function mergeOutlets(...lists: GymOutlet[][]): GymOutlet[] {
         id: prev?.id ?? outlet.id,
         name: prev?.name ?? outlet.name.trim(),
         city: (prev?.city || outlet.city).trim(),
+        status: prev?.status ?? outlet.status,
       });
     }
   }

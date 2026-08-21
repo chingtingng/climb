@@ -203,8 +203,8 @@ function CompareChart({
           Add gym
         </button>
       </div>
-      <Card className="overflow-hidden !p-0">
-        <div className="overflow-x-auto">
+      <Card className="min-w-0 overflow-hidden !p-0">
+        <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
           <table
             className="w-full min-w-full border-collapse text-center"
             style={{ minWidth: `${9.5 + columns.length * 6.5}rem` }}

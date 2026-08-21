@@ -44,11 +44,6 @@ export function providerLabel(provider: SocialProvider): string {
   }
 }
 
-export function isLegacyVisitMediaPath(path: string | null | undefined): boolean {
-  if (!path) return false;
-  return /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/(photo|video)\.[a-z0-9]+$/i.test(path.trim());
-}
-
 export function parseVisitMediaUrl(raw: string): VisitMediaLink | { error: string } | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -77,13 +72,10 @@ export function parseVisitMediaUrl(raw: string): VisitMediaLink | { error: strin
 }
 
 export function visitMediaLinkFromStored(
-  photoPath: string | null | undefined,
   videoPath: string | null | undefined,
 ): VisitMediaLink | null {
-  const fromVideo = videoPath ? parseVisitMediaUrl(videoPath) : null;
-  if (fromVideo && !("error" in fromVideo)) return fromVideo;
-  const fromPhoto = photoPath ? parseVisitMediaUrl(photoPath) : null;
-  if (fromPhoto && !("error" in fromPhoto)) return fromPhoto;
+  const parsed = videoPath ? parseVisitMediaUrl(videoPath) : null;
+  if (parsed && !("error" in parsed)) return parsed;
   return null;
 }
 

@@ -13,8 +13,9 @@ Mobile-first climbing passport. Log places (gyms and more) by country and city, 
 
 Shared catalog, private stamps:
 
-- `gyms` — brand/place (Boulder Planet, BFF Climbing, …) plus `place_kind` (`gym` | `rock`) and `climbing_types` offered
-- `gym_outlets` — locations of that brand (Sembawang, Tai Seng, …)
+- `gyms` — brand/place (Boulder Planet, BFF Climbing, …) plus `place_kind` (`gym` | `rock`), `climbing_types` offered, and `status` (`pending` until a second climber stamps, then `published`)
+- `gym_outlets` — locations of that brand (Sembawang, Tai Seng, …), same status rule
+- `gym_reports` — eligible “this place looks wrong” flags (three hide the gym from the picker)
 - `gym_grade_scales` — one grade chart per gym (numbers, colours, V-scale, custom) plus an optional photo
 - `visits` — your stamps: which gym + outlet, climbing type, grade, date, notes, optional TikTok / Instagram / YouTube clip link
 - `profiles` — username + email (for recovery / username login lookup)
@@ -37,8 +38,7 @@ When creating the project, use these **Security** checkboxes:
 
 Then:
 
-1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops old stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `visits`. Profiles and Auth users are kept. Re-run it whenever the schema changes.
-   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/oauth-usernames.sql`](./supabase/oauth-usernames.sql) (do not invent a username from the email local-part), [`supabase/visit-media.sql`](./supabase/visit-media.sql) (adds `video_path` for clip links), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), [`supabase/place-kind.sql`](./supabase/place-kind.sql), and [`supabase/yds-grades.sql`](./supabase/yds-grades.sql) instead of a full reset.
+1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file on a **blank** project. It drops stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `visits`, including the Singapore gym seed. Profiles and Auth users are kept. If the project already has stamps, run [`supabase/catalog-status.sql`](./supabase/catalog-status.sql) instead — do not re-run `schema.sql`.
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so email signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:
@@ -96,4 +96,4 @@ Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (
 - Repeat visits to the same place add another stamp, not a duplicate place. Multi-location gyms (e.g. Boulder Planet Sembawang / Tai Seng) use an **outlet** selector.
 - Grade systems: V-scale, Font, French, YDS, **Numbers**, **Colours**, and custom house scales
 - The first person to add a gym with a house scale uploads a photo of the grade chart plus a V-scale mapping
-- After pulling this version, run [`supabase/oauth-usernames.sql`](./supabase/oauth-usernames.sql) (and [`supabase/email-auth.sql`](./supabase/email-auth.sql) if you have not already) or the full [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor
+- After pulling this version, run the full [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor (this wipes stamp tables and reseeds gyms).

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatStampDate } from "@/lib/dates";
 import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
+import { isUnverifiedPlace, sameCountry } from "@/lib/gymCatalog";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -16,8 +17,22 @@ import { VisitMediaPreview } from "./VisitMediaPreview";
 
 export function GymDetailView({ slug }: { slug: string }) {
   const router = useRouter();
-  const { gyms, configured, openLog, openEdit } = usePassport();
+  const { gyms, catalogGyms, configured, openLog, openEdit } = usePassport();
   const gym = findGymBySlug(gyms, slug);
+  const catalogHasDbRows = catalogGyms.some((item) => item.id);
+  const catalogRow =
+    catalogGyms.find((item) => item.id && item.id === gym?.gymId) ??
+    catalogGyms.find(
+      (item) =>
+        gym &&
+        item.name.toLowerCase() === gym.name.toLowerCase() &&
+        sameCountry(item.country, gym.country),
+    );
+  const hiddenFromCatalog =
+    Boolean(gym?.gymId) &&
+    catalogHasDbRows &&
+    !catalogGyms.some((item) => item.id === gym?.gymId);
+  const unverified = isUnverifiedPlace(catalogRow?.status);
 
   if (!gym) {
     return (
@@ -49,6 +64,12 @@ export function GymDetailView({ slug }: { slug: string }) {
             <PlaceKindMark kind={gym.place_kind} />
             <span aria-hidden>·</span>
             <span>{formatGymPlace(gym)}</span>
+            {unverified ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="font-semibold text-sky-700">Unverified</span>
+              </>
+            ) : null}
           </p>
         </div>
         <CountryStamp country={gym.country} ink={placeInk(gym.place_kind)} />
@@ -101,12 +122,12 @@ export function GymDetailView({ slug }: { slug: string }) {
           {gym.visits.map((visit) => (
             <li key={visit.id}>
               <Card className="px-3 py-2.5">
-                <div className="flex flex-col gap-3 desktop:flex-row desktop:items-start">
+                <div className="flex flex-col gap-3">
                 <button
                   type="button"
                   disabled={!configured}
                   onClick={() => openEdit(visit)}
-                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md text-left hover:bg-sky-50 disabled:text-ink"
+                  className="flex min-h-11 min-w-0 items-center gap-3 rounded-md text-left hover:bg-sky-50 disabled:text-ink"
                   aria-label={`Edit visit on ${formatStampDate(visit.visited_on)}`}
                 >
                   <div className="min-w-0 flex-1">
@@ -130,11 +151,7 @@ export function GymDetailView({ slug }: { slug: string }) {
                   </div>
                   <ChevronIcon className="size-4 shrink-0 -rotate-90 text-ink-soft" />
                 </button>
-                <VisitMediaPreview
-                  photoPath={visit.photo_path}
-                  videoPath={visit.video_path}
-                  className="desktop:mt-0 desktop:w-52 desktop:shrink-0"
-                />
+                <VisitMediaPreview videoPath={visit.video_path} />
                 </div>
               </Card>
             </li>
@@ -142,21 +159,28 @@ export function GymDetailView({ slug }: { slug: string }) {
         </ul>
       </section>
 
-      <Button
-        type="button"
-        disabled={!configured}
-        className="desktop:!w-auto desktop:min-w-56"
-        onClick={() =>
-          openLog({
-            name: gym.name,
-            city: gym.city,
-            country: gym.country,
-            existing: true,
-          })
-        }
-      >
-        + Log another visit
-      </Button>
+      {hiddenFromCatalog ? (
+        <p className="text-sm leading-relaxed text-ink-soft">
+          This place was hidden from the catalog. Your stamps are still here; you
+          can’t add another visit to it.
+        </p>
+      ) : (
+        <Button
+          type="button"
+          disabled={!configured}
+          className="desktop:!w-auto desktop:min-w-56"
+          onClick={() =>
+            openLog({
+              name: gym.name,
+              city: gym.city,
+              country: gym.country,
+              existing: true,
+            })
+          }
+        >
+          + Log another visit
+        </Button>
+      )}
     </div>
   );
 }

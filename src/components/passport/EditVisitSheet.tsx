@@ -17,11 +17,7 @@ import {
   visibleOutlets,
 } from "@/lib/gymCatalog";
 import { normalizePlaceKind } from "@/lib/placeKinds";
-import {
-  isLegacyVisitMediaPath,
-  parseVisitMediaUrl,
-  visitMediaLinkFromStored,
-} from "@/lib/visitMedia";
+import { parseVisitMediaUrl, visitMediaLinkFromStored } from "@/lib/visitMedia";
 import type { CatalogGym, GradeSystem, GymGroup, GymOutlet, GymVisit } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { DeleteStampDialog } from "./DeleteStampDialog";
@@ -30,7 +26,6 @@ import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { SheetCloseButton } from "./SheetCloseButton";
 import { VisitMediaFields } from "./VisitMediaFields";
-import { VisitMediaPreview } from "./VisitMediaPreview";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { ChoiceTile } from "@/components/ui/ChoiceTile";
@@ -110,15 +105,12 @@ function EditVisitSheetInner({
   const [grade, setGrade] = useState(visit.highest_grade);
   const [visitedOn, setVisitedOn] = useState(visit.visited_on);
   const [notes, setNotes] = useState(visit.notes ?? "");
-  const initialClip = visitMediaLinkFromStored(visit.photo_path, visit.video_path)?.url ?? "";
+  const initialClip = visitMediaLinkFromStored(visit.video_path)?.url ?? "";
   const [visitMediaUrl, setVisitMediaUrl] = useState(initialClip);
-  const [clearLegacy, setClearLegacy] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const pending = actionPending || isPending;
   const sheetError = mediaError || state?.error || null;
-  const hasLegacyMedia =
-    isLegacyVisitMediaPath(visit.photo_path) || isLegacyVisitMediaPath(visit.video_path);
 
   const resolvedScale =
     catalogMatch?.scale ??
@@ -321,31 +313,9 @@ function EditVisitSheetInner({
               </label>
               <VisitMediaFields
                 url={visitMediaUrl}
-                onUrl={(next) => {
-                  setVisitMediaUrl(next);
-                  if (next.trim()) setClearLegacy(false);
-                }}
+                onUrl={setVisitMediaUrl}
                 busy={pending}
               />
-              {!visitMediaUrl.trim() && hasLegacyMedia && !clearLegacy ? (
-                <div>
-                  <p className="mb-2 text-xs text-ink-soft">
-                    This stamp still has an older upload. Paste a link to replace it, or remove it.
-                  </p>
-                  <VisitMediaPreview
-                    photoPath={visit.photo_path}
-                    videoPath={visit.video_path}
-                  />
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => setClearLegacy(true)}
-                    className="mt-2 text-xs font-semibold text-sky-600"
-                  >
-                    Remove uploaded clip
-                  </button>
-                </div>
-              ) : null}
             </div>
           </div>
 
@@ -417,7 +387,7 @@ function EditVisitSheetInner({
                 data.set("is_new_gym", "0");
                 data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
                 if (visitMediaUrl.trim()) data.set("media_url", visitMediaUrl.trim());
-                if (!visitMediaUrl.trim() && (clearLegacy || Boolean(initialClip))) {
+                if (!visitMediaUrl.trim() && Boolean(initialClip)) {
                   data.set("clear_media", "1");
                 }
                 startTransition(() => {

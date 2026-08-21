@@ -156,6 +156,13 @@ body {
   background-color: var(--paper);
 }
 
+/* Keep the scrollbar lane reserved so tall pages don't shift the layout. */
+html {
+  overflow-x: clip;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   color: var(--ink);
@@ -175,6 +182,14 @@ a {
   select,
   textarea {
     font: inherit;
+  }
+
+  button:enabled {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
   }
 }
 
@@ -238,6 +253,19 @@ a {
 .sheet-in,
 .passport-sheet-in {
   animation: sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.delete-account-dialog {
+  /* 1px smaller than the global type scale; confirm label keeps --fs-xs. */
+  --fs-micro: 9px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 21px;
+  --fs-2xl: 25px;
+  --fs-3xl: 31px;
+  --fs-mark: 37px;
 }
 
 .sheet-step {
@@ -476,6 +504,22 @@ a {
 
 .auth-panel {
   margin-top: 1.45rem;
+}
+
+.account-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  text-align: left;
+}
+
+.account-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .auth-form {
@@ -720,10 +764,48 @@ select.passport-field {
 
 textarea.field,
 textarea.passport-field {
-  min-height: 7.5rem;
+  height: 7.5rem;
   border-radius: var(--r-md);
   resize: none;
   line-height: 1.45;
+  overflow-y: auto;
+}
+
+textarea.field::-webkit-scrollbar,
+textarea.passport-field::-webkit-scrollbar {
+  width: 6px;
+}
+
+textarea.field::-webkit-scrollbar-button,
+textarea.passport-field::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+textarea.field::-webkit-scrollbar-track,
+textarea.passport-field::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 10px;
+}
+
+textarea.field::-webkit-scrollbar-thumb,
+textarea.passport-field::-webkit-scrollbar-thumb {
+  background: var(--sky-300);
+  border-radius: 999px;
+}
+
+textarea.field::-webkit-scrollbar-thumb:hover,
+textarea.passport-field::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  textarea.field,
+  textarea.passport-field {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sky-300) transparent;
+  }
 }
 
 .btn {
@@ -738,6 +820,7 @@ textarea.passport-field {
   border-radius: var(--r-full);
   font-weight: 600;
   font-size: var(--fs-md);
+  cursor: pointer;
   transition:
     transform 120ms ease,
     box-shadow 120ms ease,
@@ -773,6 +856,7 @@ textarea.passport-field {
   min-height: 44px;
   width: auto;
   padding: 0.5rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--ink-faint) 28%, transparent);
 }
 
 .btn-tertiary:enabled:active {
@@ -786,6 +870,7 @@ textarea.passport-field {
   color: var(--ink-soft);
   min-height: 2.75rem;
   padding-block: 0.4rem;
+  border: none;
 }
 
 .auth-switch-action {
@@ -946,18 +1031,22 @@ textarea.passport-field {
 
 .stamp-ring-outer {
   inset: 0;
-  border: 1.5px dashed color-mix(in srgb, currentColor 38%, var(--sky-300));
+  border: 1.5px solid color-mix(in srgb, currentColor 55%, var(--sky-300));
+  background: var(--surface);
+  box-shadow: var(--elev-soft);
 }
 
 .stamp-ink-clay .stamp-ring-outer {
-  border-color: color-mix(in srgb, currentColor 38%, var(--clay-300));
+  border-color: color-mix(in srgb, currentColor 55%, var(--clay-300));
 }
 
 .stamp-ring-inner {
   inset: 4px;
-  border: 1px solid color-mix(in srgb, currentColor 55%, var(--sky-300));
-  background: var(--surface);
-  box-shadow: var(--elev-soft);
+  border: 1.5px dashed color-mix(in srgb, currentColor 38%, var(--sky-300));
+}
+
+.stamp-ink-clay .stamp-ring-inner {
+  border-color: color-mix(in srgb, currentColor 38%, var(--clay-300));
 }
 
 .stamp-hero .stamp-ring-inner {
@@ -1020,7 +1109,7 @@ textarea.passport-field {
 }
 
 .stamp-sm .stamp-flag {
-  margin-top: -0.12em;
+  margin-bottom: -0.04em;
 }
 
 .stamp-plus {

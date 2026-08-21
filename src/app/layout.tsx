@@ -40,8 +40,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       className={`${poppins.variable} ${jakarta.variable} h-full`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full font-sans antialiased">
+      <body className="min-h-full font-sans antialiased" suppressHydrationWarning>
         <CountryFlagsPolyfill />
         <IosSearchZoomGuard />
         {children}

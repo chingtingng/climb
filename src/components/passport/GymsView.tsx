@@ -46,14 +46,27 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "country", label: "Country" },
 ];
 
-export function GymsView() {
+export function GymsView({
+  initialView = "places",
+  initialGroupBy = "city",
+}: {
+  initialView?: PlacesView;
+  initialGroupBy?: LocationGroupBy;
+}) {
   const { gyms, visits, configured, openLog } = usePassport();
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("All");
   const [sort, setSort] = useState<SortKey>("recent");
-  const [view, setView] = useState<PlacesView>("places");
-  const [groupBy, setGroupBy] = useState<LocationGroupBy>("city");
+  const [view, setView] = useState<PlacesView>(initialView);
+  const [groupBy, setGroupBy] = useState<LocationGroupBy>(initialGroupBy);
+
+  useEffect(() => {
+    setView(initialView);
+    setGroupBy(initialGroupBy);
+  }, [initialView, initialGroupBy]);
+
   const countries = uniqueCountries(gyms);
+  const activeCountry = view === "location" ? "All" : country;
   const q = query.trim().toLowerCase();
   const filtered = gyms
     .filter((gym) => {
@@ -63,7 +76,7 @@ export function GymsView() {
           .toLowerCase()
           .includes(q);
       const matchesCountry =
-        country === "All" || sameCountry(gym.country, country);
+        activeCountry === "All" || sameCountry(gym.country, activeCountry);
       return matchesQuery && matchesCountry;
     })
     .sort((a, b) => compareGyms(a, b, sort));
@@ -72,9 +85,9 @@ export function GymsView() {
       filterLocationGroups(
         groupVisitsByLocation(visits, gyms),
         query,
-        country,
+        activeCountry,
       ),
-    [visits, gyms, query, country],
+    [visits, gyms, query, activeCountry],
   );
   const locationCounts = locationGroupCounts(locationGroups);
   const locationEmpty = locationGroups.length === 0;
@@ -106,7 +119,7 @@ export function GymsView() {
           aria-pressed={view === "location"}
           onClick={() => setView("location")}
         >
-          By location
+          Location
         </Pill>
       </div>
 
@@ -126,7 +139,7 @@ export function GymsView() {
           />
         </label>
 
-        {countries.length > 0 ? (
+        {view === "places" && countries.length > 0 ? (
           <div
             role="group"
             aria-label="Filter by country"
@@ -318,7 +331,6 @@ function SortMenu({
 
   return (
     <div ref={rootRef} className="flex min-w-0 items-center gap-1.5">
-      <span className="shrink-0 text-sm text-ink-soft">Sort by</span>
       <div className="relative min-w-0">
         <button
           type="button"

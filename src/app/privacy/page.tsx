@@ -57,9 +57,13 @@ export default async function PrivacyPage() {
           </li>
           <li>
             <strong>Shared catalog.</strong> If you add a new place, other signed-in
-            climbers can see that place. If you upload a grade-chart photo, that image is
-            stored so others can use the same scale. Those photos are in a public storage
-            bucket (anyone with the link can open them).
+            climbers can see it as unverified until a second climber stamps the same
+            row. After that it is published. Anyone who has stamped a published place
+            can report a listing that looks wrong; enough reports hide it from the
+            picker (your existing stamps stay on your passport). If you upload a
+            grade-chart photo, that image is stored so others can use the same scale.
+            Those photos are in a public storage bucket (anyone with the link can open
+            them).
           </li>
           <li>
             <strong>Technical.</strong> Session cookies so you stay signed in, plus
@@ -78,14 +82,15 @@ export default async function PrivacyPage() {
         <p>
           By creating an account you agree we may collect and use this information for
           those purposes. You can withdraw that agreement by deleting your account in the
-          app (Profile → Account → Delete account) or by emailing us.
+          app (Profile → Account → Manage account → Delete account) or by emailing us.
         </p>
 
         <h2>Who can see what</h2>
         <p>
           Your visit history is private to your signed-in account. Other climbers cannot
           browse your stamps. Places and grade charts you add to the catalog are visible
-          to other people using the app, because the log only works if gyms are shared.
+          to other people using the app (new places start unverified), because the log
+          only works if gyms are shared.
         </p>
 
         <h2>Companies that process data for us (including overseas)</h2>
@@ -117,11 +122,15 @@ export default async function PrivacyPage() {
         <h2>Your PDPA rights</h2>
         <p>
           You can edit or delete stamps in the app. You can delete the whole account from
-          Profile → Account. You can also email {SUPPORT_EMAIL} to:
+          Profile → Account → Manage account. You can also email {SUPPORT_EMAIL} to:
         </p>
         <ul>
           <li>ask what personal data we hold about you (access)</li>
-          <li>correct username or email</li>
+          <li>
+            correct username or password in the app (Profile → Account → Manage
+            account)
+          </li>
+          <li>correct your email by writing to us</li>
           <li>ask us to delete the account if you cannot use the in-app button</li>
         </ul>
         <p>

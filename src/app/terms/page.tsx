@@ -45,8 +45,9 @@ export default async function TermsPage() {
           You are responsible for activity on your account. You must be at least 13.
         </p>
         <p>
-          You can delete your account in the app (Profile → Account → Delete account).
-          That removes your login, profile, stamps, and grade-chart files you uploaded.
+          You can change your username or password in the app (Profile → Account →
+          Manage account). You can delete your account there too; that removes your
+          login, profile, stamps, and grade-chart files you uploaded.
           You can also email{" "}
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a> and we will delete it for you.
         </p>
@@ -55,9 +56,11 @@ export default async function TermsPage() {
         <p>
           You keep ownership of notes, usernames, and photos you upload. You give us
           permission to store them and to show shared catalog data (places and grade
-          charts) to other signed-in climbers, which is how the log works. Do not upload
-          anything you do not have the right to share. Grade-chart photos are stored so
-          others can see the gym’s scale — do not upload private or unrelated images.
+          charts) to other signed-in climbers, which is how the log works. New places
+          you add stay searchable as unverified until a second climber stamps the same
+          row. Do not upload anything you do not have the right to share. Grade-chart
+          photos are stored so others can see the gym’s scale — do not upload private or
+          unrelated images.
         </p>
         <p>
           Optional clip links must be public TikTok, Instagram, or YouTube URLs. Those
@@ -68,7 +71,8 @@ export default async function TermsPage() {
         <p>
           Do not use {OPERATOR_NAME} to harass people, spam the catalog with fake gyms,
           scrape other climbers’ data, break the law, or try to access someone else’s
-          account. We can suspend or delete an account that abuses the service.
+          account. You can report a place that looks wrong from the stamp sheet. We can
+          hide a listing or suspend an account that abuses the service.
         </p>
 
         <h2>House grades</h2>

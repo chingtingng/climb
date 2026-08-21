@@ -11,18 +11,24 @@ import {
 import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
 import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/EmptyState";
-import { SelectField, TextArea } from "@/components/ui/Field";
+import { TextArea } from "@/components/ui/Field";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 
 export function HelpForm({
   username,
   email,
+  className = "auth-form",
+  onCancel,
 }: {
   username?: string | null;
   email?: string | null;
+  className?: string;
+  onCancel?: () => void;
 }) {
   const [topic, setTopic] = useState<FeedbackTopic>("Feedback");
   const [message, setMessage] = useState("");
   const [opened, setOpened] = useState(false);
+  const inDialog = Boolean(onCancel);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,20 +38,15 @@ export function HelpForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="auth-form">
+    <form onSubmit={handleSubmit} className={className}>
       <label>
         Topic
-        <SelectField
-          name="topic"
+        <SelectMenu
           value={topic}
-          onChange={(event) => setTopic(event.target.value as FeedbackTopic)}
-        >
-          {FEEDBACK_TOPICS.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </SelectField>
+          options={FEEDBACK_TOPICS}
+          onChange={setTopic}
+          ariaLabel="Topic"
+        />
       </label>
 
       <label>
@@ -61,14 +62,24 @@ export function HelpForm({
         />
       </label>
 
-      {username || email ? (
-        <p className="text-xs leading-relaxed text-ink-soft">
-          We’ll include {[username ? `@${username}` : null, email].filter(Boolean).join(" · ")} so
-          we know who to reply to.
+      {inDialog ? (
+        <p className="min-h-[4.1em] text-xs leading-relaxed text-ink-soft">
+          {opened ? (
+            <>
+              Didn’t open? Email{" "}
+              <a href={SUPPORT_MAILTO} className="font-semibold underline underline-offset-2">
+                {SUPPORT_EMAIL}
+              </a>
+              .
+            </>
+          ) : username || email ? (
+            <>
+              We’ll include {[username ? `@${username}` : null, email].filter(Boolean).join(" · ")} so
+              we know who to reply to.
+            </>
+          ) : null}
         </p>
-      ) : null}
-
-      {opened ? (
+      ) : opened ? (
         <Banner tone="success">
           If your mail app didn’t open, send this to{" "}
           <a href={SUPPORT_MAILTO} className="font-semibold underline underline-offset-2">
@@ -76,6 +87,11 @@ export function HelpForm({
           </a>
           .
         </Banner>
+      ) : username || email ? (
+        <p className="text-xs leading-relaxed text-ink-soft">
+          We’ll include {[username ? `@${username}` : null, email].filter(Boolean).join(" · ")} so
+          we know who to reply to.
+        </p>
       ) : (
         <p className="text-xs leading-relaxed text-ink-soft">
           Send opens your email app, addressed to {SUPPORT_EMAIL}. Nothing is stored in
@@ -83,9 +99,14 @@ export function HelpForm({
         </p>
       )}
 
-      <Button type="submit" disabled={message.trim().length < 8}>
+      <Button type="submit" disabled={message.trim().length < 8} className={inDialog ? "mt-1" : undefined}>
         <ActionButtonLabel pending={false} idle="Send email" busy="Send email" />
       </Button>
+      {onCancel ? (
+        <Button type="button" variant="tertiary" onClick={onCancel}>
+          Cancel
+        </Button>
+      ) : null}
     </form>
   );
 }

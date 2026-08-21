@@ -28,6 +28,7 @@ import {
   createVisit,
   deleteVisit,
   ensureOwnProfile,
+  reportCatalogGym,
   saveGymGradeMapping,
   updateVisit,
 } from "@/lib/visits";
@@ -98,7 +99,10 @@ export type UsernameCheckResult = {
   error?: string;
 };
 
-function mapAuthError(message: string, context: "signup" | "login" = "login"): string {
+function mapAuthError(
+  message: string,
+  context: "signup" | "login" | "account" = "login",
+): string {
   const lower = message.toLowerCase();
   if (lower.includes("already registered") || lower.includes("user already exists")) {
     return context === "signup"
@@ -106,10 +110,15 @@ function mapAuthError(message: string, context: "signup" | "login" = "login"): s
       : "That account already exists. Try signing in instead.";
   }
   if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
-    return "Wrong username/email or password.";
+    return context === "account"
+      ? "Current password is incorrect."
+      : "Wrong username/email or password.";
   }
   if (lower.includes("email not confirmed")) {
     return "Confirm your email before signing in. Check your inbox for the verification link.";
+  }
+  if (lower.includes("different from the old password") || lower.includes("same as the old password")) {
+    return "Pick a password that is different from the current one.";
   }
   if (lower.includes("permission denied")) {
     return "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.";
@@ -118,6 +127,28 @@ function mapAuthError(message: string, context: "signup" | "login" = "login"): s
     return "That username is not available.";
   }
   return message;
+}
+
+async function verifyCurrentPassword(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string | null | undefined,
+  password: string,
+): Promise<ActionResult | null> {
+  if (!password) {
+    return { ok: false, error: "Enter your current password." };
+  }
+  if (!email?.includes("@")) {
+    return {
+      ok: false,
+      error: "Could not verify your password. Try signing out and back in.",
+    };
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    return { ok: false, error: "Current password is incorrect." };
+  }
+  return null;
 }
 
 async function isUsernameFree(
@@ -148,7 +179,7 @@ async function isUsernameFree(
   return {
     ok: false,
     error:
-      "Could not check username availability. Run supabase/email-auth.sql in the Supabase SQL Editor.",
+      "Could not check username availability. Re-run supabase/schema.sql in the Supabase SQL Editor.",
   };
 }
 
@@ -449,6 +480,107 @@ export async function deleteAccountAction(
   return { ok: true };
 }
 
+export async function changeUsernameAction(
+  rawUsername: string,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  let username: string;
+  try {
+    username = normalizeUsername(rawUsername);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invalid username",
+    };
+  }
+
+  if (username === auth.session.username) {
+    return { ok: true };
+  }
+
+  try {
+    const supabase = await createClient();
+    const availability = await isUsernameFree(supabase, username);
+    if (!availability.ok) {
+      return { ok: false, error: availability.error };
+    }
+    if (!availability.available) {
+      return { ok: false, error: usernameTakenError(username) };
+    }
+
+    await ensureOwnProfile(
+      supabase,
+      auth.session.id,
+      username,
+      auth.session.email ?? undefined,
+    );
+
+    const { error: metaError } = await supabase.auth.updateUser({
+      data: { username },
+    });
+    if (metaError) {
+      return { ok: false, error: mapAuthError(metaError.message, "account") };
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/duplicate|unique/i.test(message)) {
+      return { ok: false, error: usernameTakenError(username) };
+    }
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not save username",
+    };
+  }
+
+  revalidatePassport();
+  return { ok: true };
+}
+
+export async function changePasswordAction(
+  currentPassword: string,
+  nextPassword: string,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  if (nextPassword.length < 6) {
+    return { ok: false, error: "Password must be at least 6 characters." };
+  }
+  if (nextPassword === currentPassword) {
+    return { ok: false, error: "Pick a password that is different from the current one." };
+  }
+
+  try {
+    const supabase = await createClient();
+    const invalid = await verifyCurrentPassword(
+      supabase,
+      auth.session.email,
+      currentPassword,
+    );
+    if (invalid) return invalid;
+
+    const { error } = await supabase.auth.updateUser({ password: nextPassword });
+    if (error) {
+      return { ok: false, error: mapAuthError(error.message, "account") };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not update password",
+    };
+  }
+
+  return { ok: true };
+}
+
 function parseVisitInput(formData: FormData): GymVisitInput | string {
   const gym_name = String(formData.get("gym_name") ?? "").trim();
   const country = String(formData.get("country") ?? "").trim();
@@ -557,7 +689,6 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     visited_on,
     scale,
     chartFile,
-    photo_path: null,
     video_path: media_url || null,
     clear_media,
   };
@@ -608,20 +739,26 @@ async function withResolvedClip(
   input: GymVisitInput,
 ): Promise<GymVisitInput | string> {
   if (input.clear_media && !input.video_path) {
-    return { ...input, photo_path: null, video_path: null, clear_media: true };
+    return { ...input, video_path: null, clear_media: true };
   }
-  if (!input.video_path) return { ...input, photo_path: null, video_path: null };
+  if (!input.video_path) return { ...input, video_path: null };
   const resolved = await resolveVisitMediaUrl(input.video_path);
-  if (resolved === null) return { ...input, photo_path: null, video_path: null };
+  if (resolved === null) return { ...input, video_path: null };
   if ("error" in resolved) return resolved.error;
-  return { ...input, photo_path: null, video_path: resolved.url, clear_media: false };
+  return { ...input, video_path: resolved.url, clear_media: false };
 }
 
 async function requireSessionProfile() {
   const session = await getSessionUser();
   if (!session) return { error: "Please sign in first." as const };
   if (!session.username) return { error: "Choose a username first." as const };
-  return { session };
+  return {
+    session: {
+      id: session.id,
+      username: session.username,
+      email: session.email,
+    },
+  };
 }
 
 export async function addVisitAction(
@@ -772,6 +909,31 @@ export async function deleteVisitAction(visitId: string): Promise<ActionResult> 
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Could not remove that stamp.",
+    };
+  }
+
+  revalidatePassport();
+  return { ok: true };
+}
+
+export async function reportCatalogGymAction(gymId: string): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(gymId)) {
+    return { ok: false, error: "Pick a place in the list first." };
+  }
+
+  try {
+    await reportCatalogGym(auth.session.id, gymId);
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not send that report.",
     };
   }
 

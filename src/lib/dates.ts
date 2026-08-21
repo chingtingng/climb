@@ -30,3 +30,31 @@ export function formatStampDayMonth(iso: string): { day: string; month: string }
     return { day: iso.slice(8, 10) || "—", month: "" };
   }
 }
+
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/** Abbreviated month + year, e.g. "May 2021". */
+export function formatMonthYear(iso: string): string | null {
+  try {
+    const date = new Date(`${iso}T00:00:00`);
+    const year = date.getFullYear();
+    const month = SHORT_MONTHS[date.getMonth()];
+    if (!Number.isFinite(year) || !month) return null;
+    return `${month} ${year}`;
+  } catch {
+    return null;
+  }
+}
