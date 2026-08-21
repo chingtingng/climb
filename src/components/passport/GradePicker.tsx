@@ -73,7 +73,7 @@ export function GradePicker({
         </p>
       )}
 
-      {scale?.chartPath ? (
+      {locked ? (
         <p className="text-xs text-ink-soft">
           Grades come from this place’s chart. Pick the highest you sent.
         </p>

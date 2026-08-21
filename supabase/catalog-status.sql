@@ -7,6 +7,7 @@
 -- New gyms/outlets start pending and stay in search. Two distinct stampers
 -- publish the row. Three eligible reports hide it (rejected). Seeded catalog
 -- names start published. Table Editor: set status + moderation_locked.
+-- Also closes leftover gym-grade-charts / visit-media upload access.
 -- =============================================================================
 
 create table if not exists public.gym_catalog_seeds (
@@ -411,3 +412,24 @@ from public.gyms g;
 
 revoke all on table public.catalog_moderation from public, anon, authenticated;
 grant select on table public.catalog_moderation to service_role;
+
+-- ---------------------------------------------------------------------------
+-- No file storage. Stamp clips are public URLs on visits.video_path.
+-- House grades are JSON on gym_grade_scales.bands.
+-- Direct DELETE on storage.objects is blocked (Storage API only). Dropping
+-- policies and making leftover buckets private stops uploads and public URLs.
+-- Then delete gym-grade-charts and visit-media in Dashboard → Storage.
+-- ---------------------------------------------------------------------------
+alter table public.gym_grade_scales drop column if exists chart_path;
+alter table public.visits drop column if exists photo_path;
+
+drop policy if exists "Authenticated can upload grade charts" on storage.objects;
+drop policy if exists "Anyone can view grade charts" on storage.objects;
+drop policy if exists "Users can upload own visit media" on storage.objects;
+drop policy if exists "Users can view own visit media" on storage.objects;
+drop policy if exists "Users can update own visit media" on storage.objects;
+drop policy if exists "Users can delete own visit media" on storage.objects;
+
+update storage.buckets
+set public = false
+where id in ('gym-grade-charts', 'visit-media');

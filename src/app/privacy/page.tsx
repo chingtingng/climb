@@ -60,10 +60,7 @@ export default async function PrivacyPage() {
             climbers can see it as unverified until a second climber stamps the same
             row. After that it is published. Anyone who has stamped a published place
             can report a listing that looks wrong; enough reports hide it from the
-            picker (your existing stamps stay on your passport). If you upload a
-            grade-chart photo, that image is stored so others can use the same scale.
-            Those photos are in a public storage bucket (anyone with the link can open
-            them).
+            picker (your existing stamps stay on your passport).
           </li>
           <li>
             <strong>Technical.</strong> Session cookies so you stay signed in, plus
@@ -95,8 +92,8 @@ export default async function PrivacyPage() {
 
         <h2>Companies that process data for us (including overseas)</h2>
         <p>
-          The website is hosted on Vercel. Accounts, the database, and grade-chart files
-          are stored with Supabase (Postgres, Auth, and Storage). Those companies may
+          The website is hosted on Vercel. Accounts and the database are stored with
+          Supabase (Postgres and Auth). Those companies may
           process data outside {OPERATOR_COUNTRY}, including in the United States. We use
           them only to operate the app. If you paste a social clip, that platform’s own
           privacy policy applies to the video.
@@ -113,7 +110,7 @@ export default async function PrivacyPage() {
         <p>
           We keep your account and stamps while the account exists. If you delete the
           account (in the app or by emailing us), we delete your Auth user, profile,
-          stamps, and grade-chart files uploaded under your account, unless we must keep
+          and stamps, unless we must keep
           a limited record to handle abuse or a legal request. Shared catalog rows (a gym
           someone else still uses) may remain with your user id removed where we can do
           that safely.

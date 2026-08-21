@@ -16,7 +16,7 @@ Shared catalog, private stamps:
 - `gyms` — brand/place (Boulder Planet, BFF Climbing, …) plus `place_kind` (`gym` | `rock`), `climbing_types` offered, and `status` (`pending` until a second climber stamps, then `published`)
 - `gym_outlets` — locations of that brand (Sembawang, Tai Seng, …), same status rule
 - `gym_reports` — eligible “this place looks wrong” flags (three hide the gym from the picker)
-- `gym_grade_scales` — one grade chart per gym (numbers, colours, V-scale, custom) plus an optional photo
+- `gym_grade_scales` — one grade chart per gym (numbers, colours, V-scale, custom)
 - `visits` — your stamps: which gym + outlet, climbing type, grade, date, notes, optional TikTok / Instagram / YouTube clip link
 - `profiles` — username + email (for recovery / username login lookup)
 
@@ -95,5 +95,5 @@ Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (
 - New places ask **Gym or Rock** (with help text). Catalog places keep that mapping on `gyms.place_kind`.
 - Repeat visits to the same place add another stamp, not a duplicate place. Multi-location gyms (e.g. Boulder Planet Sembawang / Tai Seng) use an **outlet** selector.
 - Grade systems: V-scale, Font, French, YDS, **Numbers**, **Colours**, and custom house scales
-- The first person to add a gym with a house scale uploads a photo of the grade chart plus a V-scale mapping
+- The first person to add a gym with a house scale saves a V-scale mapping
 - After pulling this version, run the full [`supabase/schema.sql`](./supabase/schema.sql) in the SQL Editor (this wipes stamp tables and reseeds gyms).

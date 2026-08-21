@@ -385,7 +385,6 @@ function GymPickerSheet({
   const [scaleDraft, setScaleDraft] = useState<GradeScale>(() =>
     defaultScaleFor("number", 1, 12),
   );
-  const [chartFile, setChartFile] = useState<File | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const visited = useMemo(
@@ -431,7 +430,6 @@ function GymPickerSheet({
     setScaleDraft(
       gym.scale?.bands.length ? gym.scale : defaultScaleFor("number", 1, 12),
     );
-    setChartFile(null);
     setMapError(null);
   }
 
@@ -454,7 +452,6 @@ function GymPickerSheet({
     data.set("place_kind", mappingGym.place_kind);
     data.set("climbing_types", mappingGym.climbing_types.join(","));
     data.set("scale_json", JSON.stringify(scaleDraft));
-    if (chartFile) data.set("grade_chart", chartFile);
 
     startTransition(async () => {
       const result = await saveGymScaleAction(data);
@@ -611,9 +608,7 @@ function GymPickerSheet({
               <div className="min-h-0 flex-1 overflow-y-auto pb-2">
                 <ScaleSetup
                   scale={scaleDraft}
-                  chartFile={chartFile}
                   onChange={setScaleDraft}
-                  onChart={setChartFile}
                   intro="Save how this place grades so it can sit next to V on the chart."
                 />
               </div>

@@ -24,7 +24,6 @@ export type GradeBand = {
 export type GradeScale = {
   kind: GradeSystem;
   bands: GradeBand[];
-  chartPath?: string | null;
 };
 
 export type CatalogStatus = "pending" | "published" | "rejected";
@@ -85,7 +84,6 @@ export type GymVisitInput = {
   notes?: string;
   visited_on: string;
   scale?: GradeScale;
-  chartFile?: File | null;
   /** Public TikTok / Instagram / YouTube URL. */
   video_path?: string | null;
   /** When true on update, drop the stored clip link. */

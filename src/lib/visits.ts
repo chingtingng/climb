@@ -30,9 +30,6 @@ import type {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseVisitMediaUrl, visitMediaLinkFromStored } from "./visitMedia";
 
-const CHART_BUCKET = "gym-grade-charts";
-const MAX_CHART_BYTES = 8 * 1024 * 1024;
-
 const VISIT_SELECT = `
   id,
   profile_id,
@@ -220,7 +217,7 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
   const full = await supabase
     .from("gyms")
     .select(
-      "id, name, country, place_kind, climbing_types, status, gym_outlets(id, name, city, status), gym_grade_scales(kind, bands, chart_path)",
+      "id, name, country, place_kind, climbing_types, status, gym_outlets(id, name, city, status), gym_grade_scales(kind, bands)",
     )
     .in("status", ["pending", "published"])
     .order("name");
@@ -232,7 +229,7 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
     const withoutStatus = await supabase
       .from("gyms")
       .select(
-        "id, name, country, place_kind, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+        "id, name, country, place_kind, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands)",
       )
       .order("name");
     rows = withoutStatus.data as Array<Record<string, unknown>> | null;
@@ -243,7 +240,7 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
     const withoutKind = await supabase
       .from("gyms")
       .select(
-        "id, name, country, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+        "id, name, country, climbing_types, gym_outlets(id, name, city), gym_grade_scales(kind, bands)",
       )
       .order("name");
     rows = withoutKind.data as Array<Record<string, unknown>> | null;
@@ -254,7 +251,7 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
     const bare = await supabase
       .from("gyms")
       .select(
-        "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands, chart_path)",
+        "id, name, country, gym_outlets(id, name, city), gym_grade_scales(kind, bands)",
       )
       .order("name");
     rows = bare.data as Array<Record<string, unknown>> | null;
@@ -282,7 +279,6 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
               ? (scaleRow as { kind: string }).kind
               : "custom") as GradeSystem,
             bands: (scaleRow as { bands?: GradeScale["bands"] }).bands ?? [],
-            chartPath: (scaleRow as { chart_path?: string | null }).chart_path,
           }
         : null;
     return [
@@ -703,20 +699,14 @@ async function ensureGradeScale(
   profileId: string,
   gymId: string,
   scale: GradeScale,
-  chartFile: File | null,
   alreadyPresent: boolean,
 ): Promise<void> {
   if (alreadyPresent) return;
 
-  let chartPath: string | null = scale.chartPath ?? null;
-  if (chartFile) {
-    chartPath = await uploadGradeChart(supabase, profileId, gymId, chartFile);
-  }
   const { error } = await supabase.from("gym_grade_scales").insert({
     gym_id: gymId,
     kind: scale.kind,
     bands: scale.bands,
-    chart_path: chartPath,
     created_by: profileId,
   });
   if (error && !/duplicate|unique/i.test(error.message)) {
@@ -737,7 +727,6 @@ export async function saveGymGradeMapping(
     place_kind?: PlaceKind;
     climbing_types?: GymVisitInput["climbing_types"];
     scale: GradeScale;
-    chartFile?: File | null;
   },
 ): Promise<GradeScale> {
   const supabase = await createClient();
@@ -764,26 +753,15 @@ export async function saveGymGradeMapping(
     .maybeSingle();
   if (existingError) throw mapDbError(existingError.message);
 
-  let chartPath: string | null = input.scale.chartPath ?? null;
-  if (input.chartFile) {
-    chartPath = await uploadGradeChart(
-      supabase,
-      profileId,
-      catalog.gymId,
-      input.chartFile,
-    );
-  }
-
   if (!existing?.id) {
     await ensureGradeScale(
       supabase,
       profileId,
       catalog.gymId,
-      { ...input.scale, chartPath },
-      null,
+      input.scale,
       false,
     );
-    return { ...input.scale, chartPath };
+    return input.scale;
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -791,7 +769,6 @@ export async function saveGymGradeMapping(
     .update({
       kind: input.scale.kind,
       bands: input.scale.bands,
-      chart_path: chartPath,
     })
     .eq("gym_id", catalog.gymId)
     .select("id")
@@ -802,43 +779,7 @@ export async function saveGymGradeMapping(
       "This place already has a grade chart you can’t edit. Try another gym.",
     );
   }
-  return { ...input.scale, chartPath };
-}
-
-async function uploadGradeChart(
-  supabase: SupabaseClient,
-  profileId: string,
-  gymId: string,
-  file: File,
-): Promise<string> {
-  if (file.size > MAX_CHART_BYTES) {
-    throw new Error("Please keep the grade chart photo under 8 MB.");
-  }
-  if (file.size === 0) {
-    throw new Error("That photo looks empty. Try another one.");
-  }
-
-  const ext = extensionFor(file);
-  const path = `${profileId}/${gymId}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from(CHART_BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type || "image/jpeg",
-  });
-  if (error) {
-    throw new Error(
-      "Couldn't save the grade chart photo. Re-run supabase/schema.sql so the gym-grade-charts bucket exists, then try again.",
-    );
-  }
-  return path;
-}
-
-function extensionFor(file: File): string {
-  const type = file.type.toLowerCase();
-  if (type.includes("png")) return "png";
-  if (type.includes("webp")) return "webp";
-  if (type.includes("heic") || type.includes("heif")) return "heic";
-  return "jpg";
+  return input.scale;
 }
 
 export async function createVisit(
@@ -850,7 +791,6 @@ export async function createVisit(
   const catalog = await ensureGymCatalog(supabase, profileId, {
     ...input,
     scale: undefined,
-    chartFile: null,
   });
   const video_path = storedVisitClipUrl(input.video_path);
 
@@ -949,7 +889,6 @@ async function commitGradeScaleIfNeeded(
     profileId,
     gymId,
     input.scale,
-    input.chartFile ?? null,
     Boolean(data?.id),
   );
 }
@@ -963,7 +902,6 @@ export async function updateVisit(
   const catalog = await ensureGymCatalog(supabase, profileId, {
     ...input,
     scale: undefined,
-    chartFile: null,
   });
   const existing = await fetchVisitClipUrl(supabase, profileId, visitId);
   const video_path = nextVisitClipUrl(existing, input);
@@ -1070,13 +1008,6 @@ export async function reportCatalogGym(profileId: string, gymId: string): Promis
     );
   }
   throw mapDbError(error.message);
-}
-
-export function chartPublicUrl(path: string | null | undefined): string | null {
-  if (!path) return null;
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  if (!base) return null;
-  return `${base}/storage/v1/object/public/${CHART_BUCKET}/${path}`;
 }
 
 function storedVisitClipUrl(path: string | null | undefined): string | null {

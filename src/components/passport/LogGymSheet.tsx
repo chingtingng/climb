@@ -137,7 +137,6 @@ function LogGymSheetInner({
   const [notes, setNotes] = useState("");
   const [scale, setScale] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
   const [scaleDraft, setScaleDraft] = useState<GradeScale>(() => defaultScaleFor("number", 1, 12));
-  const [chartFile, setChartFile] = useState<File | null>(null);
   const [visitMediaUrl, setVisitMediaUrl] = useState("");
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [newOutletName, setNewOutletName] = useState("");
@@ -675,9 +674,7 @@ function LogGymSheetInner({
           {step === "scale" && (
             <ScaleSetup
               scale={scaleDraft}
-              chartFile={chartFile}
               onChange={setScaleDraft}
-              onChart={setChartFile}
             />
           )}
 
@@ -813,7 +810,6 @@ function LogGymSheetInner({
                 data.set("is_new_gym", isNewGym ? "1" : "0");
                 data.set("has_catalog_scale", hasCatalogScale ? "1" : "0");
                 if (needsScale) data.set("scale_json", JSON.stringify(scale));
-                if (chartFile) data.set("grade_chart", chartFile);
                 if (visitMediaUrl.trim()) data.set("media_url", visitMediaUrl.trim());
                 startTransition(() => {
                   formAction(data);

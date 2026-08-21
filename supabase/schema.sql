@@ -15,7 +15,7 @@
 --                     status: pending | published | rejected
 --   gym_outlets       locations of that brand (same status rule)
 --   gym_catalog_seeds seeded names that are born published
---   gym_grade_scales  one grade chart per gym (+ optional photo path)
+--   gym_grade_scales  one grade chart per gym (numbers, colours, V-scale, custom)
 --                     kind: v | font | french | yds | number | color | custom
 --   gym_reports       eligible “this place looks wrong” flags
 --   visits            private stamps (gym + outlet + climbing_type + grade + date)
@@ -426,7 +426,6 @@ create table public.gym_grade_scales (
   kind text not null constraint gym_grade_scales_kind_check
     check (kind in ('v', 'font', 'french', 'yds', 'number', 'color', 'custom')),
   bands jsonb not null default '[]'::jsonb,
-  chart_path text,
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
   constraint gym_grade_scales_bands_valid check (public.grade_bands_valid(bands))
@@ -803,39 +802,23 @@ revoke all on table public.visits from anon;
 revoke all on table public.gym_reports from anon;
 
 -- ---------------------------------------------------------------------------
--- Storage: grade-chart photos
--- Public read (wall charts). Authenticated upload only under {user id}/…
+-- No file storage. Stamp clips are public TikTok / Instagram / YouTube URLs
+-- on visits.video_path. House grades are JSON on gym_grade_scales.bands.
+--
+-- Direct DELETE on storage.objects is blocked (Storage API only). Dropping
+-- policies and making leftover buckets private stops uploads and public URLs.
+-- Then delete gym-grade-charts and visit-media in Dashboard → Storage.
 -- ---------------------------------------------------------------------------
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'gym-grade-charts',
-  'gym-grade-charts',
-  true,
-  8388608,
-  array['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
-)
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
 drop policy if exists "Authenticated can upload grade charts" on storage.objects;
 drop policy if exists "Anyone can view grade charts" on storage.objects;
+drop policy if exists "Users can upload own visit media" on storage.objects;
+drop policy if exists "Users can view own visit media" on storage.objects;
+drop policy if exists "Users can update own visit media" on storage.objects;
+drop policy if exists "Users can delete own visit media" on storage.objects;
 
-create policy "Authenticated can upload grade charts"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'gym-grade-charts'
-    and name like auth.uid()::text || '/%'
-  );
-
-create policy "Anyone can view grade charts"
-  on storage.objects for select
-  using (bucket_id = 'gym-grade-charts');
-
--- Visit clips are public TikTok / Instagram / YouTube URLs on visits.video_path.
--- Stamp photos/videos are not stored in Supabase.
+update storage.buckets
+set public = false
+where id in ('gym-grade-charts', 'visit-media');
 
 -- ---------------------------------------------------------------------------
 -- Seed known gyms (shared catalog)

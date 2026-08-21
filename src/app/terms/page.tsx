@@ -47,20 +47,18 @@ export default async function TermsPage() {
         <p>
           You can change your username or password in the app (Profile → Account →
           Manage account). You can delete your account there too; that removes your
-          login, profile, stamps, and grade-chart files you uploaded.
+          login, profile, and stamps.
           You can also email{" "}
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a> and we will delete it for you.
         </p>
 
         <h2>Your content</h2>
         <p>
-          You keep ownership of notes, usernames, and photos you upload. You give us
+          You keep ownership of notes and usernames. You give us
           permission to store them and to show shared catalog data (places and grade
           charts) to other signed-in climbers, which is how the log works. New places
           you add stay searchable as unverified until a second climber stamps the same
-          row. Do not upload anything you do not have the right to share. Grade-chart
-          photos are stored so others can see the gym’s scale — do not upload private or
-          unrelated images.
+          row. Do not add anything you do not have the right to share.
         </p>
         <p>
           Optional clip links must be public TikTok, Instagram, or YouTube URLs. Those

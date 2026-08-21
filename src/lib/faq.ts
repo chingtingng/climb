@@ -48,7 +48,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: "delete",
     question: "How do I delete a stamp or my account?",
     answer: [
-      "Open a stamp to edit or delete it. To wipe everything, go to Account → Manage account → Delete account. That removes your login, stamps, and grade-chart photos you uploaded.",
+      "Open a stamp to edit or delete it. To wipe everything, go to Account → Manage account → Delete account. That removes your login and stamps.",
     ],
   },
 ];

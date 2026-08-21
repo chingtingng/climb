@@ -445,7 +445,7 @@ export async function logoutAction() {
   redirect("/");
 }
 
-/** Permanently delete the signed-in Auth user, stamps, and grade-chart files. */
+/** Permanently delete the signed-in Auth user and stamps. */
 export async function deleteAccountAction(
   confirmation: string,
 ): Promise<ActionResult> {
@@ -598,8 +598,6 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
   const visited_on = String(formData.get("visited_on") ?? "").trim();
   const isNew = String(formData.get("is_new_gym") ?? "") === "1";
   const hasCatalogScale = String(formData.get("has_catalog_scale") ?? "") === "1";
-  const chart = formData.get("grade_chart");
-  const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
   const media_url = String(
     formData.get("media_url") || formData.get("video_path") || "",
   ).trim();
@@ -688,7 +686,6 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     notes: notes || undefined,
     visited_on,
     scale,
-    chartFile,
     video_path: media_url || null,
     clear_media,
   };
@@ -840,8 +837,6 @@ export async function saveGymScaleAction(formData: FormData): Promise<ActionResu
   const outlet_id = uuid.test(outlet_idRaw) ? outlet_idRaw : "";
   const placeKindRaw = String(formData.get("place_kind") ?? "").trim();
   const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
-  const chart = formData.get("grade_chart");
-  const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
 
   if (!gym_name || !country) {
     return { ok: false, error: "Pick a place to map." };
@@ -883,7 +878,6 @@ export async function saveGymScaleAction(formData: FormData): Promise<ActionResu
       place_kind,
       climbing_types: climbing_types.length > 0 ? climbing_types : undefined,
       scale,
-      chartFile,
     });
   } catch (error) {
     return {

@@ -66,8 +66,7 @@ export function DeleteAccountDialog({
           Delete your account?
         </h2>
         <p id={copyId} className="mt-2 text-sm leading-relaxed text-ink-soft">
-          This removes your login, stamps, and grade-chart photos you uploaded.
-          This cannot be undone.
+          This removes your login and stamps. This cannot be undone.
         </p>
         <label
           htmlFor={fieldId}

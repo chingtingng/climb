@@ -6,7 +6,6 @@ import {
   GRADE_SYSTEMS,
   isHouseSystem,
   normalizeBandVRange,
-  STANDARD_SYSTEMS,
   V_GRADES,
 } from "@/lib/grades";
 import { defaultScaleFor } from "@/lib/gymCatalog";
@@ -18,21 +17,16 @@ import { Field, SelectField } from "@/components/ui/Field";
 
 export function ScaleSetup({
   scale,
-  chartFile,
   onChange,
-  onChart,
   intro = "You’re the first to add this place. Save how it grades so the next visit can reuse it.",
 }: {
   scale: GradeScale;
-  chartFile: File | null;
   onChange: (scale: GradeScale) => void;
-  onChart: (file: File | null) => void;
   intro?: string;
 }) {
   const [from, setFrom] = useState(firstNumber(scale) ?? 1);
   const [to, setTo] = useState(lastNumber(scale) ?? 12);
   const [customLabel, setCustomLabel] = useState("");
-  const [preview, setPreview] = useState<string | null>(null);
 
   function setKind(kind: GradeSystem) {
     if (kind === "number") {
@@ -279,45 +273,6 @@ export function ScaleSetup({
           </ul>
         </div>
       ) : null}
-
-      {isHouseSystem(scale.kind) ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">
-            Photo of the grade chart{" "}
-            <span className="font-medium text-ink-soft">(optional)</span>
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0] ?? null;
-              onChart(file);
-              if (preview) URL.revokeObjectURL(preview);
-              setPreview(file ? URL.createObjectURL(file) : null);
-            }}
-            className="block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-sky-100 file:px-4 file:font-semibold file:text-sky-700"
-          />
-          <span className="mt-1.5 block text-xs text-ink-soft">
-            Optional — a photo helps the next visit reuse this place’s scale.
-          </span>
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview}
-              alt="Grade chart preview"
-              className="mt-3 max-h-40 w-full rounded-lg object-cover"
-            />
-          ) : chartFile ? (
-            <p className="mt-2 text-sm text-ink">{chartFile.name}</p>
-          ) : null}
-        </label>
-      ) : (
-        <p className="text-sm text-ink-soft">
-          {STANDARD_SYSTEMS.includes(scale.kind)
-            ? "Standard V-scale, Font, French, and YDS don’t need a chart photo."
-            : "This grade system doesn’t need a chart photo."}
-        </p>
-      )}
     </div>
   );
 }
