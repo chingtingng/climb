@@ -842,9 +842,9 @@ values
   ('Boulder Movement', 'Singapore', 'Tai Seng', 'Singapore'),
   ('Boulder+', 'Singapore', 'Aperia', 'Singapore'),
   ('Boulder+', 'Singapore', 'Chevrons', 'Singapore'),
-  ('BFF Climbing', 'Singapore', 'Bendemeer', 'Singapore'),
-  ('BFF Climbing', 'Singapore', 'Tampines Yoha', 'Singapore'),
-  ('BFF Climbing', 'Singapore', 'Tampines Hub', 'Singapore'),
+  ('BFF Climb', 'Singapore', 'Bendemeer', 'Singapore'),
+  ('BFF Climb', 'Singapore', 'Tampines Yoha', 'Singapore'),
+  ('BFF Climb', 'Singapore', 'Tampines Hub', 'Singapore'),
   ('Climb Central', 'Singapore', 'The Kallang', 'Singapore'),
   ('Climb Central', 'Singapore', 'Funan', 'Singapore'),
   ('Climb Central', 'Singapore', 'Novena', 'Singapore'),
@@ -874,7 +874,7 @@ with seeded as (
     ('Boulder Planet', 'Thailand', 'gym', array['bouldering']::text[], 'published'),
     ('Boulder Movement', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
     ('Boulder+', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
-    ('BFF Climbing', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
+    ('BFF Climb', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
     ('Climb Central', 'Singapore', 'gym', array['bouldering', 'top_rope', 'lead']::text[], 'published'),
     ('Fit Bloc', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
     ('Kinetics Climbing', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
@@ -908,9 +908,9 @@ join (
     ('Boulder Movement', 'Singapore', 'Tai Seng', 'Singapore'),
     ('Boulder+', 'Singapore', 'Aperia', 'Singapore'),
     ('Boulder+', 'Singapore', 'Chevrons', 'Singapore'),
-    ('BFF Climbing', 'Singapore', 'Bendemeer', 'Singapore'),
-    ('BFF Climbing', 'Singapore', 'Tampines Yoha', 'Singapore'),
-    ('BFF Climbing', 'Singapore', 'Tampines Hub', 'Singapore'),
+    ('BFF Climb', 'Singapore', 'Bendemeer', 'Singapore'),
+    ('BFF Climb', 'Singapore', 'Tampines Yoha', 'Singapore'),
+    ('BFF Climb', 'Singapore', 'Tampines Hub', 'Singapore'),
     ('Climb Central', 'Singapore', 'The Kallang', 'Singapore'),
     ('Climb Central', 'Singapore', 'Funan', 'Singapore'),
     ('Climb Central', 'Singapore', 'Novena', 'Singapore'),
@@ -954,7 +954,7 @@ join (
       '[{"label":"1"},{"label":"2"},{"label":"3"},{"label":"4"},{"label":"5"},{"label":"6"},{"label":"7"},{"label":"8"},{"label":"9"},{"label":"10"},{"label":"11"},{"label":"12"},{"label":"13"},{"label":"14"},{"label":"15"},{"label":"16"},{"label":"17"},{"label":"18"},{"label":"19"},{"label":"20"},{"label":"Flux 1"},{"label":"Flux 2"},{"label":"Flux 3"},{"label":"Flux 4"},{"label":"Flux 5"}]'
     ),
     (
-      'BFF Climbing',
+      'BFF Climb',
       'number',
       -- 1–15 with two house grades per V step; 15≈V8
       '[{"label":"1","v_equiv":"V1"},{"label":"2","v_equiv":"V1"},{"label":"3","v_equiv":"V2"},{"label":"4","v_equiv":"V2"},{"label":"5","v_equiv":"V3"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V4"},{"label":"9","v_equiv":"V5"},{"label":"10","v_equiv":"V5"},{"label":"11","v_equiv":"V6"},{"label":"12","v_equiv":"V6"},{"label":"13","v_equiv":"V7"},{"label":"14","v_equiv":"V7"},{"label":"15","v_equiv":"V8"}]'

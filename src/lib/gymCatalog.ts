@@ -133,7 +133,7 @@ export const KNOWN_GYMS: CatalogGym[] = [
     },
   ),
   gym(
-    "BFF Climbing",
+    "BFF Climb",
     "Singapore",
     [
       ["Bendemeer", "Singapore"],

@@ -32,6 +32,14 @@ create policy "Authenticated can view catalog seeds"
   to authenticated
   using (true);
 
+update public.gym_catalog_seeds
+set gym_name = 'BFF Climb'
+where gym_name = 'BFF Climbing';
+
+update public.gyms
+set name = 'BFF Climb'
+where name = 'BFF Climbing';
+
 insert into public.gym_catalog_seeds (gym_name, country, outlet_name, city)
 values
   ('Boulder Planet', 'Singapore', 'Sembawang', 'Singapore'),
@@ -44,9 +52,9 @@ values
   ('Boulder Movement', 'Singapore', 'Tai Seng', 'Singapore'),
   ('Boulder+', 'Singapore', 'Aperia', 'Singapore'),
   ('Boulder+', 'Singapore', 'Chevrons', 'Singapore'),
-  ('BFF Climbing', 'Singapore', 'Bendemeer', 'Singapore'),
-  ('BFF Climbing', 'Singapore', 'Tampines Yoha', 'Singapore'),
-  ('BFF Climbing', 'Singapore', 'Tampines Hub', 'Singapore'),
+  ('BFF Climb', 'Singapore', 'Bendemeer', 'Singapore'),
+  ('BFF Climb', 'Singapore', 'Tampines Yoha', 'Singapore'),
+  ('BFF Climb', 'Singapore', 'Tampines Hub', 'Singapore'),
   ('Climb Central', 'Singapore', 'The Kallang', 'Singapore'),
   ('Climb Central', 'Singapore', 'Funan', 'Singapore'),
   ('Climb Central', 'Singapore', 'Novena', 'Singapore'),

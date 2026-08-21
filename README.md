@@ -13,7 +13,7 @@ Mobile-first climbing passport. Log places (gyms and more) by country and city, 
 
 Shared catalog, private stamps:
 
-- `gyms` — brand/place (Boulder Planet, BFF Climbing, …) plus `place_kind` (`gym` | `rock`), `climbing_types` offered, and `status` (`pending` until a second climber stamps, then `published`)
+- `gyms` — brand/place (Boulder Planet, BFF Climb, …) plus `place_kind` (`gym` | `rock`), `climbing_types` offered, and `status` (`pending` until a second climber stamps, then `published`)
 - `gym_outlets` — locations of that brand (Sembawang, Tai Seng, …), same status rule
 - `gym_reports` — eligible “this place looks wrong” flags (three hide the gym from the picker)
 - `gym_grade_scales` — one grade chart per gym (numbers, colours, V-scale, custom)
