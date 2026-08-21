@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+} from "react";
 import Link from "next/link";
 import { countryCode } from "@/lib/countries";
 import { formatStampDate } from "@/lib/dates";
 import { gradeSortValue } from "@/lib/grades";
 import { sameCountry } from "@/lib/gymCatalog";
-import { formatGymPlace, uniqueCountries } from "@/lib/gyms";
+import {
+  filterLocationGroups,
+  formatGymPlace,
+  groupVisitsByLocation,
+  locationGroupCounts,
+  uniqueCountries,
+} from "@/lib/gyms";
 import type { GymGroup } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -16,10 +29,15 @@ import { PlaceKindMark } from "@/components/ui/Marks";
 import { placeInk } from "@/components/ui/Stamp";
 import { cx } from "@/components/ui/cx";
 import { CountryStamp } from "./CountryStamp";
-import { ChevronIcon, GymsIcon, SearchIcon } from "./icons";
+import { ChevronIcon, GlobeIcon, GymsIcon, SearchIcon } from "./icons";
 import { usePassport } from "./PassportContext";
+import {
+  PlacesLocationView,
+  type LocationGroupBy,
+} from "./PlacesLocationView";
 
 type SortKey = "recent" | "grade" | "az" | "country";
+type PlacesView = "places" | "location";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "recent", label: "Recently visited" },
@@ -29,10 +47,12 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 ];
 
 export function GymsView() {
-  const { gyms, configured, openLog } = usePassport();
+  const { gyms, visits, configured, openLog } = usePassport();
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("All");
   const [sort, setSort] = useState<SortKey>("recent");
+  const [view, setView] = useState<PlacesView>("places");
+  const [groupBy, setGroupBy] = useState<LocationGroupBy>("city");
   const countries = uniqueCountries(gyms);
   const q = query.trim().toLowerCase();
   const filtered = gyms
@@ -47,6 +67,18 @@ export function GymsView() {
       return matchesQuery && matchesCountry;
     })
     .sort((a, b) => compareGyms(a, b, sort));
+  const locationGroups = useMemo(
+    () =>
+      filterLocationGroups(
+        groupVisitsByLocation(visits, gyms),
+        query,
+        country,
+      ),
+    [visits, gyms, query, country],
+  );
+  const locationCounts = locationGroupCounts(locationGroups);
+  const locationEmpty = locationGroups.length === 0;
+  const listEmpty = view === "places" ? filtered.length === 0 : locationEmpty;
 
   return (
     <div className="space-y-4">
@@ -56,6 +88,27 @@ export function GymsView() {
           Every place you’ve left some chalk.
         </p>
       </header>
+
+      <div
+        role="group"
+        aria-label="Places view"
+        className="flex gap-2"
+      >
+        <Pill
+          selected={view === "places"}
+          aria-pressed={view === "places"}
+          onClick={() => setView("places")}
+        >
+          Places
+        </Pill>
+        <Pill
+          selected={view === "location"}
+          aria-pressed={view === "location"}
+          onClick={() => setView("location")}
+        >
+          By location
+        </Pill>
+      </div>
 
       <div className="space-y-2.5">
         <label className="relative block">
@@ -77,40 +130,65 @@ export function GymsView() {
           <div
             role="group"
             aria-label="Filter by country"
-          className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] wide:flex-wrap wide:overflow-visible [&::-webkit-scrollbar]:hidden"
+            className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] wide:flex-wrap wide:overflow-visible [&::-webkit-scrollbar]:hidden"
           >
             {["All", ...countries].map((item) => {
               const selected = item === country;
               const label = item === "All" ? "All" : countryCode(item) || item;
               return (
-                <button
+                <Pill
                   key={item}
-                  type="button"
+                  selected={selected}
                   aria-pressed={selected}
                   aria-label={item === "All" ? "All countries" : item}
                   onClick={() => setCountry(item)}
-                  className={cx(
-                    "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold",
-                    selected
-                      ? "border-sky-300 bg-sky-300 text-ink"
-                      : "border-sky-300 bg-surface text-ink hover:bg-sky-50 active:bg-sky-50",
-                  )}
                 >
                   {label}
-                </button>
+                </Pill>
               );
             })}
           </div>
         ) : null}
 
-        <div className="relative z-20 flex items-center justify-between gap-3">
-          <p className="flex shrink-0 items-center gap-1.5 text-sm text-ink-soft">
-            <GymsIcon className="size-3.5 shrink-0" />
-            <span>
-              {filtered.length} {filtered.length === 1 ? "place" : "places"}
+        <div className="relative z-20 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <p className="flex min-w-0 shrink items-center gap-1.5 text-sm text-ink-soft">
+            {view === "location" ? (
+              <GlobeIcon className="size-3.5 shrink-0" />
+            ) : (
+              <GymsIcon className="size-3.5 shrink-0" />
+            )}
+            <span className="truncate">
+              {view === "places"
+                ? `${filtered.length} ${filtered.length === 1 ? "place" : "places"}`
+                : groupBy === "city"
+                  ? `${locationCounts.cities} ${locationCounts.cities === 1 ? "city" : "cities"}`
+                  : `${locationCounts.countries} ${locationCounts.countries === 1 ? "country" : "countries"}`}
             </span>
           </p>
-          <SortMenu value={sort} onChange={setSort} />
+          {view === "places" ? (
+            <SortMenu value={sort} onChange={setSort} />
+          ) : (
+            <div
+              role="group"
+              aria-label="Show by country or city"
+              className="flex min-w-0 gap-1.5"
+            >
+              <Pill
+                selected={groupBy === "country"}
+                aria-pressed={groupBy === "country"}
+                onClick={() => setGroupBy("country")}
+              >
+                Country
+              </Pill>
+              <Pill
+                selected={groupBy === "city"}
+                aria-pressed={groupBy === "city"}
+                onClick={() => setGroupBy("city")}
+              >
+                City
+              </Pill>
+            </div>
+          )}
         </div>
       </div>
 
@@ -124,12 +202,19 @@ export function GymsView() {
           onAction={() => openLog()}
           disabled={!configured}
         />
-      ) : filtered.length === 0 ? (
+      ) : listEmpty ? (
         <EmptyState
           seed="no-search"
           label="?"
           title="Nothing in this corner of the atlas"
           body="No places match that search. Try another country, or clear the search."
+        />
+      ) : view === "location" ? (
+        <PlacesLocationView
+          key={groupBy}
+          groups={locationGroups}
+          groupBy={groupBy}
+          expandAll={Boolean(q)}
         />
       ) : (
         <ul className="relative z-0 grid grid-cols-1 gap-2.5 wide:grid-cols-2 desktop:grid-cols-3">
@@ -168,6 +253,26 @@ export function GymsView() {
         </ul>
       )}
     </div>
+  );
+}
+
+function Pill({
+  selected,
+  className,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { selected?: boolean }) {
+  return (
+    <button
+      type="button"
+      className={cx(
+        "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold",
+        selected
+          ? "border-sky-300 bg-sky-300 text-ink"
+          : "border-sky-300 bg-surface text-ink hover:bg-sky-50 active:bg-sky-50",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
