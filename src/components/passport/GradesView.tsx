@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { saveGymScaleAction } from "@/app/actions";
 import { countryCode } from "@/lib/countries";
@@ -372,6 +379,8 @@ function GymPickerSheet({
 }) {
   const [query, setQuery] = useState("");
   const [mappingGym, setMappingGym] = useState<CatalogGym | null>(null);
+  const [allowSearchFocus, setAllowSearchFocus] = useState(true);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [scaleDraft, setScaleDraft] = useState<GradeScale>(() =>
     defaultScaleFor("number", 1, 12),
   );
@@ -407,13 +416,28 @@ function GymPickerSheet({
     hasVMapping(scaleDraft) &&
     (!isHouseSystem(scaleDraft.kind) || scaleDraft.bands.length > 0);
 
+  function blurActive() {
+    searchRef.current?.blur();
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }
+
   function startMapping(gym: CatalogGym) {
+    blurActive();
+    setAllowSearchFocus(false);
     setMappingGym(gym);
     setScaleDraft(
       gym.scale?.bands.length ? gym.scale : defaultScaleFor("number", 1, 12),
     );
     setChartFile(null);
     setMapError(null);
+  }
+
+  function leaveMapping() {
+    if (pending) return;
+    blurActive();
+    setMappingGym(null);
   }
 
   function saveMapping() {
@@ -445,7 +469,7 @@ function GymPickerSheet({
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (mappingGym) {
-        if (!pending) setMappingGym(null);
+        leaveMapping();
         return;
       }
       onClose();
@@ -500,54 +524,25 @@ function GymPickerSheet({
             </button>
           </div>
 
-          {mappingGym ? (
-            <>
-              <div className="min-h-0 flex-1 overflow-y-auto pb-2">
-                <ScaleSetup
-                  scale={scaleDraft}
-                  chartFile={chartFile}
-                  onChange={setScaleDraft}
-                  onChart={setChartFile}
-                  intro="Save how this place grades so it can sit next to V on the chart."
-                />
-              </div>
-              <div className="flex shrink-0 gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={pending}
-                  onClick={() => setMappingGym(null)}
-                  className="flex-1"
-                >
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  disabled={!canSave || pending}
-                  onClick={saveMapping}
-                  className="flex-1"
-                >
-                  <ActionButtonLabel
-                    pending={pending}
-                    idle="Save mapping"
-                    busy="Saving…"
-                  />
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
+          <div
+            className={cx(
+              "flex min-h-0 flex-1 flex-col",
+              mappingGym && "hidden",
+            )}
+            inert={mappingGym ? true : undefined}
+          >
               <label className="relative mb-3 block">
                 <span className="sr-only">Search gyms</span>
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft">
                   <SearchIcon className="size-[1.125rem]" />
                 </span>
                 <Field
+                  ref={searchRef}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search gyms"
                   icon
-                  autoFocus
+                  autoFocus={allowSearchFocus}
                   className="!text-base"
                 />
               </label>
@@ -616,8 +611,43 @@ function GymPickerSheet({
                   );
                 })}
               </ul>
+          </div>
+          {mappingGym ? (
+            <>
+              <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+                <ScaleSetup
+                  scale={scaleDraft}
+                  chartFile={chartFile}
+                  onChange={setScaleDraft}
+                  onChart={setChartFile}
+                  intro="Save how this place grades so it can sit next to V on the chart."
+                />
+              </div>
+              <div className="flex shrink-0 gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={leaveMapping}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!canSave || pending}
+                  onClick={saveMapping}
+                  className="flex-1"
+                >
+                  <ActionButtonLabel
+                    pending={pending}
+                    idle="Save mapping"
+                    busy="Saving…"
+                  />
+                </Button>
+              </div>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
