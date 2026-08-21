@@ -687,6 +687,36 @@ a {
   outline: none;
 }
 
+/* iOS WebKit date controls size to the formatted value, not the container,
+   so they overflow padded flex sheets (standalone iPhone home-screen app). */
+input[type="date"].field,
+input[type="date"].passport-field {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+input[type="date"].field::-webkit-date-and-time-value,
+input[type="date"].passport-field::-webkit-date-and-time-value {
+  text-align: left;
+  min-width: 0;
+}
+
+input[type="date"].field::-webkit-datetime-edit,
+input[type="date"].passport-field::-webkit-datetime-edit {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+}
+
+@supports (-webkit-touch-callout: none) {
+  input[type="date"].field,
+  input[type="date"].passport-field {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
 .field::placeholder,
 .passport-field::placeholder {
   color: var(--ink-soft);
@@ -1123,6 +1153,8 @@ textarea.passport-field::-webkit-scrollbar-thumb:hover {
   background: var(--surface);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   box-shadow: var(--elev-sheet);
+  min-width: 0;
+  overflow-x: clip;
 }
 
 /* Phone: keep the log sheet full-screen from the bottom, including the
@@ -1132,6 +1164,7 @@ textarea.passport-field::-webkit-scrollbar-thumb:hover {
     display: flex;
     height: 100%;
     min-height: 0;
+    min-width: 0;
     flex-direction: column;
     justify-content: flex-end;
   }
@@ -1140,12 +1173,14 @@ textarea.passport-field::-webkit-scrollbar-thumb:hover {
     height: 100%;
     max-height: none;
     min-height: 0;
+    min-width: 0;
   }
 
   .passport-overlay .sheet-body,
   .passport-overlay .sheet-step {
     display: flex;
     min-height: 0;
+    min-width: 0;
     flex: 1 1 0;
     flex-direction: column;
   }
