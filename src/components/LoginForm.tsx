@@ -7,7 +7,6 @@ import {
   loginAction,
   type ActionResult,
 } from "@/app/actions";
-import { GoogleButton } from "@/components/auth/GoogleButton";
 import { useUsernameCheck } from "@/components/auth/useUsernameCheck";
 import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
 import { Button } from "@/components/ui/Button";
@@ -20,7 +19,6 @@ type Mode = "signin" | "signup";
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   confirm:
     "That verification link is invalid or expired. Sign in if you already confirmed, or create the account again.",
-  oauth: "Google sign-in was cancelled or failed. Try again, or use email.",
 };
 
 export function LoginForm({
@@ -110,18 +108,6 @@ export function LoginForm({
       </div>
 
       <div className="auth-panel">
-      <GoogleButton
-        disabled={!configured || loading}
-        onError={(message) => {
-          setVerifyMessage(null);
-          setError(message);
-        }}
-      />
-
-      <p className="auth-or" role="separator">
-        or
-      </p>
-
       <form onSubmit={handleSubmit} className="auth-form">
         {mode === "signin" ? (
           <label>
@@ -155,7 +141,7 @@ export function LoginForm({
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder="you@gmail.com"
+                placeholder="you@email.com"
                 disabled={!configured || loading}
                 preventIosZoom
               />

@@ -5,7 +5,7 @@ import { ensureOwnProfile } from "@/lib/visits";
 
 export type SessionUser = {
   id: string;
-  /** Null until the climber picks a handle (Google / incomplete signup). */
+  /** Null until the climber picks a handle (incomplete signup). */
   username: string | null;
   email?: string | null;
 };

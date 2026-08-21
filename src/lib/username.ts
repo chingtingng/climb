@@ -85,7 +85,7 @@ export function emailToUsername(email: string | undefined): string | undefined {
 }
 
 /**
- * Best-effort handle from a Google name or email local-part.
+ * Best-effort handle from a display name or email local-part.
  * Empty when nothing valid can be made (the climber still types their own).
  */
 export function suggestUsername(

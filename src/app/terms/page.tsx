@@ -35,9 +35,9 @@ export default async function TermsPage() {
 
         <h2>Your account</h2>
         <p>
-          You need an email (including Gmail or any other provider) or Google sign-in,
-          plus a username. Keep your password to yourself. You are responsible for
-          activity on your account. You must be at least 13. Email us at{" "}
+          You need an email, a username, and a password. Keep your password to yourself.
+          You are responsible for activity on your account. You must be at least 13.
+          Email us at{" "}
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a> if you want the account deleted.
         </p>
 

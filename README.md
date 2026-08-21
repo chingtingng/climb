@@ -6,7 +6,7 @@ Mobile-first climbing passport. Log places (gyms and more) by country and city, 
 
 - Next.js (App Router) → deploy on Vercel
 - Supabase Postgres + Auth for storage and login
-- Email (Gmail, Outlook, iCloud, …) + username + password, or Continue with Google
+- Email + username + password
 - Sign in with username or email
 
 ## Data model
@@ -38,18 +38,13 @@ When creating the project, use these **Security** checkboxes:
 Then:
 
 1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops old stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `visits`. Profiles and Auth users are kept. Re-run it whenever the schema changes.
-   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/oauth-usernames.sql`](./supabase/oauth-usernames.sql) (needed before Google sign-in), [`supabase/visit-media.sql`](./supabase/visit-media.sql) (adds `video_path` for clip links), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), [`supabase/place-kind.sql`](./supabase/place-kind.sql), and [`supabase/yds-grades.sql`](./supabase/yds-grades.sql) instead of a full reset.
+   - Existing project (keep stamps): run [`supabase/email-auth.sql`](./supabase/email-auth.sql), [`supabase/oauth-usernames.sql`](./supabase/oauth-usernames.sql) (do not invent a username from the email local-part), [`supabase/visit-media.sql`](./supabase/visit-media.sql) (adds `video_path` for clip links), [`supabase/climbing-types.sql`](./supabase/climbing-types.sql), [`supabase/place-kind.sql`](./supabase/place-kind.sql), and [`supabase/yds-grades.sql`](./supabase/yds-grades.sql) instead of a full reset.
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so email signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:
    - Site URL = your app origin (e.g. `http://localhost:3000` or the Vercel URL)
    - Redirect URLs include `{SITE_URL}/auth/confirm` and `{SITE_URL}/auth/callback`
-5. Optional — **Continue with Google** (Instagram-style social login):
-   - Run [`supabase/oauth-usernames.sql`](./supabase/oauth-usernames.sql) if you did not re-run the full schema (Google users pick a username after sign-in).
-   - In Google Cloud, create an OAuth **Web** client. Authorized JavaScript origins: your Site URL. Authorized redirect URI: the callback shown on **Authentication → Providers → Google** in Supabase (ends with `/auth/v1/callback`).
-   - Paste the Client ID and Secret into that Google provider page and enable it.
-   - Google users skip email confirmation, then land on `/welcome` to choose a username.
-6. Optional but recommended — **Authentication → Email Templates → Confirm signup**:
+5. Optional but recommended — **Authentication → Email Templates → Confirm signup**:
 
 ```html
 <h2>Confirm your email</h2>
@@ -61,8 +56,8 @@ Then:
 </p>
 ```
 
-7. Copy keys from **Project Settings → API**
-8. Add env vars (local `.env.local` and Vercel project settings):
+6. Copy keys from **Project Settings → API**
+7. Add env vars (local `.env.local` and Vercel project settings):
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
@@ -91,9 +86,8 @@ Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (
 
 ## Notes
 
-- **Email signup** (including Gmail) is username + any email + password. After signup, confirm the email before signing in. Signup agrees to the [Terms](/terms) and [Privacy Policy](/privacy).
-- **Continue with Google** is optional; enable it in Supabase as above. After Google, the climber picks a username at `/welcome`.
-- **Sign in** accepts username **or** email plus password, or Google if enabled.
+- **Email signup** is username + any email + password. After signup, confirm the email before signing in. Signup agrees to the [Terms](/terms) and [Privacy Policy](/privacy).
+- **Sign in** accepts username **or** email plus password.
 - **Help & feedback** (`/help`) opens a mail to `chalkpassport@outlook.com`. Privacy and Terms are public at `/privacy` and `/terms`.
 - Legacy accounts created as `username@chalk.local` can still sign in with username until they migrate to a real email.
 - After login: **Home**, **Places**, and **Profile**, with a stepped **+ Log a visit** flow

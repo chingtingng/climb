@@ -509,28 +509,6 @@ a {
   margin-top: 0.15rem;
 }
 
-.auth-or {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-block: 1rem;
-  font-size: var(--fs-micro);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.auth-or::before,
-.auth-or::after {
-  content: "";
-  width: 4.75rem;
-  flex: 0 0 4.75rem;
-  height: 1px;
-  background: color-mix(in srgb, var(--sky-300) 70%, transparent);
-}
-
 .auth-legal {
   margin: 0;
   text-align: center;
@@ -560,24 +538,6 @@ a {
   .auth-brand .label-micro {
     margin-top: 0.6rem;
   }
-}
-
-.btn-google {
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--sky-300);
-  box-shadow: none;
-  font-weight: 600;
-}
-
-.btn-google:enabled:active {
-  background: var(--sky-50);
-  transform: scale(0.97);
-}
-
-.btn-google:disabled {
-  background: var(--sky-50);
-  border-color: var(--sky-200);
 }
 
 .legal-shell {

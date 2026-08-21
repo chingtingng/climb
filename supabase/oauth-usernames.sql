@@ -1,10 +1,9 @@
 -- =============================================================================
 -- Incremental: don't invent a username from the email local-part
 -- =============================================================================
--- Safe to run on an existing project. Needed before Continue with Google:
--- Gmail addresses like jane.doe@gmail.com fail profiles_username_format
--- (dots aren't allowed), which used to abort the Auth insert.
--- Also covered by the full supabase/schema.sql profiles section.
+-- Safe to run on an existing project. Email local-parts often contain dots
+-- or other characters that fail profiles_username_format, which used to abort
+-- the Auth insert. Also covered by the full supabase/schema.sql profiles section.
 -- =============================================================================
 
 create or replace function public.handle_new_user()
@@ -17,7 +16,7 @@ declare
   chosen text := lower(trim(coalesce(new.raw_user_meta_data->>'username', '')));
   contact text;
 begin
-  -- Skip until the climber picks a valid handle (Google / incomplete signup).
+  -- Skip until the climber picks a valid handle (incomplete signup).
   if chosen = ''
      or char_length(chosen) < 3
      or char_length(chosen) > 30

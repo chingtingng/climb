@@ -32,8 +32,8 @@ declare
   chosen text := lower(trim(coalesce(new.raw_user_meta_data->>'username', '')));
   contact text;
 begin
-  -- Skip until the climber picks a valid handle (Google / incomplete signup).
-  -- Do not fall back to the email local-part — Gmail addresses often contain dots.
+  -- Skip until the climber picks a valid handle (incomplete signup).
+  -- Do not fall back to the email local-part — many addresses contain dots.
   if chosen = ''
      or char_length(chosen) < 3
      or char_length(chosen) > 30

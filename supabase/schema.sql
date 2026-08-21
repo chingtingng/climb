@@ -44,8 +44,6 @@
 --    {SITE_URL}/auth/confirm and {SITE_URL}/auth/callback to Redirect URLs
 -- 4) Optional: update the Confirm signup email template to:
 --    {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/passport
--- 5) Optional: enable Authentication → Providers → Google (Continue with Google).
---    Existing projects can run supabase/oauth-usernames.sql instead of a full reset.
 -- =============================================================================
 
 create extension if not exists "pgcrypto";
@@ -119,8 +117,8 @@ declare
   chosen text := lower(trim(coalesce(new.raw_user_meta_data->>'username', '')));
   contact text;
 begin
-  -- Skip until the climber picks a valid handle (Google / incomplete signup).
-  -- Do not fall back to the email local-part — Gmail addresses often contain dots.
+  -- Skip until the climber picks a valid handle (incomplete signup).
+  -- Do not fall back to the email local-part — many addresses contain dots.
   if chosen = ''
      or char_length(chosen) < 3
      or char_length(chosen) > 30

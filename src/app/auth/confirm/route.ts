@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const errorRedirect = new URL("/", request.url);
 
   if (searchParams.get("error")) {
-    errorRedirect.searchParams.set("authError", "oauth");
+    errorRedirect.searchParams.set("authError", "confirm");
     return NextResponse.redirect(errorRedirect);
   }
 

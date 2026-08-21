@@ -37,9 +37,7 @@ export default async function PrivacyPage() {
         <ul>
           <li>
             <strong>Account.</strong> Username, email address, and a password (stored as a
-            hash by our auth provider — we never see the plain password). If you use
-            Continue with Google, Google shares your name and email with us so we can
-            create the account; you then pick a username.
+            hash by our auth provider — we never see the plain password).
           </li>
           <li>
             <strong>Your stamps.</strong> Places you log (gym or rock, city, country,
@@ -78,9 +76,8 @@ export default async function PrivacyPage() {
         <h2>Companies that process data for us</h2>
         <p>
           The app is hosted on Vercel. Accounts, the database, and grade-chart files are
-          stored with Supabase (Postgres, Auth, and Storage). If you sign in with Google,
-          Google authenticates you. If you paste a social clip, that platform’s own
-          privacy policy applies to the video.
+          stored with Supabase (Postgres, Auth, and Storage). If you paste a social clip,
+          that platform’s own privacy policy applies to the video.
         </p>
 
         <h2>Email</h2>

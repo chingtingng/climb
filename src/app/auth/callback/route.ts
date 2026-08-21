@@ -5,7 +5,7 @@ import { safeAuthNextPath } from "@/lib/site-url";
 import { syncProfileAfterAuth } from "@/lib/auth";
 
 /**
- * Default Supabase ConfirmationURL / magic-link / OAuth redirect (PKCE `?code=`).
+ * Default Supabase ConfirmationURL / magic-link redirect (PKCE `?code=`).
  * Prefer `/auth/confirm` with token_hash in the email template when possible.
  */
 export async function GET(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const errorRedirect = new URL("/", request.url);
 
   if (searchParams.get("error")) {
-    errorRedirect.searchParams.set("authError", "oauth");
+    errorRedirect.searchParams.set("authError", "confirm");
     return NextResponse.redirect(errorRedirect);
   }
 
