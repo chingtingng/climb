@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { updateVisitAction, type ActionResult } from "@/app/actions";
 import {
   DEFAULT_CLIMBING_TYPES,
-  normalizeClimbingTypes,
   type ClimbingType,
 } from "@/lib/climbingTypes";
 import { countryCode } from "@/lib/countries";
@@ -14,6 +13,8 @@ import {
   findKnownGym,
   mergeOutlets,
   sameCountry,
+  scaleForClimb,
+  typesForOutlet,
   visibleOutlets,
 } from "@/lib/gymCatalog";
 import { normalizePlaceKind } from "@/lib/placeKinds";
@@ -93,9 +94,7 @@ function EditVisitSheetInner({
   const [outlet, setOutlet] = useState(visit.outlet?.trim() || visit.city);
   const [city, setCity] = useState(visit.city);
   const [newOutletName, setNewOutletName] = useState("");
-  const catalogTypes = normalizeClimbingTypes(
-    catalogMatch?.climbing_types ?? known?.climbing_types,
-  );
+  const catalogTypes = typesForOutlet(catalogMatch ?? known, outlet);
   const offeredTypes = uniqueTypes([
     ...(catalogTypes.length > 0 ? catalogTypes : DEFAULT_CLIMBING_TYPES),
     visit.climbing_type,
@@ -113,14 +112,12 @@ function EditVisitSheetInner({
   const sheetError = mediaError || state?.error || null;
 
   const resolvedScale =
-    catalogMatch?.scale ??
-    known?.scale ??
+    scaleForClimb(catalogMatch ?? known, climbType) ??
     (userMatch
       ? { kind: userMatch.bestGradeSystem, bands: [] }
       : null);
   const hasCatalogScale = Boolean(
-    (catalogMatch?.scale && catalogMatch.scale.bands.length > 0) ||
-      (known?.scale && known.scale.bands.length > 0),
+    scaleForClimb(catalogMatch ?? known, climbType)?.bands.length,
   );
   const activeScale = resolvedScale;
   const pickerSystem =
@@ -143,6 +140,12 @@ function EditVisitSheetInner({
   const placeKind = normalizePlaceKind(
     catalogMatch?.place_kind ?? known?.place_kind ?? userMatch?.place_kind,
   );
+
+  useEffect(() => {
+    const labels = activeScale?.bands.map((band) => band.label) ?? [];
+    if (labels.length === 0) return;
+    if (grade && !labels.includes(grade)) setGrade("");
+  }, [climbType, activeScale, grade]);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -236,7 +239,7 @@ function EditVisitSheetInner({
             </div>
           </div>
 
-          <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto pb-3">
+          <div className="hide-scroll min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto pb-3">
             {needsOutlet ? (
               <OutletEditor
                 outlets={outlets}
@@ -245,14 +248,9 @@ function EditVisitSheetInner({
                 onSelect={(item) => {
                   setOutlet(item.name);
                   setCity(item.city);
-                }}
-                onNewName={setNewOutletName}
-                onAddNew={() => {
-                  const label = newOutletName.trim();
-                  if (!label) return;
-                  setOutlet(label);
                   setNewOutletName("");
                 }}
+                onNewName={setNewOutletName}
               />
             ) : null}
 
@@ -362,7 +360,7 @@ function EditVisitSheetInner({
                 data.set("gym_name", visit.gym_name);
                 data.set("city", (city.trim() || visit.city).trim());
                 data.set("country", visit.country.trim());
-                const outletValue = (outlet || city || visit.city).trim();
+                const outletValue = (newOutletName.trim() || outlet || city || visit.city).trim();
                 data.set("outlet", outletValue);
                 if (catalogMatch?.id) {
                   data.set("gym_id", catalogMatch.id);
@@ -422,14 +420,12 @@ function OutletEditor({
   newName,
   onSelect,
   onNewName,
-  onAddNew,
 }: {
   outlets: GymOutlet[];
   selected: string;
   newName: string;
   onSelect: (outlet: GymOutlet) => void;
   onNewName: (value: string) => void;
-  onAddNew: () => void;
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const newInputRef = useRef<HTMLInputElement>(null);
@@ -455,39 +451,25 @@ function OutletEditor({
         })}
         <Chip
           selected={addingNew}
-          onClick={() => setAddingNew(true)}
+          onClick={() => {
+            setAddingNew(true);
+            onNewName("");
+          }}
           aria-pressed={addingNew}
         >
           + New outlet
         </Chip>
       </div>
       {addingNew ? (
-        <div className="flex gap-2">
-          <Field
-            ref={newInputRef}
-            value={newName}
-            onChange={(e) => onNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onAddNew();
-                setAddingNew(false);
-              }
-            }}
-            placeholder="Outlet name"
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              onAddNew();
-              setAddingNew(false);
-            }}
-            className="w-auto shrink-0 px-4"
-          >
-            Add
-          </Button>
-        </div>
+        <Field
+          ref={newInputRef}
+          value={newName}
+          onChange={(e) => onNewName(e.target.value)}
+          placeholder="Outlet name"
+          autoComplete="off"
+          autoCapitalize="words"
+          preventIosZoom
+        />
       ) : null}
     </div>
   );

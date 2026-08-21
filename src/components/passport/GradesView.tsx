@@ -204,7 +204,7 @@ function CompareChart({
         </button>
       </div>
       <Card className="min-w-0 overflow-hidden !p-0">
-        <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+        <div className="hide-scroll min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
           <table
             className="w-full min-w-full border-collapse text-center"
             style={{ minWidth: `${9.5 + columns.length * 6.5}rem` }}
@@ -538,7 +538,7 @@ function GymPickerSheet({
                 />
               </label>
 
-              <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pb-2">
+              <ul className="hide-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto pb-2">
                 {rows.map((gym) => {
                   const key = compareKey(gym);
                   const mapped = hasVMapping(gym.scale);
@@ -605,7 +605,7 @@ function GymPickerSheet({
           </div>
           {mappingGym ? (
             <>
-              <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+              <div className="hide-scroll min-h-0 flex-1 overflow-y-auto pb-2">
                 <ScaleSetup
                   scale={scaleDraft}
                   onChange={setScaleDraft}

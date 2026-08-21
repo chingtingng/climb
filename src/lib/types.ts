@@ -19,6 +19,8 @@ export type GradeBand = {
   /** High end when this house grade spans a V range (e.g. V3–V4). */
   v_max?: string;
   color?: string;
+  /** Shown under the house grade when V isn’t the posted range (e.g. French 4a–5a). */
+  hint?: string;
 };
 
 export type GradeScale = {
@@ -32,6 +34,8 @@ export type GymOutlet = {
   id?: string;
   name: string;
   city: string;
+  /** When set, this location’s disciplines (subset of the gym). Null/omit = inherit gym. */
+  climbing_types?: ClimbingType[];
   /** Omitted on seeded client-only rows — treat as published. */
   status?: CatalogStatus;
 };
@@ -114,12 +118,15 @@ export type CatalogGym = {
   country: string;
   /** Gym = artificial; Rock = natural stone. */
   place_kind: PlaceKind;
-  /** Disciplines this place offers. Single-type places skip the visit type picker. */
+  /** Disciplines this brand offers (union). An outlet may narrow this. */
   climbing_types: ClimbingType[];
   /** Omitted on seeded client-only rows — treat as published. */
   status?: CatalogStatus;
   outlets: GymOutlet[];
+  /** Default / only chart. Type-specific charts live on `scales`. */
   scale: GradeScale | null;
+  /** When a gym posts different charts per discipline (Camp5 boulder vs rope). */
+  scales?: Partial<Record<ClimbingType, GradeScale>>;
 };
 
 export type FavouriteCity = {

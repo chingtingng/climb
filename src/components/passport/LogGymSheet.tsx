@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addVisitAction, reportCatalogGymAction, type ActionResult } from "@/app/actions";
+import { addVisitAction, type ActionResult } from "@/app/actions";
 import { citiesForCountry } from "@/lib/cities";
 import {
   CLIMBING_TYPES,
@@ -22,12 +22,14 @@ import {
   findKnownGym,
   gymsInCity,
   gymsInCountry,
-  hasMultipleOutlets,
   isUnverifiedPlace,
   mergeOutlets,
+  outletsInCity,
   sameCountry,
+  scaleForClimb,
   searchKnownGyms,
   skipsCityStep,
+  typesForOutlet,
   visibleOutlets,
 } from "@/lib/gymCatalog";
 import { gymSlug } from "@/lib/gyms";
@@ -46,6 +48,7 @@ import type {
   GymOutlet,
 } from "@/lib/types";
 import { ActionButtonLabel } from "./ActionButtonLabel";
+import { ReportPlaceDialog } from "./ReportPlaceDialog";
 import { FlashToast } from "./FlashToast";
 import { CloseIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
@@ -65,6 +68,14 @@ import { cx } from "@/components/ui/cx";
 
 const initial: ActionResult | null = null;
 const NOTES_MAX = 400;
+
+function outletsInSelectedCity(
+  gym: { name: string; outlets?: GymOutlet[] },
+  city: string,
+): GymOutlet[] {
+  const all = visibleOutlets({ name: gym.name, outlets: gym.outlets ?? [] });
+  return city.trim() ? outletsInCity({ outlets: all }, city) : all;
+}
 
 type Step =
   | "country"
@@ -166,9 +177,9 @@ function LogGymSheetInner({
       sameCountry(gym.country, country),
   );
 
+  const catalogGym = catalogMatch ?? known ?? null;
   const resolvedScale: GradeScale | null =
-    catalogMatch?.scale ??
-    known?.scale ??
+    scaleForClimb(catalogGym, climbType) ??
     (userMatch
       ? {
           kind: userMatch.bestGradeSystem,
@@ -176,20 +187,20 @@ function LogGymSheetInner({
         }
       : null);
 
-  const hasCatalogScale = Boolean(
-    (catalogMatch?.scale && catalogMatch.scale.bands.length > 0) ||
-      (known?.scale && known.scale.bands.length > 0),
-  );
+  const hasCatalogScale = Boolean(scaleForClimb(catalogGym, climbType)?.bands.length);
 
-  const outlets: GymOutlet[] = visibleOutlets({
-    name,
-    outlets: mergeOutlets(
-      catalogMatch?.outlets ?? [],
-      known?.outlets ?? [],
-      (userMatch?.outlets ?? []).map((item) => ({ name: item, city: userMatch?.city || city })),
-      outlet && city ? [{ name: outlet, city }] : [],
-    ),
-  });
+  const outlets: GymOutlet[] = outletsInSelectedCity(
+    {
+      name,
+      outlets: mergeOutlets(
+        catalogMatch?.outlets ?? [],
+        known?.outlets ?? [],
+        (userMatch?.outlets ?? []).map((item) => ({ name: item, city: userMatch?.city || city })),
+        outlet && city ? [{ name: outlet, city }] : [],
+      ),
+    },
+    city,
+  );
 
   const skipCity = skipsCityStep(country);
   const isExistingBrand = Boolean(userMatch || catalogMatch || known);
@@ -197,8 +208,12 @@ function LogGymSheetInner({
   const isNewGym = !userMatch && !catalogMatch && !known;
   const needsScale = isNewGym && !hasCatalogScale;
   const needsCity = !skipCity;
-  const catalogTypes = normalizeClimbingTypes(
-    catalogMatch?.climbing_types ?? known?.climbing_types,
+  const catalogTypes = typesForOutlet(
+    catalogGym ?? {
+      climbing_types: DEFAULT_CLIMBING_TYPES,
+      outlets: [],
+    },
+    outlet,
   );
   const offeredTypes = isNewGym
     ? gymOfferTypes
@@ -308,6 +323,12 @@ function LogGymSheetInner({
     setClimbType((current) => (types.includes(current) ? current : types[0] ?? "bouldering"));
   }, [offeredTypes.join(",")]);
 
+  useEffect(() => {
+    const labels = activeScale?.bands.map((band) => band.label) ?? [];
+    if (labels.length === 0) return;
+    if (grade && !labels.includes(grade)) setGrade("");
+  }, [climbType, activeScale, grade]);
+
   function applyGym(choice: {
     name: string;
     country: string;
@@ -316,7 +337,10 @@ function LogGymSheetInner({
     climbing_types?: ClimbingType[];
     place_kind?: PlaceKind;
   }) {
-    const locations = visibleOutlets({ name: choice.name, outlets: choice.outlets ?? [] });
+    const locations = outletsInSelectedCity(
+      { name: choice.name, outlets: choice.outlets ?? [] },
+      city,
+    );
     const types =
       normalizeClimbingTypes(choice.climbing_types).length > 0
         ? normalizeClimbingTypes(choice.climbing_types)
@@ -330,7 +354,7 @@ function LogGymSheetInner({
     if (skipsCityStep(choice.country) && locations.length !== 1) {
       setCity("Singapore");
     }
-    if (locations.length === 1) {
+    if (locations.length >= 1) {
       setOutlet(locations[0].name);
       setCity(locations[0].city);
     } else if (choice.city && !skipsCityStep(choice.country)) {
@@ -338,6 +362,7 @@ function LogGymSheetInner({
     } else {
       setOutlet("");
     }
+    setNewOutletName("");
     setGrade("");
   }
 
@@ -361,7 +386,7 @@ function LogGymSheetInner({
       if (!name.trim()) return;
       if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
       if (isExistingBrand) {
-        if (outlets.length === 1 && !outlet.trim()) {
+        if (outlets.length >= 1 && !outlet.trim()) {
           setOutlet(outlets[0].name);
           setCity(outlets[0].city);
         } else if (outlet.trim()) {
@@ -382,8 +407,10 @@ function LogGymSheetInner({
       return;
     }
     if (step === "outlet") {
-      if (!outlet.trim()) return;
-      const match = outlets.find((item) => item.name === outlet);
+      const nextOutlet = newOutletName.trim() || outlet.trim();
+      if (!nextOutlet) return;
+      setOutlet(nextOutlet);
+      const match = outlets.find((item) => item.name === nextOutlet);
       if (match) setCity(match.city);
       else if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
       setStep(afterLocationStep());
@@ -441,7 +468,7 @@ function LogGymSheetInner({
     (step === "country" && country.trim().length > 0) ||
     (step === "city" && city.trim().length > 0) ||
     (step === "gym" && name.trim().length > 0) ||
-    (step === "outlet" && Boolean(outlet.trim())) ||
+    (step === "outlet" && Boolean(outlet.trim() || newOutletName.trim())) ||
     (step === "kind" && Boolean(placeKind)) ||
     (step === "offer" && gymOfferTypes.length > 0) ||
     (step === "climb" && Boolean(climbType) && offeredTypes.includes(climbType)) ||
@@ -578,16 +605,10 @@ function LogGymSheetInner({
                     climbing_types: DEFAULT_CLIMBING_TYPES,
                   };
                 applyGym(choice);
-                if (
-                  hasMultipleOutlets(
-                    catalog ?? {
-                      name: gym.name,
-                      outlets: gym.outlets.map((item) => ({ name: item, city: gym.city })),
-                    },
-                  )
-                ) {
+                const locations = outletsInSelectedCity(choice, city);
+                if (locations.length > 1) {
                   setStep("outlet");
-                } else if (normalizeClimbingTypes(choice.climbing_types).length > 1) {
+                } else if (typesForOutlet(choice, locations[0]?.name).length > 1) {
                   setStep("climb");
                 } else if (needsScale) {
                   setStep("scale");
@@ -597,8 +618,9 @@ function LogGymSheetInner({
               }}
               onSelectCatalog={(gym) => {
                 applyGym(gym);
-                if (hasMultipleOutlets(gym)) setStep("outlet");
-                else if (normalizeClimbingTypes(gym.climbing_types).length > 1) {
+                const locations = outletsInSelectedCity(gym, city);
+                if (locations.length > 1) setStep("outlet");
+                else if (typesForOutlet(gym, locations[0]?.name).length > 1) {
                   setStep("climb");
                 } else if (needsScale) setStep("scale");
                 else setStep("grade");
@@ -615,18 +637,13 @@ function LogGymSheetInner({
               onSelect={(item) => {
                 setOutlet(item.name);
                 setCity(item.city);
+                setNewOutletName("");
               }}
               onSelectNew={() => {
                 setOutlet("");
                 setNewOutletName("");
               }}
               onNewName={setNewOutletName}
-              onAddNew={() => {
-                const label = newOutletName.trim();
-                if (!label) return;
-                setOutlet(label);
-                setNewOutletName("");
-              }}
             />
           )}
 
@@ -734,7 +751,12 @@ function LogGymSheetInner({
             </p>
           ) : null}
           {catalogMatch?.id && step !== "country" && step !== "city" ? (
-            <ReportPlaceButton gymId={catalogMatch.id} />
+            <ReportPlaceButton
+              gymId={catalogMatch.id}
+              gymName={catalogMatch.name}
+              outletId={selectedOutlet?.id}
+              outletName={selectedOutlet?.name}
+            />
           ) : null}
           </div>
         </div>
@@ -855,32 +877,47 @@ function Overlay({
   );
 }
 
-function ReportPlaceButton({ gymId }: { gymId: string }) {
-  const [pending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
+function ReportPlaceButton({
+  gymId,
+  gymName,
+  outletId,
+  outletName,
+}: {
+  gymId: string;
+  gymName: string;
+  outletId?: string;
+  outletName?: string;
+}) {
+  const { username } = usePassport();
+  const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
 
   return (
     <div className="pt-3">
       <button
         type="button"
-        disabled={pending || done}
-        className="text-sm font-semibold text-ink-soft underline underline-offset-2 hover:text-ink disabled:no-underline"
-        onClick={() => {
-          startTransition(async () => {
-            const result = await reportCatalogGymAction(gymId);
-            if (result.ok) {
-              setDone(true);
-              setMessage("Thanks — we’ll take a look.");
-            } else {
-              setMessage(result.error ?? "Could not send that report.");
-            }
-          });
-        }}
+        disabled={done}
+        className="text-xs font-medium text-ink-soft/45 underline underline-offset-2 hover:text-ink-soft disabled:text-ink-soft/35"
+        onClick={() => setOpen(true)}
       >
         This place looks wrong
       </button>
-      {message ? <p className="mt-1 text-sm text-ink-soft">{message}</p> : null}
+      {done ? (
+        <p className="mt-1 text-sm text-ink-soft">Thanks — we’ll use this to fix the listing.</p>
+      ) : null}
+      <ReportPlaceDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        onReported={() => {
+          setDone(true);
+          setOpen(false);
+        }}
+        gymId={gymId}
+        gymName={gymName}
+        outletId={outletId}
+        outletName={outletName}
+        username={username}
+      />
     </div>
   );
 }
@@ -1101,6 +1138,8 @@ function GymStep({
           autoComplete="off"
           autoCapitalize="words"
           enterKeyHint="next"
+          preventIosZoom
+          className="!text-base"
         />
       </label>
       <label className="block">
@@ -1120,6 +1159,8 @@ function GymStep({
           autoComplete="off"
           autoCapitalize="words"
           enterKeyHint="next"
+          preventIosZoom
+          className="!text-base"
         />
       </label>
       {recent.length > 0 && (
@@ -1145,7 +1186,7 @@ function GymStep({
           items={known.map((gym) => ({
             key: `${gym.name}-${gym.country}`,
             title: gym.name,
-            subtitle: catalogGymSubtitle(gym),
+            subtitle: catalogGymSubtitle(gym, city),
             meta: isUnverifiedPlace(gym.status)
               ? "Unverified"
               : gym.scale?.kind === "color"
@@ -1163,7 +1204,7 @@ function GymStep({
           items={extra.map((gym) => ({
             key: `cat-${gym.name}-${gym.country}`,
             title: gym.name,
-            subtitle: catalogGymSubtitle(gym),
+            subtitle: catalogGymSubtitle(gym, city),
             meta: isUnverifiedPlace(gym.status) ? "Unverified" : undefined,
             onClick: () => onSelectCatalog(gym),
           }))}
@@ -1198,16 +1239,20 @@ function ChoiceList({
             <button
               type="button"
               onClick={item.onClick}
-              className="flex min-h-12 w-full items-center justify-between rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left"
+              className="flex min-h-[var(--control-min)] w-full items-center justify-between gap-2 rounded-lg border border-sky-300 bg-sky-50 px-3.5 py-2 text-left"
             >
-              <span>
-                <span className="block font-semibold leading-tight">{item.title}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-tight">{item.title}</span>
                 {item.subtitle ? (
-                  <span className="text-sm text-ink-soft">{item.subtitle}</span>
+                  <span className="mt-0.5 block text-sm leading-snug text-ink-soft">
+                    {item.subtitle}
+                  </span>
                 ) : null}
               </span>
               {item.meta ? (
-                <span className="text-xs font-semibold text-sky-600">{item.meta}</span>
+                <span className="shrink-0 text-xs font-semibold text-sky-600">
+                  {item.meta}
+                </span>
               ) : null}
             </button>
           </li>
@@ -1311,7 +1356,7 @@ function SearchSelect({
             autoCapitalize="words"
             placeholder={placeholder}
             preventIosZoom
-            className={showClear ? "field-clearable" : undefined}
+            className={cx("!text-base", showClear && "field-clearable")}
             onFocus={() => setOpenState(true)}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -1365,7 +1410,7 @@ function SearchSelect({
         <ul
           id={listId}
           role="listbox"
-          className="mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
+          className="soft-scroll mt-2 max-h-[min(45dvh,24rem)] w-full overflow-y-auto rounded-lg border border-sky-300 bg-surface py-1.5 shadow-lifted"
         >
           {filtered.length === 0 ? (
             <li className="px-4 py-2.5 text-sm text-ink-soft">{emptyMessage}</li>
@@ -1377,7 +1422,7 @@ function SearchSelect({
                   <button
                     type="button"
                     className={cx(
-                      "flex min-h-11 w-full items-center px-4 text-left text-sm font-semibold",
+                      "flex min-h-[var(--control-min)] w-full items-center px-3.5 text-left text-sm font-semibold",
                       active ? "bg-sky-100 text-ink" : "text-ink",
                     )}
                     onMouseEnter={() => setHighlight(index)}
@@ -1507,7 +1552,6 @@ function OutletStep({
   onSelect,
   onSelectNew,
   onNewName,
-  onAddNew,
 }: {
   outlets: GymOutlet[];
   selected: string;
@@ -1515,7 +1559,6 @@ function OutletStep({
   onSelect: (outlet: GymOutlet) => void;
   onSelectNew: () => void;
   onNewName: (value: string) => void;
-  onAddNew: () => void;
 }) {
   const [addingNew, setAddingNew] = useState(false);
   const newInputRef = useRef<HTMLInputElement>(null);
@@ -1532,13 +1575,6 @@ function OutletStep({
   function handleSelectNew() {
     setAddingNew(true);
     onSelectNew();
-  }
-
-  function handleAddNew() {
-    const label = newName.trim();
-    if (!label) return;
-    onAddNew();
-    setAddingNew(false);
   }
 
   return (
@@ -1571,28 +1607,17 @@ function OutletStep({
       {addingNew ? (
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">New outlet</span>
-          <div className="flex gap-2">
-            <Field
-              ref={newInputRef}
-              value={newName}
-              onChange={(e) => onNewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddNew();
-                }
-              }}
-              placeholder="Outlet name"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleAddNew}
-              className="w-auto shrink-0 px-4"
-            >
-              Add
-            </Button>
-          </div>
+          <Field
+            ref={newInputRef}
+            value={newName}
+            onChange={(e) => onNewName(e.target.value)}
+            placeholder="Outlet name"
+            autoComplete="off"
+            autoCapitalize="words"
+            enterKeyHint="next"
+            preventIosZoom
+            className="!text-base"
+          />
         </label>
       ) : null}
     </div>

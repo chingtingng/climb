@@ -13,7 +13,8 @@ import type { GradeBand, GradeScale, GradeSystem } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { ChoiceTile } from "@/components/ui/ChoiceTile";
-import { Field, SelectField } from "@/components/ui/Field";
+import { Field } from "@/components/ui/Field";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 
 export function ScaleSetup({
   scale,
@@ -157,7 +158,7 @@ export function ScaleSetup({
                       ],
                     });
                   }}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-0 text-sm font-semibold"
+                  className="inline-flex min-h-[var(--control-min)] items-center gap-2 rounded-full px-3 py-0 text-sm font-semibold"
                 >
                   <span
                     className="size-4 rounded-full border border-ink/15"
@@ -207,58 +208,46 @@ export function ScaleSetup({
             {scale.bands.map((band, index) => {
               const min = band.v_equiv ?? "";
               const max = band.v_max ?? band.v_equiv ?? "";
+              const vOptions = ["", ...V_GRADES];
               return (
                 <li
                   key={`${band.label}-${index}`}
-                  className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-sky-300 bg-surface px-3 py-2"
+                  className="flex items-center gap-2 rounded-full border border-sky-300 bg-surface px-3 py-1"
                 >
                   <span className="grade-text min-w-0 flex-1 truncate text-sm">{band.label}</span>
-                  <div className="flex items-center gap-1.5">
-                    <label className="sr-only" htmlFor={`v-min-${index}`}>
-                      V-scale from for {band.label}
-                    </label>
-                    <SelectField
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <SelectMenu
                       id={`v-min-${index}`}
                       value={min}
-                      onChange={(e) => {
-                        const nextMin = e.target.value;
+                      options={vOptions}
+                      placeholder="Skip"
+                      ariaLabel={`V-scale from for ${band.label}`}
+                      fullWidth={false}
+                      className="!min-h-9 px-2.5 text-sm"
+                      onChange={(nextMin) => {
                         const nextMax = max && max !== min ? max : nextMin;
                         setBandV(index, nextMin, nextMax);
                       }}
-                      className="min-h-10 min-w-18 px-2 text-sm"
-                    >
-                      <option value="">Skip</option>
-                      {V_GRADES.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </SelectField>
+                    />
                     <span className="text-xs font-semibold text-ink-soft" aria-hidden>
                       –
                     </span>
-                    <label className="sr-only" htmlFor={`v-max-${index}`}>
-                      V-scale to for {band.label}
-                    </label>
-                    <SelectField
+                    <SelectMenu
                       id={`v-max-${index}`}
                       value={max}
+                      options={vOptions}
+                      placeholder="Skip"
+                      ariaLabel={`V-scale to for ${band.label}`}
                       disabled={!min}
-                      onChange={(e) => setBandV(index, min, e.target.value)}
-                      className="min-h-10 min-w-18 px-2 text-sm disabled:opacity-40"
-                    >
-                      <option value="">Skip</option>
-                      {V_GRADES.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </SelectField>
+                      fullWidth={false}
+                      className="!min-h-9 px-2.5 text-sm"
+                      onChange={(nextMax) => setBandV(index, min, nextMax)}
+                    />
                     {scale.kind === "custom" ? (
                       <button
                         type="button"
                         onClick={() => removeBand(index)}
-                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-sky-100 hover:text-ink"
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-sky-100 hover:text-ink"
                         aria-label={`Remove ${band.label}`}
                       >
                         <span aria-hidden className="text-lg leading-none">

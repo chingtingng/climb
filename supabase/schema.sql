@@ -1,23 +1,22 @@
 -- =============================================================================
 -- Chalk Passport — full schema
 -- =============================================================================
--- Fresh projects: paste this entire file into Supabase → SQL Editor → Run.
--- Live projects with stamps: run supabase/catalog-status.sql instead.
--- Do not re-run this file on a database that has real stamps — it DROPs
--- visit tables.
---
--- BREAKING: this DROPS old stamp tables (gym_visits / visits / gym catalog)
--- and recreates them. There is no visit-data migration. Profiles and Auth
--- users are kept.
+-- Paste this entire file into Supabase → SQL Editor → Run. This is the only
+-- SQL file. Re-running DROPs stamp/catalog tables and recreates them (ok when
+-- you have no stamps to keep). Profiles and Auth users are kept. There is no
+-- visit-data migration.
 --
 -- Model:
 --   gyms              shared brand (name + country + place_kind + climbing_types)
 --                     status: pending | published | rejected
---   gym_outlets       locations of that brand (same status rule)
+--   gym_outlets       locations of that brand (same status rule);
+--                     optional climbing_types override (null = inherit gym)
 --   gym_catalog_seeds seeded names that are born published
---   gym_grade_scales  one grade chart per gym (numbers, colours, V-scale, custom)
---                     kind: v | font | french | yds | number | color | custom
+--   gym_grade_scales  grade chart(s) per gym (numbers, colours, V-scale, custom)
+--                     optional climbing_type: null = all disciplines;
+--                     bouldering | top_rope | lead = that discipline only
 --   gym_reports       eligible “this place looks wrong” flags
+--                     (three closed/missing reports hide the gym)
 --   visits            private stamps (gym + outlet + climbing_type + grade + date)
 --
 -- Place kind: gym | rock
@@ -25,8 +24,10 @@
 --                     Rock = natural stone (crags, cliffs, boulders)
 --
 -- Climbing types: bouldering | top_rope | lead
---   gyms.climbing_types  — what the place offers (1+); if only one, stamp UI skips the type step
---   visits.climbing_type — which discipline this stamp is for
+--   gyms.climbing_types         — union of what the brand offers
+--   gym_outlets.climbing_types  — optional per-location override (null = inherit)
+--   visits.climbing_type        — which discipline this stamp is for
+--   If a place (or that outlet) only offers one type, stamp UI skips the type step
 --
 -- Number / colour → V mapping lives on each band in gym_grade_scales.bands
 -- and is copied onto visits.v_equiv when you stamp. Band JSON shape (ordered
@@ -34,12 +35,14 @@
 --   [
 --     {"label":"4","v_equiv":"V1"},
 --     {"label":"7","v_equiv":"V3","v_max":"V4"},
---     {"label":"White","color":"#f4f1ea","v_equiv":"V1"}
+--     {"label":"White","color":"#f4f1ea","v_equiv":"V1"},
+--     {"label":"Pink","color":"#e00070","v_equiv":"VB","hint":"4a–5a"}
 --   ]
 --   label     required house-grade label (number, colour name, custom, …)
 --   v_equiv   optional V-scale low (or only): VB | V0 … V17
 --   v_max     optional V-scale high when the band is a range (e.g. V3–V4)
 --   color     optional hex, for colour systems
+--   hint      optional posted range when V isn’t the house label (e.g. French)
 --
 -- Stamps store visits.v_equiv as the high end of the range for ranking.
 --
@@ -285,18 +288,22 @@ create unique index gyms_name_country_live_idx
 -- ---------------------------------------------------------------------------
 -- Outlets (one gym, several locations)
 -- `name` is the gym's own label for that location (Bugis, Bendemeer), not the mall.
+-- `climbing_types` null = inherit gyms.climbing_types (most outlets).
 -- ---------------------------------------------------------------------------
 create table public.gym_outlets (
   id uuid primary key default gen_random_uuid(),
   gym_id uuid not null references public.gyms (id) on delete cascade,
   name text not null,
   city text not null,
+  climbing_types text[],
   status text not null default 'pending',
   moderation_locked boolean not null default false,
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
   constraint gym_outlets_name_len check (char_length(name) between 1 and 80),
   constraint gym_outlets_city_len check (char_length(city) between 1 and 80),
+  constraint gym_outlets_climbing_types_valid
+    check (climbing_types is null or public.climbing_types_valid(climbing_types)),
   constraint gym_outlets_status_check check (status in ('pending', 'published', 'rejected'))
 );
 
@@ -409,6 +416,10 @@ begin
     then
       return false;
     end if;
+
+    if length(coalesce(el->>'hint', '')) > 40 then
+      return false;
+    end if;
   end loop;
 
   return true;
@@ -422,14 +433,25 @@ grant execute on function public.grade_bands_valid(jsonb) to authenticated, serv
 
 create table public.gym_grade_scales (
   id uuid primary key default gen_random_uuid(),
-  gym_id uuid not null unique references public.gyms (id) on delete cascade,
+  gym_id uuid not null references public.gyms (id) on delete cascade,
+  climbing_type text,
   kind text not null constraint gym_grade_scales_kind_check
     check (kind in ('v', 'font', 'french', 'yds', 'number', 'color', 'custom')),
   bands jsonb not null default '[]'::jsonb,
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
-  constraint gym_grade_scales_bands_valid check (public.grade_bands_valid(bands))
+  constraint gym_grade_scales_bands_valid check (public.grade_bands_valid(bands)),
+  constraint gym_grade_scales_climbing_type_check
+    check (climbing_type is null or climbing_type in ('bouldering', 'top_rope', 'lead'))
 );
+
+create unique index gym_grade_scales_gym_default_idx
+  on public.gym_grade_scales (gym_id)
+  where climbing_type is null;
+
+create unique index gym_grade_scales_gym_type_idx
+  on public.gym_grade_scales (gym_id, climbing_type)
+  where climbing_type is not null;
 
 -- ---------------------------------------------------------------------------
 -- Visits (private stamps)
@@ -486,11 +508,34 @@ create table public.gym_reports (
   id uuid primary key default gen_random_uuid(),
   gym_id uuid not null references public.gyms (id) on delete cascade,
   profile_id uuid not null references public.profiles (id) on delete cascade,
+  outlet_id uuid references public.gym_outlets (id) on delete set null,
+  reason text not null default 'other',
+  details text,
+  source text not null default 'log_sheet',
   created_at timestamptz not null default now(),
-  constraint gym_reports_unique unique (gym_id, profile_id)
+  constraint gym_reports_unique unique (gym_id, profile_id),
+  constraint gym_reports_reason_check check (reason in (
+    'wrong_name',
+    'wrong_location',
+    'duplicate',
+    'wrong_kind',
+    'wrong_types',
+    'wrong_grades',
+    'closed_or_missing',
+    'other'
+  )),
+  constraint gym_reports_details_len check (details is null or char_length(details) between 1 and 500),
+  constraint gym_reports_other_details check (
+    reason <> 'other' or char_length(coalesce(details, '')) >= 8
+  ),
+  constraint gym_reports_source_check check (source in ('log_sheet'))
 );
 
 create index gym_reports_gym_id_idx on public.gym_reports (gym_id);
+create index gym_reports_outlet_id_idx on public.gym_reports (outlet_id);
+create index gym_reports_closed_gym_id_idx
+  on public.gym_reports (gym_id)
+  where reason = 'closed_or_missing';
 
 create or replace function public.sync_catalog_publish_from_visit()
 returns trigger
@@ -540,6 +585,10 @@ security definer
 set search_path = public
 as $$
 begin
+  if new.reason is distinct from 'closed_or_missing' then
+    return new;
+  end if;
+
   update public.gyms g
   set status = 'rejected'
   where g.id = new.gym_id
@@ -549,6 +598,7 @@ begin
       select count(*)
       from public.gym_reports r
       where r.gym_id = new.gym_id
+        and r.reason = 'closed_or_missing'
     ) >= 3;
 
   return new;
@@ -756,6 +806,19 @@ create policy "Eligible users can report gyms"
   to authenticated
   with check (
     profile_id = auth.uid()
+    and reason in (
+      'wrong_name',
+      'wrong_location',
+      'duplicate',
+      'wrong_kind',
+      'wrong_types',
+      'wrong_grades',
+      'closed_or_missing',
+      'other'
+    )
+    and source in ('log_sheet')
+    and (details is null or char_length(details) between 1 and 500)
+    and (reason <> 'other' or char_length(coalesce(details, '')) >= 8)
     and exists (
       select 1
       from public.gyms g
@@ -763,12 +826,14 @@ create policy "Eligible users can report gyms"
         and g.status in ('pending', 'published')
         and g.created_by is distinct from auth.uid()
     )
-    and exists (
-      select 1
-      from public.visits v
-      join public.gyms pg on pg.id = v.gym_id
-      where v.profile_id = auth.uid()
-        and pg.status = 'published'
+    and (
+      outlet_id is null
+      or exists (
+        select 1
+        from public.gym_outlets o
+        where o.id = outlet_id
+          and o.gym_id = gym_id
+      )
     )
   );
 
@@ -829,6 +894,8 @@ where id in ('gym-grade-charts', 'visit-media');
 -- The Rock School, Clip n Climb.
 -- Kid playgrounds / gamified walls omitted: SuperPark, VertiClimb,
 -- My Little Climbing Room.
+-- Camp5 Malaysia (camp5.com, Aug 2026): Kuala Lumpur (Klang Valley, including
+-- 1Utama) and Johor Bahru. Omitted Utropolis (Shah Alam, boulder-only).
 -- ---------------------------------------------------------------------------
 insert into public.gym_catalog_seeds (gym_name, country, outlet_name, city)
 values
@@ -864,7 +931,12 @@ values
   ('Upwall Climbing', 'Singapore', 'Downtown East', 'Singapore'),
   ('Climb@T3', 'Singapore', 'T3', 'Singapore'),
   ('SAFRA Yishun', 'Singapore', 'Yishun', 'Singapore'),
-  ('Adventure HQ', 'Singapore', 'Khatib', 'Singapore');
+  ('Adventure HQ', 'Singapore', 'Khatib', 'Singapore'),
+  ('Camp5', 'Malaysia', '1Utama', 'Kuala Lumpur'),
+  ('Camp5', 'Malaysia', 'Eco City', 'Kuala Lumpur'),
+  ('Camp5', 'Malaysia', 'Jumpa', 'Kuala Lumpur'),
+  ('Camp5', 'Malaysia', 'KL East', 'Kuala Lumpur'),
+  ('Camp5', 'Malaysia', 'Paradigm', 'Johor Bahru');
 
 with seeded as (
   insert into public.gyms (name, country, place_kind, climbing_types, status)
@@ -874,7 +946,7 @@ with seeded as (
     ('Boulder Planet', 'Thailand', 'gym', array['bouldering']::text[], 'published'),
     ('Boulder Movement', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
     ('Boulder+', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
-    ('BFF Climb', 'Singapore', 'gym', array['bouldering']::text[], 'published'),
+    ('BFF Climb', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
     ('Climb Central', 'Singapore', 'gym', array['bouldering', 'top_rope', 'lead']::text[], 'published'),
     ('Fit Bloc', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
     ('Kinetics Climbing', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
@@ -889,7 +961,8 @@ with seeded as (
     ('Upwall Climbing', 'Singapore', 'gym', array['top_rope', 'lead']::text[], 'published'),
     ('Climb@T3', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
     ('SAFRA Yishun', 'Singapore', 'gym', array['bouldering', 'top_rope', 'lead']::text[], 'published'),
-    ('Adventure HQ', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published')
+    ('Adventure HQ', 'Singapore', 'gym', array['bouldering', 'top_rope']::text[], 'published'),
+    ('Camp5', 'Malaysia', 'gym', array['bouldering', 'top_rope', 'lead']::text[], 'published')
   returning id, name, country
 )
 insert into public.gym_outlets (gym_id, name, city, status)
@@ -930,14 +1003,35 @@ join (
     ('Upwall Climbing', 'Singapore', 'Downtown East', 'Singapore'),
     ('Climb@T3', 'Singapore', 'T3', 'Singapore'),
     ('SAFRA Yishun', 'Singapore', 'Yishun', 'Singapore'),
-    ('Adventure HQ', 'Singapore', 'Khatib', 'Singapore')
+    ('Adventure HQ', 'Singapore', 'Khatib', 'Singapore'),
+    ('Camp5', 'Malaysia', '1Utama', 'Kuala Lumpur'),
+    ('Camp5', 'Malaysia', 'Eco City', 'Kuala Lumpur'),
+    ('Camp5', 'Malaysia', 'Jumpa', 'Kuala Lumpur'),
+    ('Camp5', 'Malaysia', 'KL East', 'Kuala Lumpur'),
+    ('Camp5', 'Malaysia', 'Paradigm', 'Johor Bahru')
 ) as o(gym_name, country, name, city)
   on o.gym_name = s.name and o.country = s.country;
 
+-- Outlet-level disciplines when they differ from the brand union.
+-- BFF: Tampines Yoha is bouldering only; Bendemeer and Tampines Hub add top-rope.
+update public.gym_outlets o
+set climbing_types = v.types
+from public.gyms g,
+     (
+       values
+         ('BFF Climb', 'Singapore', 'Bendemeer', array['bouldering', 'top_rope']::text[]),
+         ('BFF Climb', 'Singapore', 'Tampines Yoha', array['bouldering']::text[]),
+         ('BFF Climb', 'Singapore', 'Tampines Hub', array['bouldering', 'top_rope']::text[])
+     ) as v(gym_name, country, outlet_name, types)
+where o.gym_id = g.id
+  and g.name = v.gym_name
+  and g.country = v.country
+  and o.name = v.outlet_name;
+
 -- House grades where the gym publishes a scale. v_equiv is only filled when a
 -- community / gym chart is documented; otherwise the picker still has labels.
-insert into public.gym_grade_scales (gym_id, kind, bands)
-select g.id, s.kind, s.bands::jsonb
+insert into public.gym_grade_scales (gym_id, kind, bands, climbing_type)
+select g.id, s.kind, s.bands::jsonb, s.climbing_type
 from public.gyms g
 join (
   values
@@ -945,60 +1039,97 @@ join (
       'Boulder Planet',
       'number',
       -- Official 1–12. Community: 4≈V1 … 12≈V9 (1–3 below V1).
-      '[{"label":"1","v_equiv":"VB"},{"label":"2","v_equiv":"VB"},{"label":"3","v_equiv":"V0"},{"label":"4","v_equiv":"V1"},{"label":"5","v_equiv":"V2"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V5"},{"label":"9","v_equiv":"V6"},{"label":"10","v_equiv":"V7"},{"label":"11","v_equiv":"V8"},{"label":"12","v_equiv":"V9"}]'
+      '[{"label":"1","v_equiv":"VB"},{"label":"2","v_equiv":"VB"},{"label":"3","v_equiv":"V0"},{"label":"4","v_equiv":"V1"},{"label":"5","v_equiv":"V2"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V5"},{"label":"9","v_equiv":"V6"},{"label":"10","v_equiv":"V7"},{"label":"11","v_equiv":"V8"},{"label":"12","v_equiv":"V9"}]',
+      null::text
     ),
     (
       'Boulder Movement',
       'custom',
       -- 1–20 then Flux 1–5. V mapping is too coarse / conflicting; labels only.
-      '[{"label":"1"},{"label":"2"},{"label":"3"},{"label":"4"},{"label":"5"},{"label":"6"},{"label":"7"},{"label":"8"},{"label":"9"},{"label":"10"},{"label":"11"},{"label":"12"},{"label":"13"},{"label":"14"},{"label":"15"},{"label":"16"},{"label":"17"},{"label":"18"},{"label":"19"},{"label":"20"},{"label":"Flux 1"},{"label":"Flux 2"},{"label":"Flux 3"},{"label":"Flux 4"},{"label":"Flux 5"}]'
+      '[{"label":"1"},{"label":"2"},{"label":"3"},{"label":"4"},{"label":"5"},{"label":"6"},{"label":"7"},{"label":"8"},{"label":"9"},{"label":"10"},{"label":"11"},{"label":"12"},{"label":"13"},{"label":"14"},{"label":"15"},{"label":"16"},{"label":"17"},{"label":"18"},{"label":"19"},{"label":"20"},{"label":"Flux 1"},{"label":"Flux 2"},{"label":"Flux 3"},{"label":"Flux 4"},{"label":"Flux 5"}]',
+      null::text
     ),
     (
       'BFF Climb',
       'number',
-      -- 1–15 with two house grades per V step; 15≈V8
-      '[{"label":"1","v_equiv":"V1"},{"label":"2","v_equiv":"V1"},{"label":"3","v_equiv":"V2"},{"label":"4","v_equiv":"V2"},{"label":"5","v_equiv":"V3"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V4"},{"label":"9","v_equiv":"V5"},{"label":"10","v_equiv":"V5"},{"label":"11","v_equiv":"V6"},{"label":"12","v_equiv":"V6"},{"label":"13","v_equiv":"V7"},{"label":"14","v_equiv":"V7"},{"label":"15","v_equiv":"V8"}]'
+      -- 1–15 with two house grades per V step; 15≈V8. Bouldering only.
+      '[{"label":"1","v_equiv":"V1"},{"label":"2","v_equiv":"V1"},{"label":"3","v_equiv":"V2"},{"label":"4","v_equiv":"V2"},{"label":"5","v_equiv":"V3"},{"label":"6","v_equiv":"V3"},{"label":"7","v_equiv":"V4"},{"label":"8","v_equiv":"V4"},{"label":"9","v_equiv":"V5"},{"label":"10","v_equiv":"V5"},{"label":"11","v_equiv":"V6"},{"label":"12","v_equiv":"V6"},{"label":"13","v_equiv":"V7"},{"label":"14","v_equiv":"V7"},{"label":"15","v_equiv":"V8"}]',
+      'bouldering'
+    ),
+    (
+      'BFF Climb',
+      'french',
+      -- Tampines Hub top-rope wall. No lead.
+      '[{"label":"4a"},{"label":"4b"},{"label":"4c"},{"label":"5a"},{"label":"5b"},{"label":"5c"},{"label":"6a"},{"label":"6a+"},{"label":"6b"},{"label":"6b+"},{"label":"6c"},{"label":"6c+"},{"label":"7a"},{"label":"7a+"},{"label":"7b"},{"label":"7b+"},{"label":"7c"},{"label":"7c+"}]',
+      'top_rope'
     ),
     (
       'Boulder+',
       'color',
       -- White→Black; black≈V8
-      '[{"label":"White","color":"#f4f1ea","v_equiv":"V1"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V2"},{"label":"Red","color":"#eb5757","v_equiv":"V3"},{"label":"Blue","color":"#2f80ed","v_equiv":"V4"},{"label":"Purple","color":"#9b51e0","v_equiv":"V5"},{"label":"Green","color":"#27ae60","v_equiv":"V6"},{"label":"Pink","color":"#e86ba8","v_equiv":"V7"},{"label":"Black","color":"#1b1b1b","v_equiv":"V8"}]'
+      '[{"label":"White","color":"#f4f1ea","v_equiv":"V1"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V2"},{"label":"Red","color":"#eb5757","v_equiv":"V3"},{"label":"Blue","color":"#2f80ed","v_equiv":"V4"},{"label":"Purple","color":"#9b51e0","v_equiv":"V5"},{"label":"Green","color":"#27ae60","v_equiv":"V6"},{"label":"Pink","color":"#e86ba8","v_equiv":"V7"},{"label":"Black","color":"#1b1b1b","v_equiv":"V8"}]',
+      null::text
     ),
     (
       'Lighthouse',
       'number',
-      '[{"label":"1","v_equiv":"V1"},{"label":"2","v_equiv":"V2"},{"label":"3","v_equiv":"V3"},{"label":"4","v_equiv":"V4"},{"label":"5","v_equiv":"V5"},{"label":"6","v_equiv":"V6"},{"label":"7","v_equiv":"V7"},{"label":"8","v_equiv":"V8"},{"label":"9","v_equiv":"V9"}]'
+      '[{"label":"1","v_equiv":"V1"},{"label":"2","v_equiv":"V2"},{"label":"3","v_equiv":"V3"},{"label":"4","v_equiv":"V4"},{"label":"5","v_equiv":"V5"},{"label":"6","v_equiv":"V6"},{"label":"7","v_equiv":"V7"},{"label":"8","v_equiv":"V8"},{"label":"9","v_equiv":"V9"}]',
+      null::text
     ),
     (
       'Fit Bloc',
       'custom',
       -- Official bar icons (0 easiest → 5 hardest). No reliable V chart.
-      '[{"label":"0 bar"},{"label":"1 bar"},{"label":"2 bar"},{"label":"3 bar"},{"label":"4 bar"},{"label":"5 bar"}]'
+      '[{"label":"0 bar"},{"label":"1 bar"},{"label":"2 bar"},{"label":"3 bar"},{"label":"4 bar"},{"label":"5 bar"}]',
+      null::text
     ),
     (
       'Kinetics Climbing',
       'v',
-      '[{"label":"V0","v_equiv":"V0"},{"label":"V1","v_equiv":"V1"},{"label":"V2","v_equiv":"V2"},{"label":"V3","v_equiv":"V3"},{"label":"V4","v_equiv":"V4"},{"label":"V5","v_equiv":"V5"},{"label":"V6","v_equiv":"V6"},{"label":"V7","v_equiv":"V7"},{"label":"V8","v_equiv":"V8"}]'
+      '[{"label":"V0","v_equiv":"V0"},{"label":"V1","v_equiv":"V1"},{"label":"V2","v_equiv":"V2"},{"label":"V3","v_equiv":"V3"},{"label":"V4","v_equiv":"V4"},{"label":"V5","v_equiv":"V5"},{"label":"V6","v_equiv":"V6"},{"label":"V7","v_equiv":"V7"},{"label":"V8","v_equiv":"V8"}]',
+      null::text
     ),
     (
       'Ground Up',
       'v',
-      '[{"label":"V1","v_equiv":"V1"},{"label":"V2","v_equiv":"V2"},{"label":"V3","v_equiv":"V3"},{"label":"V4","v_equiv":"V4"},{"label":"V5","v_equiv":"V5"},{"label":"V6","v_equiv":"V6"},{"label":"V7","v_equiv":"V7"},{"label":"V8","v_equiv":"V8"}]'
+      '[{"label":"V1","v_equiv":"V1"},{"label":"V2","v_equiv":"V2"},{"label":"V3","v_equiv":"V3"},{"label":"V4","v_equiv":"V4"},{"label":"V5","v_equiv":"V5"},{"label":"V6","v_equiv":"V6"},{"label":"V7","v_equiv":"V7"},{"label":"V8","v_equiv":"V8"}]',
+      null::text
     ),
     (
       'Climba',
       'color',
       -- Blue / Yellow / Red ladders (community ranges)
-      '[{"label":"Blue","color":"#2f80ed","v_equiv":"V1","v_max":"V2"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V3","v_max":"V4"},{"label":"Red","color":"#eb5757","v_equiv":"V5","v_max":"V6"}]'
+      '[{"label":"Blue","color":"#2f80ed","v_equiv":"V1","v_max":"V2"},{"label":"Yellow","color":"#f2c94c","v_equiv":"V3","v_max":"V4"},{"label":"Red","color":"#eb5757","v_equiv":"V5","v_max":"V6"}]',
+      null::text
     ),
     (
       'Climb@T3',
       'french',
       -- Changi lists French 4+–6c+ on the high wall
-      '[{"label":"4a"},{"label":"4b"},{"label":"4c"},{"label":"5a"},{"label":"5b"},{"label":"5c"},{"label":"6a"},{"label":"6a+"},{"label":"6b"},{"label":"6b+"},{"label":"6c"},{"label":"6c+"}]'
+      '[{"label":"4a"},{"label":"4b"},{"label":"4c"},{"label":"5a"},{"label":"5b"},{"label":"5c"},{"label":"6a"},{"label":"6a+"},{"label":"6b"},{"label":"6b+"},{"label":"6c"},{"label":"6c+"}]',
+      null::text
+    ),
+    (
+      'Camp5',
+      'color',
+      -- Boulder colour circuit (overlapping V ranges).
+      '[{"label":"Pink","color":"#e00070","v_equiv":"VB","v_max":"V1"},{"label":"Blue","color":"#00a0e0","v_equiv":"V0","v_max":"V2"},{"label":"Yellow","color":"#f0d000","v_equiv":"V1","v_max":"V3"},{"label":"Orange","color":"#f06020","v_equiv":"V2","v_max":"V4"},{"label":"Green","color":"#00a050","v_equiv":"V3","v_max":"V5"},{"label":"Purple","color":"#a02080","v_equiv":"V4","v_max":"V6"},{"label":"Red","color":"#e01020","v_equiv":"V5","v_max":"V7"}]',
+      'bouldering'
+    ),
+    (
+      'Camp5',
+      'color',
+      -- Rope colour circuit; posted French ranges, V is the passport spine.
+      '[{"label":"Pink","color":"#e00070","v_equiv":"VB","hint":"4a–5a"},{"label":"Blue","color":"#00a0e0","v_equiv":"VB","v_max":"V0","hint":"5a–6a"},{"label":"Yellow","color":"#f0d000","v_equiv":"VB","v_max":"V1","hint":"5c–6b"},{"label":"Orange","color":"#f06020","v_equiv":"V0","v_max":"V2","hint":"6a–6c"},{"label":"Green","color":"#00a050","v_equiv":"V1","v_max":"V3","hint":"6b–7a"},{"label":"Purple","color":"#a02080","v_equiv":"V2","v_max":"V4","hint":"6c–7b"},{"label":"Red","color":"#e01020","v_equiv":"V3","v_max":"V7","hint":"7a–8a"}]',
+      'top_rope'
+    ),
+    (
+      'Camp5',
+      'color',
+      '[{"label":"Pink","color":"#e00070","v_equiv":"VB","hint":"4a–5a"},{"label":"Blue","color":"#00a0e0","v_equiv":"VB","v_max":"V0","hint":"5a–6a"},{"label":"Yellow","color":"#f0d000","v_equiv":"VB","v_max":"V1","hint":"5c–6b"},{"label":"Orange","color":"#f06020","v_equiv":"V0","v_max":"V2","hint":"6a–6c"},{"label":"Green","color":"#00a050","v_equiv":"V1","v_max":"V3","hint":"6b–7a"},{"label":"Purple","color":"#a02080","v_equiv":"V2","v_max":"V4","hint":"6c–7b"},{"label":"Red","color":"#e01020","v_equiv":"V3","v_max":"V7","hint":"7a–8a"}]',
+      'lead'
     )
-) as s(gym_name, kind, bands) on s.gym_name = g.name;
+) as s(gym_name, kind, bands, climbing_type) on s.gym_name = g.name;
 
 create or replace view public.catalog_moderation
 with (security_invoker = true) as
@@ -1019,7 +1150,13 @@ select
     select count(*)
     from public.gym_reports r
     where r.gym_id = g.id
-  ) as report_count
+  ) as report_count,
+  (
+    select count(*)
+    from public.gym_reports r
+    where r.gym_id = g.id
+      and r.reason = 'closed_or_missing'
+  ) as closed_report_count
 from public.gyms g;
 
 revoke all on table public.catalog_moderation from public, anon, authenticated;

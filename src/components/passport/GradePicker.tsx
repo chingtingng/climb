@@ -97,7 +97,7 @@ export function GradePicker({
             {grades.map((item) => {
               const selected = item === grade;
               const band = scale?.bands.find((b) => b.label === item);
-              const vHint = band ? formatBandV(band) : "";
+              const vHint = band?.hint?.trim() || (band ? formatBandV(band) : "");
               if (isColor) {
                 const hex = colorHex(item, band?.color);
                 return (
@@ -105,7 +105,7 @@ export function GradePicker({
                     key={item}
                     selected={selected}
                     onClick={() => onGrade(item)}
-                    className="flex min-h-12 items-center gap-2 px-3 text-sm font-semibold"
+                    className="flex min-h-[var(--control-min)] items-center gap-2 px-3 text-sm font-semibold"
                   >
                     <span
                       className="size-6 shrink-0 rounded-full border border-ink/15"
@@ -126,7 +126,7 @@ export function GradePicker({
                   key={item}
                   selected={selected}
                   onClick={() => onGrade(item)}
-                  className="flex min-h-11 flex-col items-center justify-center px-1.5 text-sm font-semibold"
+                  className="flex min-h-[var(--control-min)] flex-col items-center justify-center px-1.5 text-sm font-semibold"
                 >
                   <span className="grade-text max-w-full truncate">{item}</span>
                   {vHint ? (

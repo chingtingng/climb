@@ -58,9 +58,10 @@ export default async function PrivacyPage() {
           <li>
             <strong>Shared catalog.</strong> If you add a new place, other signed-in
             climbers can see it as unverified until a second climber stamps the same
-            row. After that it is published. Anyone who has stamped a published place
-            can report a listing that looks wrong; enough reports hide it from the
-            picker (your existing stamps stay on your passport).
+            row. After that it is published. Signed-in climbers can report a listing
+            that looks wrong. Reports that a place is closed or fake can hide it from
+            the picker after enough flags (your existing stamps stay on your passport).
+            Other reports help us correct the listing.
           </li>
           <li>
             <strong>Technical.</strong> Session cookies so you stay signed in, plus

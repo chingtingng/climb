@@ -3,11 +3,14 @@ import {
   FRENCH_GRADES,
   FONT_GRADES,
   YDS_GRADES,
+  isGradeSystem,
   numberRange,
 } from "./grades";
 import { countryMeta } from "./countries";
 import {
+  CLIMBING_TYPES,
   DEFAULT_CLIMBING_TYPES,
+  isClimbingType,
   normalizeClimbingTypes,
   type ClimbingType,
 } from "./climbingTypes";
@@ -49,10 +52,81 @@ const ROPE_ONLY: ClimbingType[] = ["top_rope", "lead"];
 const BOULDER_AND_ROPE: ClimbingType[] = ["bouldering", "top_rope"];
 const FULL_WALL: ClimbingType[] = ["bouldering", "top_rope", "lead"];
 
+/** Camp5 tag colours sampled from camp5.com V-Scale / F-Scale charts. */
+const CAMP5_PINK = "#e00070";
+const CAMP5_BLUE = "#00a0e0";
+const CAMP5_YELLOW = "#f0d000";
+const CAMP5_ORANGE = "#f06020";
+const CAMP5_GREEN = "#00a050";
+const CAMP5_PURPLE = "#a02080";
+const CAMP5_RED = "#e01020";
+
+/** Boulder colour circuit — overlapping V ranges (pink VB–V1, blue V0–V2, …). */
+const CAMP5_BOULDER_SCALE: GradeScale = {
+  kind: "color",
+  bands: [
+    { label: "Pink", color: CAMP5_PINK, v_equiv: "VB", v_max: "V1" },
+    { label: "Blue", color: CAMP5_BLUE, v_equiv: "V0", v_max: "V2" },
+    { label: "Yellow", color: CAMP5_YELLOW, v_equiv: "V1", v_max: "V3" },
+    { label: "Orange", color: CAMP5_ORANGE, v_equiv: "V2", v_max: "V4" },
+    { label: "Green", color: CAMP5_GREEN, v_equiv: "V3", v_max: "V5" },
+    { label: "Purple", color: CAMP5_PURPLE, v_equiv: "V4", v_max: "V6" },
+    { label: "Red", color: CAMP5_RED, v_equiv: "V5", v_max: "V7" },
+  ],
+};
+
+/**
+ * Rope colour circuit (top-rope / lead). Posted as French ranges on the F-scale
+ * chart; V is the passport spine (community approx).
+ */
+const CAMP5_ROPE_SCALE: GradeScale = {
+  kind: "color",
+  bands: [
+    { label: "Pink", color: CAMP5_PINK, v_equiv: "VB", hint: "4a–5a" },
+    { label: "Blue", color: CAMP5_BLUE, v_equiv: "VB", v_max: "V0", hint: "5a–6a" },
+    { label: "Yellow", color: CAMP5_YELLOW, v_equiv: "VB", v_max: "V1", hint: "5c–6b" },
+    { label: "Orange", color: CAMP5_ORANGE, v_equiv: "V0", v_max: "V2", hint: "6a–6c" },
+    { label: "Green", color: CAMP5_GREEN, v_equiv: "V1", v_max: "V3", hint: "6b–7a" },
+    { label: "Purple", color: CAMP5_PURPLE, v_equiv: "V2", v_max: "V4", hint: "6c–7b" },
+    { label: "Red", color: CAMP5_RED, v_equiv: "V3", v_max: "V7", hint: "7a–8a" },
+  ],
+};
+
+/** BFF house numbers 1–15; two grades per V step, 15≈V8. */
+const BFF_BOULDER_SCALE: GradeScale = {
+  kind: "number",
+  bands: [
+    { label: "1", v_equiv: "V1" },
+    { label: "2", v_equiv: "V1" },
+    { label: "3", v_equiv: "V2" },
+    { label: "4", v_equiv: "V2" },
+    { label: "5", v_equiv: "V3" },
+    { label: "6", v_equiv: "V3" },
+    { label: "7", v_equiv: "V4" },
+    { label: "8", v_equiv: "V4" },
+    { label: "9", v_equiv: "V5" },
+    { label: "10", v_equiv: "V5" },
+    { label: "11", v_equiv: "V6" },
+    { label: "12", v_equiv: "V6" },
+    { label: "13", v_equiv: "V7" },
+    { label: "14", v_equiv: "V7" },
+    { label: "15", v_equiv: "V8" },
+  ],
+};
+
+/** BFF Tampines Hub top-rope wall — French, no lead. */
+const BFF_ROPE_SCALE: GradeScale = {
+  kind: "french",
+  bands: FRENCH_GRADES.slice(
+    FRENCH_GRADES.indexOf("4a"),
+    FRENCH_GRADES.indexOf("7c+") + 1,
+  ).map((label) => ({ label })),
+};
+
 function gym(
   name: string,
   country: string,
-  outlets: Array<[outlet: string, city: string]>,
+  outlets: Array<[outlet: string, city: string, climbing_types?: ClimbingType[]]>,
   scale: GradeScale | null = null,
   climbing_types: ClimbingType[] = BOULDER_ONLY,
   place_kind: PlaceKind = "gym",
@@ -62,9 +136,12 @@ function gym(
     country,
     place_kind,
     climbing_types: normalizeClimbingTypes(climbing_types),
-    outlets: outlets.map(([outlet, city]) => ({
+    outlets: outlets.map(([outlet, city, types]) => ({
       name: outlet,
       city: catalogCity(country, city),
+      ...(types && types.length
+        ? { climbing_types: normalizeClimbingTypes(types) }
+        : {}),
     })),
     scale,
   };
@@ -132,35 +209,23 @@ export const KNOWN_GYMS: CatalogGym[] = [
       ]),
     },
   ),
-  gym(
-    "BFF Climb",
-    "Singapore",
-    [
-      ["Bendemeer", "Singapore"],
-      ["Tampines Yoha", "Singapore"],
-      ["Tampines Hub", "Singapore"],
-    ],
-    {
-      kind: "number",
-      bands: [
-        { label: "1", v_equiv: "V1" },
-        { label: "2", v_equiv: "V1" },
-        { label: "3", v_equiv: "V2" },
-        { label: "4", v_equiv: "V2" },
-        { label: "5", v_equiv: "V3" },
-        { label: "6", v_equiv: "V3" },
-        { label: "7", v_equiv: "V4" },
-        { label: "8", v_equiv: "V4" },
-        { label: "9", v_equiv: "V5" },
-        { label: "10", v_equiv: "V5" },
-        { label: "11", v_equiv: "V6" },
-        { label: "12", v_equiv: "V6" },
-        { label: "13", v_equiv: "V7" },
-        { label: "14", v_equiv: "V7" },
-        { label: "15", v_equiv: "V8" },
+  {
+    ...gym(
+      "BFF Climb",
+      "Singapore",
+      [
+        ["Bendemeer", "Singapore", BOULDER_AND_ROPE],
+        ["Tampines Yoha", "Singapore", BOULDER_ONLY],
+        ["Tampines Hub", "Singapore", BOULDER_AND_ROPE],
       ],
+      BFF_BOULDER_SCALE,
+      BOULDER_AND_ROPE,
+    ),
+    scales: {
+      bouldering: BFF_BOULDER_SCALE,
+      top_rope: BFF_ROPE_SCALE,
     },
-  ),
+  },
   gym(
     "Climb Central",
     "Singapore",
@@ -247,6 +312,26 @@ export const KNOWN_GYMS: CatalogGym[] = [
   ),
   gym("SAFRA Yishun", "Singapore", [["Yishun", "Singapore"]], null, FULL_WALL),
   gym("Adventure HQ", "Singapore", [["Khatib", "Singapore"]], null, BOULDER_AND_ROPE),
+  {
+    ...gym(
+      "Camp5",
+      "Malaysia",
+      [
+        ["1Utama", "Kuala Lumpur"],
+        ["Eco City", "Kuala Lumpur"],
+        ["Jumpa", "Kuala Lumpur"],
+        ["KL East", "Kuala Lumpur"],
+        ["Paradigm", "Johor Bahru"],
+      ],
+      CAMP5_BOULDER_SCALE,
+      FULL_WALL,
+    ),
+    scales: {
+      bouldering: CAMP5_BOULDER_SCALE,
+      top_rope: CAMP5_ROPE_SCALE,
+      lead: CAMP5_ROPE_SCALE,
+    },
+  },
 ];
 
 const CLOSED_GYMS = new Set([
@@ -295,8 +380,13 @@ export function hasMultipleOutlets(gym: Pick<CatalogGym, "name" | "outlets">): b
   return visibleOutlets(gym).length > 1;
 }
 
-export function catalogGymSubtitle(gym: Pick<CatalogGym, "name" | "outlets">): string {
-  const outlets = visibleOutlets(gym);
+export function catalogGymSubtitle(
+  gym: Pick<CatalogGym, "name" | "outlets">,
+  city?: string,
+): string {
+  const outlets = city?.trim()
+    ? outletsInCity({ outlets: visibleOutlets(gym) }, city)
+    : visibleOutlets(gym);
   return outlets.length > 1 ? outlets.map((outlet) => outlet.name).join(" · ") : "";
 }
 
@@ -309,17 +399,20 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
     const fromDb = normalizeClimbingTypes(item.climbing_types);
     const fromKnown = normalizeClimbingTypes(known?.climbing_types);
     const climbing_types =
-      fromDb.length > 0
-        ? fromDb
-        : fromKnown.length > 0
-          ? fromKnown
+      fromKnown.length > 0
+        ? fromKnown
+        : fromDb.length > 0
+          ? fromDb
           : DEFAULT_CLIMBING_TYPES;
     map.set(gymKey(item), {
       ...item,
       status: normalizeCatalogStatus(item.status),
       place_kind: normalizePlaceKind(item.place_kind ?? known?.place_kind),
       climbing_types,
-      scale: item.scale?.bands.length ? item.scale : known?.scale ?? null,
+      scale: item.scale?.bands.length
+        ? item.scale
+        : known?.scale ?? known?.scales?.bouldering ?? null,
+      scales: mergeTypeScales(item.scales, known?.scales),
       outlets: visibleOutlets({
         name: item.name,
         outlets: known ? mergeOutlets(known.outlets, item.outlets) : item.outlets,
@@ -336,6 +429,7 @@ export function mergeCatalogGyms(dbGyms: CatalogGym[]): CatalogGym[] {
       place_kind: normalizePlaceKind(item.place_kind),
       climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
       outlets: visibleOutlets(item),
+      scales: item.scales,
     });
   }
 
@@ -397,10 +491,105 @@ export function gymsInCity(
   );
 }
 
-export function outletsInCity(gym: CatalogGym, city: string): GymOutlet[] {
+export function outletsInCity(
+  gym: Pick<CatalogGym, "outlets">,
+  city: string,
+): GymOutlet[] {
   const place = city.trim().toLowerCase();
   const matches = gym.outlets.filter((outlet) => outlet.city.toLowerCase() === place);
   return matches.length > 0 ? matches : gym.outlets;
+}
+
+export function scaleForClimb(
+  gym: Pick<CatalogGym, "scale" | "scales"> | null | undefined,
+  climbType?: ClimbingType | null,
+): GradeScale | null {
+  if (!gym) return null;
+  if (climbType && gym.scales?.[climbType]?.bands.length) {
+    return gym.scales[climbType] ?? null;
+  }
+  if (climbType && climbType !== "bouldering") {
+    const rope = gym.scales?.top_rope ?? gym.scales?.lead;
+    if (rope?.bands.length) return rope;
+  }
+  return gym.scale?.bands.length ? gym.scale : null;
+}
+
+/** Outlet override when present; otherwise the gym’s union of types. */
+export function typesForOutlet(
+  gym:
+    | {
+        climbing_types?: ClimbingType[] | null;
+        outlets?: GymOutlet[] | null;
+      }
+    | null
+    | undefined,
+  outletName?: string | null,
+): ClimbingType[] {
+  const gymTypes = normalizeClimbingTypes(gym?.climbing_types);
+  const fallback = gymTypes.length > 0 ? gymTypes : DEFAULT_CLIMBING_TYPES;
+  if (!outletName?.trim() || !gym?.outlets?.length) return fallback;
+  const outlet = gym.outlets.find(
+    (item) => item.name.trim().toLowerCase() === outletName.trim().toLowerCase(),
+  );
+  const outletTypes = normalizeClimbingTypes(outlet?.climbing_types);
+  return outletTypes.length > 0 ? outletTypes : fallback;
+}
+
+export function parseGymScaleRows(
+  raw: unknown,
+): { scale: GradeScale | null; scales?: Partial<Record<ClimbingType, GradeScale>> } {
+  const rows = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const scales: Partial<Record<ClimbingType, GradeScale>> = {};
+  let fallback: GradeScale | null = null;
+
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const item = row as { kind?: string; bands?: GradeScale["bands"]; climbing_type?: string | null };
+    const kind = isGradeSystem(String(item.kind ?? "")) ? (item.kind as GradeScale["kind"]) : "custom";
+    const scale: GradeScale = { kind, bands: item.bands ?? [] };
+    if (!scale.bands.length) continue;
+    if (item.climbing_type && isClimbingType(item.climbing_type)) {
+      scales[item.climbing_type] = scale;
+    } else {
+      fallback = scale;
+    }
+  }
+
+  const typed = Object.values(scales).some((item) => item?.bands.length) ? scales : undefined;
+  const scale =
+    fallback ??
+    typed?.bouldering ??
+    typed?.top_rope ??
+    typed?.lead ??
+    null;
+  return { scale, scales: typed };
+}
+
+export function knownScaleSeed(
+  gym: CatalogGym,
+): Array<{ climbing_type: ClimbingType | null; scale: GradeScale }> {
+  if (gym.scales) {
+    return CLIMBING_TYPES.flatMap((type) => {
+      const scale = gym.scales?.[type];
+      return scale?.bands.length ? [{ climbing_type: type, scale }] : [];
+    });
+  }
+  return gym.scale?.bands.length ? [{ climbing_type: null, scale: gym.scale }] : [];
+}
+
+function mergeTypeScales(
+  fromDb?: Partial<Record<ClimbingType, GradeScale>>,
+  fromKnown?: Partial<Record<ClimbingType, GradeScale>>,
+): Partial<Record<ClimbingType, GradeScale>> | undefined {
+  const merged: Partial<Record<ClimbingType, GradeScale>> = {};
+  for (const type of CLIMBING_TYPES) {
+    const db = fromDb?.[type];
+    const known = fromKnown?.[type];
+    if (db?.bands.length) merged[type] = db;
+    else if (known?.bands.length) merged[type] = known;
+  }
+  return Object.values(merged).some((item) => item?.bands.length) ? merged : undefined;
 }
 
 export function findKnownGym(name: string, country?: string): CatalogGym | undefined {
@@ -505,6 +694,12 @@ export function mergeOutlets(...lists: GymOutlet[][]): GymOutlet[] {
         name: prev?.name ?? outlet.name.trim(),
         city: (prev?.city || outlet.city).trim(),
         status: prev?.status ?? outlet.status,
+        climbing_types: (() => {
+          const next = normalizeClimbingTypes(outlet.climbing_types);
+          const prior = normalizeClimbingTypes(prev?.climbing_types);
+          const types = next.length > 0 ? next : prior;
+          return types.length > 0 ? types : undefined;
+        })(),
       });
     }
   }

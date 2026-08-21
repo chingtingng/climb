@@ -10,7 +10,7 @@ export function Chip({
     <button
       type="button"
       className={cx(
-        "inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 text-sm font-semibold",
+        "inline-flex min-h-[var(--control-min)] shrink-0 items-center rounded-full px-3.5 leading-none text-base font-semibold",
         selected
           ? "bg-sky-100 text-sky-700"
           : "border border-sky-300 bg-surface text-ink hover:bg-sky-50",

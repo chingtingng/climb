@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { cx } from "@/components/ui/cx";
 
 export function AccountDialog({
   open,
@@ -11,6 +12,7 @@ export function AccountDialog({
   descriptionId,
   title,
   description,
+  titleClassName,
   wide,
   children,
 }: {
@@ -21,6 +23,7 @@ export function AccountDialog({
   descriptionId?: string;
   title: string;
   description?: ReactNode;
+  titleClassName?: string;
   wide?: boolean;
   children: ReactNode;
 }) {
@@ -54,7 +57,10 @@ export function AccountDialog({
           wide ? "max-w-md" : "max-w-sm"
         }`}
       >
-        <h2 id={titleId} className="shrink-0 mark text-center text-2xl text-ink">
+        <h2
+          id={titleId}
+          className={cx("shrink-0 mark text-center text-ink", titleClassName ?? "text-2xl")}
+        >
           {title}
         </h2>
         {description ? (
@@ -65,7 +71,7 @@ export function AccountDialog({
             {description}
           </p>
         ) : null}
-        <div className="min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="hide-scroll min-h-0 overflow-y-auto overscroll-contain">
           {children}
         </div>
       </div>

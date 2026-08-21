@@ -94,7 +94,6 @@ export function ProfileView() {
         variant="secondary"
         onClick={() => openLog()}
         disabled={!configured}
-        className="!min-h-11 !py-2.5 text-[0.9375rem]"
       >
         <PlusIcon className="size-4 shrink-0" />
         {empty ? "Log your first visit" : "Log a visit"}

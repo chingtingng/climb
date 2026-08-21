@@ -60,6 +60,10 @@
   --r-xl: 28px;
   --r-full: 999px;
 
+  /* Compact controls — buttons, fields, chips */
+  --control-min: 42px;
+  --field-min: 38px;
+
   /* Shadows — tinted blue, never neutral black */
   --elev-soft: 0 4px 16px rgba(44, 112, 153, 0.1);
   --elev-lifted: 0 10px 28px rgba(44, 112, 153, 0.16);
@@ -156,11 +160,9 @@ body {
   background-color: var(--paper);
 }
 
-/* Keep the scrollbar lane reserved so tall pages don't shift the layout. */
 html {
   overflow-x: clip;
   overflow-y: auto;
-  scrollbar-gutter: stable;
 }
 
 body {
@@ -538,18 +540,16 @@ a {
   color: var(--ink);
 }
 
-.auth-form .field,
-.auth-panel .btn:not(.btn-tertiary) {
-  min-height: 2.75rem;
-}
-
 .auth-form .field {
+  min-height: 2.75rem;
   padding-block: 0.6rem;
   padding-inline: 0.95rem;
   font-size: var(--fs-md);
 }
 
 .auth-panel .btn:not(.btn-tertiary) {
+  min-height: 2.75rem;
+  padding: 0.7rem 1.1rem;
   font-size: var(--fs-md);
 }
 
@@ -676,12 +676,12 @@ a {
 .field,
 .passport-field {
   width: 100%;
-  min-height: 48px;
+  min-height: var(--field-min);
   border-radius: var(--r-full);
   border: 1px solid var(--sky-300);
   background: var(--surface);
-  padding-block: 0.75rem;
-  padding-inline: 1rem;
+  padding-block: 0.4rem;
+  padding-inline: 0.95rem;
   color: var(--ink);
   font-size: var(--fs-md);
   outline: none;
@@ -759,16 +759,6 @@ input[type="date"].passport-field::-webkit-datetime-edit {
   color: var(--danger-ink);
 }
 
-select.field,
-select.passport-field {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231F5476' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1rem;
-  padding-inline-end: 2.5rem;
-}
-
 .field-icon,
 .passport-field-icon {
   padding-inline-start: 3rem;
@@ -801,55 +791,83 @@ textarea.passport-field {
   overflow-y: auto;
 }
 
-textarea.field::-webkit-scrollbar,
-textarea.passport-field::-webkit-scrollbar {
-  width: 6px;
-}
+/* Thin sky scrollbar — hidden until hover, focus, or scroll */
+.soft-scroll,
+textarea.field,
+textarea.passport-field {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-textarea.field::-webkit-scrollbar-button,
-textarea.passport-field::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
-}
+  &::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 
-textarea.field::-webkit-scrollbar-track,
-textarea.passport-field::-webkit-scrollbar-track {
-  background: transparent;
-  margin-block: 10px;
-}
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 10px;
+  }
 
-textarea.field::-webkit-scrollbar-thumb,
-textarea.passport-field::-webkit-scrollbar-thumb {
-  background: var(--sky-300);
-  border-radius: 999px;
-}
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
 
-textarea.field::-webkit-scrollbar-thumb:hover,
-textarea.passport-field::-webkit-scrollbar-thumb:hover {
-  background: var(--ink-faint);
+  &:is(:hover, :focus-within, .is-scrolling)::-webkit-scrollbar-thumb {
+    background: var(--sky-300);
+  }
+
+  &:is(:hover, :focus-within, .is-scrolling)::-webkit-scrollbar-thumb:hover {
+    background: var(--ink-faint);
+  }
 }
 
 @supports not selector(::-webkit-scrollbar) {
+  .soft-scroll,
   textarea.field,
   textarea.passport-field {
     scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .soft-scroll:is(:hover, :focus-within, .is-scrolling),
+  textarea.field:is(:hover, :focus-within, .is-scrolling),
+  textarea.passport-field:is(:hover, :focus-within, .is-scrolling) {
     scrollbar-color: var(--sky-300) transparent;
   }
+}
+
+/* Page and bottom-sheet: scroll without a visible bar */
+.hide-scroll,
+html,
+.sheet-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scroll::-webkit-scrollbar,
+html::-webkit-scrollbar,
+.sheet-body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 48px;
+  gap: 0.35rem;
+  min-height: var(--control-min);
   width: 100%;
-  padding: 0.7rem 1.1rem;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: var(--r-full);
   font-weight: 600;
-  font-size: var(--fs-md);
+  font-size: var(--fs-base);
   cursor: pointer;
   transition:
     transform 120ms ease,
@@ -883,9 +901,9 @@ textarea.passport-field::-webkit-scrollbar-thumb:hover {
 .btn-tertiary {
   background: none;
   color: var(--ink-soft);
-  min-height: 44px;
+  min-height: 38px;
   width: auto;
-  padding: 0.5rem 0.9rem;
+  padding: 0.4rem 0.8rem;
   border: 1px solid color-mix(in srgb, var(--ink-faint) 28%, transparent);
 }
 

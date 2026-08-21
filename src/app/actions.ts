@@ -25,9 +25,17 @@ import {
 import { isPlaceKind, normalizePlaceKind } from "@/lib/placeKinds";
 import { deleteAccountForUser } from "@/lib/account";
 import {
+  GYM_REPORT_DETAILS_MAX,
+  GymReportBlockedError,
+  isGymReportReason,
+  isGymReportSource,
+  type GymReportEligibilityStatus,
+} from "@/lib/gymReports";
+import {
   createVisit,
   deleteVisit,
   ensureOwnProfile,
+  getGymReportEligibility,
   reportCatalogGym,
   saveGymGradeMapping,
   updateVisit,
@@ -910,12 +918,22 @@ export async function deleteVisitAction(visitId: string): Promise<ActionResult> 
   return { ok: true };
 }
 
-export async function reportCatalogGymAction(gymId: string): Promise<ActionResult> {
+export type ReportEligibilityResult =
+  | { ok: true; status: GymReportEligibilityStatus }
+  | { ok: false; error: string };
+
+export async function getGymReportEligibilityAction(
+  gymId: string,
+): Promise<ReportEligibilityResult> {
   const configured = requireConfigured();
-  if (configured) return configured;
+  if (configured) {
+    return { ok: false, error: configured.error ?? "Supabase is not configured yet." };
+  }
 
   const auth = await requireSessionProfile();
-  if ("error" in auth) return { ok: false, error: auth.error };
+  if ("error" in auth) {
+    return { ok: false, error: auth.error ?? "Please sign in first." };
+  }
 
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuid.test(gymId)) {
@@ -923,11 +941,64 @@ export async function reportCatalogGymAction(gymId: string): Promise<ActionResul
   }
 
   try {
-    await reportCatalogGym(auth.session.id, gymId);
+    const eligibility = await getGymReportEligibility(auth.session.id, gymId);
+    return { ok: true, status: eligibility.status };
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Could not send that report.",
+      error: error instanceof Error ? error.message : "Could not check this listing.",
+    };
+  }
+}
+
+export async function reportCatalogGymAction(input: {
+  gymId: string;
+  reason: string;
+  details?: string;
+  outletId?: string | null;
+  source?: string;
+}): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(input.gymId)) {
+    return { ok: false, error: "Pick a place in the list first." };
+  }
+  if (!isGymReportReason(input.reason)) {
+    return { ok: false, error: "Pick what’s off with this listing." };
+  }
+  const source = input.source ?? "log_sheet";
+  if (!isGymReportSource(source)) {
+    return { ok: false, error: "Could not send that report." };
+  }
+  const details = input.details?.trim() ?? "";
+  if (details.length > GYM_REPORT_DETAILS_MAX) {
+    return { ok: false, error: "Keep that note under 500 characters." };
+  }
+  const outletId = input.outletId?.trim() ?? "";
+  if (outletId && !uuid.test(outletId)) {
+    return { ok: false, error: "That outlet isn’t part of this place." };
+  }
+
+  try {
+    await reportCatalogGym(auth.session.id, {
+      gymId: input.gymId,
+      reason: input.reason,
+      details,
+      outletId: outletId || null,
+      source,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof GymReportBlockedError || error instanceof Error
+          ? error.message
+          : "Could not send that report.",
     };
   }
 

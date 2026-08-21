@@ -69,8 +69,9 @@ export default async function TermsPage() {
         <p>
           Do not use {OPERATOR_NAME} to harass people, spam the catalog with fake gyms,
           scrape other climbers’ data, break the law, or try to access someone else’s
-          account. You can report a place that looks wrong from the stamp sheet. We can
-          hide a listing or suspend an account that abuses the service.
+          account. You can report a place that looks wrong from the stamp sheet. Enough
+          reports that a place is closed or fake can hide it from the picker. We can
+          also hide a listing or suspend an account that abuses the service.
         </p>
 
         <h2>House grades</h2>

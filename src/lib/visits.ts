@@ -3,6 +3,7 @@ import {
   DEFAULT_CLIMBING_TYPES,
   isClimbingType,
   normalizeClimbingTypes,
+  type ClimbingType,
 } from "./climbingTypes";
 import { countryMeta } from "./countries";
 import {
@@ -10,12 +11,23 @@ import {
   findKnownGym,
   isClosedGym,
   KNOWN_GYMS,
+  knownScaleSeed,
   mergeCatalogGyms,
   normalizeCatalogStatus,
+  parseGymScaleRows,
   visibleOutlets,
 } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
 import { normalizePlaceKind } from "./placeKinds";
+import {
+  GYM_REPORT_DETAILS_MAX,
+  GYM_REPORT_DETAILS_MIN_OTHER,
+  GymReportBlockedError,
+  isGymReportReason,
+  isGymReportSource,
+  type GymReportEligibility,
+  type GymReportInput,
+} from "./gymReports";
 import type {
   CatalogGym,
   CatalogStatus,
@@ -217,13 +229,25 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
   const full = await supabase
     .from("gyms")
     .select(
-      "id, name, country, place_kind, climbing_types, status, gym_outlets(id, name, city, status), gym_grade_scales(kind, bands)",
+      "id, name, country, place_kind, climbing_types, status, gym_outlets(id, name, city, status, climbing_types), gym_grade_scales(kind, bands, climbing_type)",
     )
     .in("status", ["pending", "published"])
     .order("name");
 
   let rows: Array<Record<string, unknown>> | null = full.data as Array<Record<string, unknown>> | null;
   let error = full.error;
+
+  if (error && /climbing_type|schema cache|PGRST204|column/i.test(error.message)) {
+    const withoutType = await supabase
+      .from("gyms")
+      .select(
+        "id, name, country, place_kind, climbing_types, status, gym_outlets(id, name, city, status), gym_grade_scales(kind, bands)",
+      )
+      .in("status", ["pending", "published"])
+      .order("name");
+    rows = withoutType.data as Array<Record<string, unknown>> | null;
+    error = withoutType.error;
+  }
 
   if (error && /status|schema cache|PGRST204|column/i.test(error.message)) {
     const withoutStatus = await supabase
@@ -267,20 +291,11 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
     if (gymStatus === "rejected") return [];
 
     const scaleRaw = row.gym_grade_scales;
-    const scaleRow = Array.isArray(scaleRaw) ? scaleRaw[0] : scaleRaw;
+    const { scale, scales } = parseGymScaleRows(scaleRaw);
     const outlets = Array.isArray(row.gym_outlets) ? row.gym_outlets : [];
     const climbing_types = normalizeClimbingTypes(
       "climbing_types" in row ? (row.climbing_types as string[] | null) : null,
     );
-    const scale =
-      scaleRow && typeof scaleRow === "object"
-        ? {
-            kind: (isGradeSystem(String((scaleRow as { kind?: string }).kind ?? ""))
-              ? (scaleRow as { kind: string }).kind
-              : "custom") as GradeSystem,
-            bands: (scaleRow as { bands?: GradeScale["bands"] }).bands ?? [],
-          }
-        : null;
     return [
       {
         id: row.id as string,
@@ -291,19 +306,26 @@ async function fetchCatalogGyms(supabase: SupabaseClient): Promise<CatalogGym[]>
           "place_kind" in row ? (row.place_kind as string | null) : null,
         ),
         climbing_types: climbing_types.length > 0 ? climbing_types : DEFAULT_CLIMBING_TYPES,
-        outlets: (outlets as Array<GymOutlet & { status?: string }>).flatMap((outlet) => {
+        outlets: (outlets as Array<GymOutlet & { status?: string; climbing_types?: string[] }>).flatMap(
+          (outlet) => {
           const status = normalizeCatalogStatus(outlet.status);
           if (status === "rejected") return [];
+          const outletTypes = normalizeClimbingTypes(
+            "climbing_types" in outlet ? outlet.climbing_types : null,
+          );
           return [
             {
               id: outlet.id,
               name: outlet.name,
               city: outlet.city,
               status,
+              ...(outletTypes.length > 0 ? { climbing_types: outletTypes } : {}),
             },
           ];
-        }),
+        },
+        ),
         scale,
+        scales,
       } satisfies CatalogGym,
     ];
   });
@@ -363,6 +385,7 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
     gym_id: string;
     name: string;
     city: string;
+    climbing_types: ClimbingType[] | null;
     status: CatalogStatus;
     created_by: string;
   }[] = [];
@@ -370,6 +393,7 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
     gym_id: string;
     kind: GradeSystem;
     bands: GradeScale["bands"];
+    climbing_type: string | null;
     created_by: string;
   }[] = [];
 
@@ -387,21 +411,28 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
         (item) => item.name.toLowerCase() === outlet.name.toLowerCase(),
       );
       if (!exists) {
+        const outletTypes = normalizeClimbingTypes(outlet.climbing_types);
         outletRows.push({
           gym_id: dbGym.id,
           name: outlet.name,
           city: outlet.city,
+          climbing_types: outletTypes.length > 0 ? outletTypes : null,
           status: "published",
           created_by: profileId,
         });
       }
     }
 
-    if (known.scale?.bands.length && !dbGym.scale?.bands.length) {
+    for (const seed of knownScaleSeed(known)) {
+      const have = seed.climbing_type
+        ? dbGym.scales?.[seed.climbing_type]?.bands.length
+        : dbGym.scale?.bands.length;
+      if (have) continue;
       scaleRows.push({
         gym_id: dbGym.id,
-        kind: known.scale.kind,
-        bands: known.scale.bands,
+        kind: seed.scale.kind,
+        bands: seed.scale.bands,
+        climbing_type: seed.climbing_type,
         created_by: profileId,
       });
     }
@@ -410,9 +441,9 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
   if (outletRows.length > 0) {
     const inserted = await supabase.from("gym_outlets").insert(outletRows);
     if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
-      if (/status|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+      if (/status|climbing_types|schema cache|PGRST204|column/i.test(inserted.error.message)) {
         const retry = await supabase.from("gym_outlets").insert(
-          outletRows.map(({ status: _status, ...row }) => row),
+          outletRows.map(({ status: _status, climbing_types: _types, ...row }) => row),
         );
         if (retry.error && !/duplicate|unique/i.test(retry.error.message)) {
           throw mapDbError(retry.error.message);
@@ -424,7 +455,14 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
   }
   if (scaleRows.length > 0) {
     const inserted = await supabase.from("gym_grade_scales").insert(scaleRows);
-    if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
+    if (inserted.error && /climbing_type|schema cache|PGRST204|column/i.test(inserted.error.message)) {
+      const retry = await supabase.from("gym_grade_scales").insert(
+        scaleRows.map(({ climbing_type: _climbing_type, ...row }) => row),
+      );
+      if (retry.error && !/duplicate|unique/i.test(retry.error.message)) {
+        throw mapDbError(retry.error.message);
+      }
+    } else if (inserted.error && !/duplicate|unique/i.test(inserted.error.message)) {
       throw mapDbError(inserted.error.message);
     }
   }
@@ -627,6 +665,10 @@ async function ensureGymCatalog(
         gym_id: gym.id,
         name: outletName,
         city,
+        climbing_types: (() => {
+          const types = normalizeClimbingTypes(resolvedOutlet?.climbing_types);
+          return types.length > 0 ? types : null;
+        })(),
         status: outletStatus,
         created_by: profileId,
       })
@@ -750,10 +792,10 @@ export async function saveGymGradeMapping(
     .from("gym_grade_scales")
     .select("id")
     .eq("gym_id", catalog.gymId)
-    .maybeSingle();
+    .limit(1);
   if (existingError) throw mapDbError(existingError.message);
 
-  if (!existing?.id) {
+  if (!existing?.[0]?.id) {
     await ensureGradeScale(
       supabase,
       profileId,
@@ -770,7 +812,7 @@ export async function saveGymGradeMapping(
       kind: input.scale.kind,
       bands: input.scale.bands,
     })
-    .eq("gym_id", catalog.gymId)
+    .eq("id", existing[0].id)
     .select("id")
     .maybeSingle();
   if (updateError) throw mapDbError(updateError.message);
@@ -882,14 +924,14 @@ async function commitGradeScaleIfNeeded(
     .from("gym_grade_scales")
     .select("id")
     .eq("gym_id", gymId)
-    .maybeSingle();
+    .limit(1);
   if (error) throw mapDbError(error.message);
   await ensureGradeScale(
     supabase,
     profileId,
     gymId,
     input.scale,
-    Boolean(data?.id),
+    Boolean(data?.[0]?.id),
   );
 }
 
@@ -992,20 +1034,94 @@ export async function deleteVisit(profileId: string, visitId: string): Promise<v
   if (error) throw mapDbError(error.message);
 }
 
-export async function reportCatalogGym(profileId: string, gymId: string): Promise<void> {
+export async function getGymReportEligibility(
+  profileId: string,
+  gymId: string,
+): Promise<GymReportEligibility> {
   const supabase = await createClient();
+  const [gymResult, reportResult] = await Promise.all([
+    supabase.from("gyms").select("id, status, created_by").eq("id", gymId).maybeSingle(),
+    supabase
+      .from("gym_reports")
+      .select("id")
+      .eq("gym_id", gymId)
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+  ]);
+
+  if (gymResult.error) throw mapDbError(gymResult.error.message);
+  if (reportResult.error) throw mapDbError(reportResult.error.message);
+
+  if (!gymResult.data || normalizeCatalogStatus(gymResult.data.status) === "rejected") {
+    return { status: "unavailable" };
+  }
+  if (reportResult.data) return { status: "already_reported" };
+  if (gymResult.data.created_by === profileId) return { status: "own_gym" };
+
+  return { status: "eligible" };
+}
+
+export async function reportCatalogGym(
+  profileId: string,
+  input: GymReportInput,
+): Promise<void> {
+  if (!isGymReportReason(input.reason)) {
+    throw new Error("Pick what’s off with this listing.");
+  }
+  const source = input.source ?? "log_sheet";
+  if (!isGymReportSource(source)) {
+    throw new Error("Could not send that report.");
+  }
+
+  const details = input.details?.trim() ?? "";
+  if (input.reason === "other" && details.length < GYM_REPORT_DETAILS_MIN_OTHER) {
+    throw new Error("Tell us what’s off in a sentence or two.");
+  }
+  if (details.length > GYM_REPORT_DETAILS_MAX) {
+    throw new Error("Keep that note under 500 characters.");
+  }
+
+  const eligibility = await getGymReportEligibility(profileId, input.gymId);
+  if (eligibility.status !== "eligible") {
+    throw new GymReportBlockedError(eligibility.status);
+  }
+
+  const supabase = await createClient();
+  const outletId = input.outletId?.trim() || null;
+  if (outletId) {
+    const outlet = await supabase
+      .from("gym_outlets")
+      .select("id")
+      .eq("id", outletId)
+      .eq("gym_id", input.gymId)
+      .maybeSingle();
+    if (outlet.error) throw mapDbError(outlet.error.message);
+    if (!outlet.data) throw new Error("That outlet isn’t part of this place.");
+  }
+
   const { error } = await supabase.from("gym_reports").insert({
-    gym_id: gymId,
+    gym_id: input.gymId,
     profile_id: profileId,
+    reason: input.reason,
+    details: details || null,
+    outlet_id: outletId,
+    source,
   });
   if (!error) return;
   if (/duplicate|unique/i.test(error.message)) {
-    throw new Error("You’ve already reported this place.");
+    throw new GymReportBlockedError("already_reported");
+  }
+  if (/reason|outlet_id|source|schema cache|PGRST204|column/i.test(error.message)) {
+    throw new Error(
+      "The passport tables are out of date. Paste the whole supabase/schema.sql file into the Supabase SQL Editor and run it.",
+    );
   }
   if (/row-level security|permission denied/i.test(error.message)) {
-    throw new Error(
-      "You can report a place after you’ve stamped a published gym, and you can’t report one you added.",
-    );
+    const retry = await getGymReportEligibility(profileId, input.gymId);
+    if (retry.status !== "eligible") {
+      throw new GymReportBlockedError(retry.status);
+    }
+    throw new Error("Could not send that report.");
   }
   throw mapDbError(error.message);
 }

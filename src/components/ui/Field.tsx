@@ -1,7 +1,6 @@
 import {
   forwardRef,
   type InputHTMLAttributes,
-  type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
 import { cx } from "./cx";
@@ -29,11 +28,4 @@ export const TextArea = forwardRef<
   TextareaHTMLAttributes<HTMLTextAreaElement>
 >(function TextArea({ className, ...props }, ref) {
   return <textarea ref={ref} className={cx("field", className)} {...props} />;
-});
-
-export const SelectField = forwardRef<
-  HTMLSelectElement,
-  SelectHTMLAttributes<HTMLSelectElement>
->(function SelectField({ className, ...props }, ref) {
-  return <select ref={ref} className={cx("field", className)} {...props} />;
 });

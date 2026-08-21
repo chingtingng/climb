@@ -19,7 +19,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     answer: [
       "Add a missing gym or crag from Log a visit. There is no separate queue and no review inbox.",
       "New places stay searchable as Unverified. Your stamp counts on your passport immediately. When a second climber independently stamps the same place, it publishes for everyone.",
-      "If a listing looks fake or wrong, reports can hide it.",
+      "If a listing is closed or fake, enough reports hide it. Other “this place looks wrong” reports help us correct the name, city, or grade chart.",
     ],
   },
   {
