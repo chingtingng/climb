@@ -161,7 +161,9 @@ export function GymsView() {
               {view === "places"
                 ? `${filtered.length} ${filtered.length === 1 ? "place" : "places"}`
                 : groupBy === "city"
-                  ? `${locationCounts.cities} ${locationCounts.cities === 1 ? "city" : "cities"}`
+                  ? locationCounts.cities > 0
+                    ? `${locationCounts.cities} ${locationCounts.cities === 1 ? "city" : "cities"}`
+                    : `${locationCounts.places} ${locationCounts.places === 1 ? "place" : "places"}`
                   : `${locationCounts.countries} ${locationCounts.countries === 1 ? "country" : "countries"}`}
             </span>
           </p>
