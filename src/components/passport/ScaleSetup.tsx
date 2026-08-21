@@ -21,11 +21,13 @@ export function ScaleSetup({
   chartFile,
   onChange,
   onChart,
+  intro = "You’re the first to add this place. Save how it grades so the next visit can reuse it.",
 }: {
   scale: GradeScale;
   chartFile: File | null;
   onChange: (scale: GradeScale) => void;
   onChart: (file: File | null) => void;
+  intro?: string;
 }) {
   const [from, setFrom] = useState(firstNumber(scale) ?? 1);
   const [to, setTo] = useState(lastNumber(scale) ?? 12);
@@ -83,9 +85,7 @@ export function ScaleSetup({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm leading-relaxed text-ink-soft">
-        You’re the first to add this place. Save how it grades so the next visit can reuse it.
-      </p>
+      <p className="text-sm leading-relaxed text-ink-soft">{intro}</p>
 
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold">How does this place grade?</legend>

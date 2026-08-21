@@ -16,6 +16,7 @@ import {
   type ClimbingType,
 } from "@/lib/climbingTypes";
 import {
+  hasVMapping,
   isGradeSystem,
   isHouseSystem,
   normalizeBandVRange,
@@ -26,6 +27,7 @@ import {
   createVisit,
   deleteVisit,
   ensureOwnProfile,
+  saveGymGradeMapping,
   updateVisit,
 } from "@/lib/visits";
 import {
@@ -434,31 +436,8 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     }
   }
 
-  let scale: GradeScale | undefined;
-  const scaleJson = String(formData.get("scale_json") ?? "").trim();
-  if (scaleJson) {
-    try {
-      const parsed = JSON.parse(scaleJson) as GradeScale;
-      if (!parsed?.kind || !Array.isArray(parsed.bands)) {
-        return "Couldn’t read that place’s grade mapping.";
-      }
-      scale = {
-        kind: parsed.kind,
-        bands: parsed.bands
-          .filter((band) => band?.label)
-          .map((band) => {
-            const range = normalizeBandVRange(band.v_equiv, band.v_max);
-            return {
-              label: String(band.label).slice(0, 40),
-              ...range,
-              color: band.color ? String(band.color).slice(0, 16) : undefined,
-            };
-          }),
-      };
-    } catch {
-      return "Couldn’t read that place’s grade mapping.";
-    }
-  }
+  const scale = parseGradeScaleJson(String(formData.get("scale_json") ?? "").trim());
+  if (typeof scale === "string") return scale;
 
   if (isNew && !hasCatalogScale && isHouseSystem(grade_system)) {
     if (!scale || scale.bands.length < 1) {
@@ -487,6 +466,31 @@ function parseVisitInput(formData: FormData): GymVisitInput | string {
     video_path: media_url || null,
     clear_media,
   };
+}
+
+function parseGradeScaleJson(raw: string): GradeScale | undefined | string {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as GradeScale;
+    if (!parsed?.kind || !Array.isArray(parsed.bands) || !isGradeSystem(parsed.kind)) {
+      return "Couldn’t read that place’s grade mapping.";
+    }
+    return {
+      kind: parsed.kind,
+      bands: parsed.bands
+        .filter((band) => band?.label)
+        .map((band) => {
+          const range = normalizeBandVRange(band.v_equiv, band.v_max);
+          return {
+            label: String(band.label).slice(0, 40),
+            ...range,
+            color: band.color ? String(band.color).slice(0, 16) : undefined,
+          };
+        }),
+    };
+  } catch {
+    return "Couldn’t read that place’s grade mapping.";
+  }
 }
 
 export type ResolveVisitMediaResult =
@@ -578,6 +582,80 @@ export async function updateVisitAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Could not update that stamp.",
+    };
+  }
+
+  revalidatePassport();
+  return { ok: true };
+}
+
+export async function saveGymScaleAction(formData: FormData): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  const gym_name = String(formData.get("gym_name") ?? "").trim();
+  const country = String(formData.get("country") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const outlet = String(formData.get("outlet") ?? "").trim();
+  const gym_idRaw = String(formData.get("gym_id") ?? "").trim();
+  const outlet_idRaw = String(formData.get("outlet_id") ?? "").trim();
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const gym_id = uuid.test(gym_idRaw) ? gym_idRaw : "";
+  const outlet_id = uuid.test(outlet_idRaw) ? outlet_idRaw : "";
+  const placeKindRaw = String(formData.get("place_kind") ?? "").trim();
+  const climbingTypesRaw = String(formData.get("climbing_types") ?? "").trim();
+  const chart = formData.get("grade_chart");
+  const chartFile = chart instanceof File && chart.size > 0 ? chart : null;
+
+  if (!gym_name || !country) {
+    return { ok: false, error: "Pick a place to map." };
+  }
+
+  const place_kind = placeKindRaw
+    ? isPlaceKind(placeKindRaw)
+      ? placeKindRaw
+      : null
+    : normalizePlaceKind(undefined);
+  if (!place_kind) {
+    return { ok: false, error: "Pick Gym or Rock for this place." };
+  }
+
+  const climbing_types = normalizeClimbingTypes(
+    climbingTypesRaw ? climbingTypesRaw.split(",").map((item) => item.trim()) : [],
+  );
+
+  const scale = parseGradeScaleJson(String(formData.get("scale_json") ?? "").trim());
+  if (typeof scale === "string") return { ok: false, error: scale };
+  if (!scale || (isHouseSystem(scale.kind) && scale.bands.length < 1)) {
+    return { ok: false, error: "Add this place’s grades so they can sit next to V." };
+  }
+  if (!hasVMapping(scale)) {
+    return {
+      ok: false,
+      error: "Map at least one grade to V so this place can join the chart.",
+    };
+  }
+
+  try {
+    await saveGymGradeMapping(auth.session.id, {
+      gym_id: gym_id || undefined,
+      gym_name,
+      country,
+      city: city || undefined,
+      outlet: outlet || undefined,
+      outlet_id: outlet_id || undefined,
+      place_kind,
+      climbing_types: climbing_types.length > 0 ? climbing_types : undefined,
+      scale,
+      chartFile,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not save that mapping.",
     };
   }
 

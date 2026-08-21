@@ -582,6 +582,87 @@ async function ensureGradeScale(
   }
 }
 
+/** Save a V mapping for a catalog place that does not have one yet. */
+export async function saveGymGradeMapping(
+  profileId: string,
+  input: {
+    gym_id?: string;
+    gym_name: string;
+    country: string;
+    city?: string;
+    outlet?: string;
+    outlet_id?: string;
+    place_kind?: PlaceKind;
+    climbing_types?: GymVisitInput["climbing_types"];
+    scale: GradeScale;
+    chartFile?: File | null;
+  },
+): Promise<GradeScale> {
+  const supabase = await createClient();
+  const city = (input.city?.trim() || input.outlet?.trim() || input.country).trim();
+  const catalog = await ensureGymCatalog(supabase, profileId, {
+    gym_name: input.gym_name,
+    country: input.country,
+    city,
+    outlet: input.outlet,
+    gym_id: input.gym_id,
+    outlet_id: input.outlet_id,
+    climbing_types: input.climbing_types,
+    place_kind: input.place_kind,
+    climbing_type: input.climbing_types?.[0] ?? "bouldering",
+    grade_system: input.scale.kind,
+    highest_grade: input.scale.bands[0]?.label || input.scale.kind,
+    visited_on: new Date().toISOString().slice(0, 10),
+  });
+
+  const { data: existing, error: existingError } = await supabase
+    .from("gym_grade_scales")
+    .select("id")
+    .eq("gym_id", catalog.gymId)
+    .maybeSingle();
+  if (existingError) throw mapDbError(existingError.message);
+
+  let chartPath: string | null = input.scale.chartPath ?? null;
+  if (input.chartFile) {
+    chartPath = await uploadGradeChart(
+      supabase,
+      profileId,
+      catalog.gymId,
+      input.chartFile,
+    );
+  }
+
+  if (!existing?.id) {
+    await ensureGradeScale(
+      supabase,
+      profileId,
+      catalog.gymId,
+      { ...input.scale, chartPath },
+      null,
+      false,
+    );
+    return { ...input.scale, chartPath };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("gym_grade_scales")
+    .update({
+      kind: input.scale.kind,
+      bands: input.scale.bands,
+      chart_path: chartPath,
+    })
+    .eq("gym_id", catalog.gymId)
+    .select("id")
+    .maybeSingle();
+  if (updateError) throw mapDbError(updateError.message);
+  if (!updated?.id) {
+    throw new Error(
+      "This place already has a grade chart you can’t edit. Try another gym.",
+    );
+  }
+  return { ...input.scale, chartPath };
+}
+
 async function uploadGradeChart(
   supabase: SupabaseClient,
   profileId: string,

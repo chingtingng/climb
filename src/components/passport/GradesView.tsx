@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { saveGymScaleAction } from "@/app/actions";
 import { countryCode } from "@/lib/countries";
 import {
   SPORT_GRADE_COMPARISON,
@@ -11,16 +13,22 @@ import {
   gradeSortValue,
   gradeSystemLabel,
   hasVMapping,
+  isHouseSystem,
 } from "@/lib/grades";
+import { defaultScaleFor } from "@/lib/gymCatalog";
 import { gymSlug } from "@/lib/gyms";
 import type { CatalogGym, GradeBand, GradeScale, GymGroup, GymVisit } from "@/lib/types";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Field } from "@/components/ui/Field";
 import { cx } from "@/components/ui/cx";
+import { ActionButtonLabel } from "./ActionButtonLabel";
 import { CountryStamp } from "./CountryStamp";
+import { FlashToast } from "./FlashToast";
 import { CloseIcon, PlusIcon, SearchIcon } from "./icons";
 import { usePassport } from "./PassportContext";
+import { ScaleSetup } from "./ScaleSetup";
 
 type Chart = "compare" | "sport";
 type Picker =
@@ -93,16 +101,24 @@ function CompareChart({
   bestV?: string;
   chartSwitch: ReactNode;
 }) {
-  const { catalogGyms, gyms } = usePassport();
+  const { catalogGyms, gyms, configured } = usePassport();
+  const router = useRouter();
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [picker, setPicker] = useState<Picker | null>(null);
+  const [scaleOverrides, setScaleOverrides] = useState<Record<string, GradeScale>>(
+    {},
+  );
 
   const byKey = useMemo(() => {
     const map = new Map<string, CatalogGym>();
-    for (const gym of catalogGyms) map.set(compareKey(gym), gym);
+    for (const gym of catalogGyms) {
+      const key = compareKey(gym);
+      const override = scaleOverrides[key];
+      map.set(key, override ? { ...gym, scale: override } : gym);
+    }
     return map;
-  }, [catalogGyms]);
+  }, [catalogGyms, scaleOverrides]);
 
   useEffect(() => {
     const comparable = new Set(
@@ -155,6 +171,14 @@ function CompareChart({
   function handlePick(gym: CatalogGym) {
     if (picker?.mode === "replace") replaceGym(picker.key, gym);
     else addGym(gym);
+  }
+
+  function handleMapped(gym: CatalogGym) {
+    if (gym.scale) {
+      setScaleOverrides((prev) => ({ ...prev, [compareKey(gym)]: gym.scale! }));
+    }
+    handlePick(gym);
+    router.refresh();
   }
 
   return (
@@ -282,11 +306,13 @@ function CompareChart({
       </div>
       {picker ? (
         <GymPickerSheet
-          gyms={catalogGyms}
+          gyms={[...byKey.values()]}
           visits={gyms}
           selectedKeys={selectedKeys}
           replaceKey={picker.mode === "replace" ? picker.key : undefined}
+          configured={configured}
           onPick={handlePick}
+          onMapped={handleMapped}
           onClose={() => setPicker(null)}
         />
       ) : null}
@@ -330,17 +356,28 @@ function GymPickerSheet({
   visits,
   selectedKeys,
   replaceKey,
+  configured,
   onPick,
+  onMapped,
   onClose,
 }: {
   gyms: CatalogGym[];
   visits: GymGroup[];
   selectedKeys: string[];
   replaceKey?: string;
+  configured: boolean;
   onPick: (gym: CatalogGym) => void;
+  onMapped: (gym: CatalogGym) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [mappingGym, setMappingGym] = useState<CatalogGym | null>(null);
+  const [scaleDraft, setScaleDraft] = useState<GradeScale>(() =>
+    defaultScaleFor("number", 1, 12),
+  );
+  const [chartFile, setChartFile] = useState<File | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const visited = useMemo(
     () => new Set(visits.map((gym) => gymSlug(gym.name, gym.country))),
     [visits],
@@ -365,13 +402,60 @@ function GymPickerSheet({
     });
   }, [gyms, q, visited]);
 
+  const canSave =
+    configured &&
+    hasVMapping(scaleDraft) &&
+    (!isHouseSystem(scaleDraft.kind) || scaleDraft.bands.length > 0);
+
+  function startMapping(gym: CatalogGym) {
+    setMappingGym(gym);
+    setScaleDraft(
+      gym.scale?.bands.length ? gym.scale : defaultScaleFor("number", 1, 12),
+    );
+    setChartFile(null);
+    setMapError(null);
+  }
+
+  function saveMapping() {
+    if (!mappingGym || !canSave || pending) return;
+    const data = new FormData();
+    data.set("gym_name", mappingGym.name);
+    data.set("country", mappingGym.country);
+    const outlet = mappingGym.outlets[0];
+    if (outlet?.city) data.set("city", outlet.city);
+    if (outlet?.name) data.set("outlet", outlet.name);
+    if (mappingGym.id) data.set("gym_id", mappingGym.id);
+    if (outlet?.id) data.set("outlet_id", outlet.id);
+    data.set("place_kind", mappingGym.place_kind);
+    data.set("climbing_types", mappingGym.climbing_types.join(","));
+    data.set("scale_json", JSON.stringify(scaleDraft));
+    if (chartFile) data.set("grade_chart", chartFile);
+
+    startTransition(async () => {
+      const result = await saveGymScaleAction(data);
+      if (!result.ok) {
+        setMapError(result.error ?? "Couldn’t save that mapping.");
+        return;
+      }
+      onMapped({ ...mappingGym, scale: scaleDraft });
+    });
+  }
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      if (mappingGym) {
+        if (!pending) setMappingGym(null);
+        return;
+      }
+      onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [mappingGym, onClose, pending]);
+
+  const closeClass =
+    "inline-flex size-11 shrink-0 aspect-square appearance-none items-center justify-center overflow-hidden rounded-full bg-sky-100 p-0 text-ink-soft";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -382,6 +466,7 @@ function GymPickerSheet({
         onClick={onClose}
       />
       <div className="relative w-full sm:px-3">
+        <FlashToast message={mapError} />
         <div
           role="dialog"
           aria-modal="true"
@@ -390,77 +475,149 @@ function GymPickerSheet({
         >
           <div className="sheet-handle mx-auto mb-3 h-1 w-10 rounded-full bg-sky-300" />
           <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="label-micro">Compare</p>
               <h2 id="compare-gym-title" className="mark text-2xl text-ink">
-                {replaceKey ? "Swap a gym" : "Add a gym"}
+                {mappingGym
+                  ? `Map ${mappingGym.name}`
+                  : replaceKey
+                    ? "Swap a gym"
+                    : "Add a gym"}
               </h2>
               <p className="mt-1 text-sm text-ink-soft">
-                Needs a chart mapped to V — colours, numbers, or a standard scale.
+                {mappingGym
+                  ? "Needs a chart mapped to V — colours, numbers, or a standard scale."
+                  : "Needs a chart mapped to V. Add one if this place doesn’t have it yet."}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex size-11 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
+              className={closeClass}
               aria-label="Close"
             >
               <CloseIcon />
             </button>
           </div>
 
-          <label className="relative mb-3 block">
-            <span className="sr-only">Search gyms</span>
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft">
-              <SearchIcon className="size-[1.125rem]" />
-            </span>
-            <Field
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search gyms"
-              icon
-              autoFocus
-              className="!text-base"
-            />
-          </label>
+          {mappingGym ? (
+            <>
+              <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+                <ScaleSetup
+                  scale={scaleDraft}
+                  chartFile={chartFile}
+                  onChange={setScaleDraft}
+                  onChart={setChartFile}
+                  intro="Save how this place grades so it can sit next to V on the chart."
+                />
+              </div>
+              <div className="flex shrink-0 gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={() => setMappingGym(null)}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!canSave || pending}
+                  onClick={saveMapping}
+                  className="flex-1"
+                >
+                  <ActionButtonLabel
+                    pending={pending}
+                    idle="Save mapping"
+                    busy="Saving…"
+                  />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="relative mb-3 block">
+                <span className="sr-only">Search gyms</span>
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft">
+                  <SearchIcon className="size-[1.125rem]" />
+                </span>
+                <Field
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search gyms"
+                  icon
+                  autoFocus
+                  className="!text-base"
+                />
+              </label>
 
-          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pb-2">
-            {rows.map((gym) => {
-              const key = compareKey(gym);
-              const mapped = hasVMapping(gym.scale);
-              const already = selectedKeys.includes(key) && key !== replaceKey;
-              const disabled = !mapped || already;
-              return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onPick(gym)}
-                    className={cx(
-                      "flex w-full min-h-14 items-center gap-3 rounded-lg px-2.5 py-2 text-left",
-                      disabled
-                        ? "opacity-45"
-                        : "hover:bg-sky-50 active:bg-sky-100",
-                    )}
-                  >
-                    <CountryStamp country={gym.country} size="sm" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold leading-tight">
-                        {gym.name}
-                      </span>
-                      <span className="mt-0.5 block truncate text-sm text-ink-soft">
-                        {mapped
-                          ? already
-                            ? "Already in the table"
-                            : `${gradeSystemLabel(gym.scale!.kind)} · ${countryCode(gym.country) || gym.country}`
-                          : "No V mapping yet"}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+              <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pb-2">
+                {rows.map((gym) => {
+                  const key = compareKey(gym);
+                  const mapped = hasVMapping(gym.scale);
+                  const already = selectedKeys.includes(key) && key !== replaceKey;
+                  if (!mapped) {
+                    return (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          disabled={!configured}
+                          onClick={() => startMapping(gym)}
+                          className={cx(
+                            "flex w-full min-h-14 items-center gap-3 rounded-lg px-2.5 py-2 text-left",
+                            configured
+                              ? "hover:bg-sky-50 active:bg-sky-100"
+                              : "opacity-45",
+                          )}
+                        >
+                          <CountryStamp country={gym.country} size="sm" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold leading-tight">
+                              {gym.name}
+                            </span>
+                            <span className="mt-0.5 block truncate text-sm text-ink-soft">
+                              No V mapping yet
+                            </span>
+                          </span>
+                          <span className="inline-flex shrink-0 items-center rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                            Add mapping
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={key}>
+                      <button
+                        type="button"
+                        disabled={already}
+                        onClick={() => onPick(gym)}
+                        className={cx(
+                          "flex w-full min-h-14 items-center gap-3 rounded-lg px-2.5 py-2 text-left",
+                          already
+                            ? "opacity-45"
+                            : "hover:bg-sky-50 active:bg-sky-100",
+                        )}
+                      >
+                        <CountryStamp country={gym.country} size="sm" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold leading-tight">
+                            {gym.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-sm text-ink-soft">
+                            {already
+                              ? "Already in the table"
+                              : `${gradeSystemLabel(gym.scale!.kind)} · ${countryCode(gym.country) || gym.country}`}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </div>
       </div>
     </div>
