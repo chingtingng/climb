@@ -36,6 +36,7 @@ import { FlashToast } from "./FlashToast";
 import { CloseIcon, PlusIcon, SearchIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 import { ScaleSetup } from "./ScaleSetup";
+import { SheetCloseButton } from "./SheetCloseButton";
 
 type Chart = "compare" | "sport";
 type Picker =
@@ -478,9 +479,6 @@ function GymPickerSheet({
     return () => window.removeEventListener("keydown", onKey);
   }, [mappingGym, onClose, pending]);
 
-  const closeClass =
-    "inline-flex size-11 shrink-0 aspect-square appearance-none items-center justify-center overflow-hidden rounded-full bg-sky-100 p-0 text-ink-soft";
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
@@ -514,14 +512,9 @@ function GymPickerSheet({
                   : "Needs a chart mapped to V. Add one if this place doesn’t have it yet."}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className={closeClass}
-              aria-label="Close"
-            >
-              <CloseIcon />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              <SheetCloseButton onClick={onClose} />
+            </div>
           </div>
 
           <div

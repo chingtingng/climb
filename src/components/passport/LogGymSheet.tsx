@@ -50,6 +50,7 @@ import { CloseIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
 import { ScaleSetup } from "./ScaleSetup";
+import { SheetCloseButton } from "./SheetCloseButton";
 import { parseVisitMediaUrl } from "@/lib/visitMedia";
 import { VisitMediaFields } from "./VisitMediaFields";
 import { Button } from "@/components/ui/Button";
@@ -490,15 +491,7 @@ function LogGymSheetInner({
               </p>
             ) : null}
           </div>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            className="inline-flex size-11 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
-            aria-label="Close"
-          >
-            <CloseIcon />
-          </button>
+          <SheetCloseButton ref={closeRef} onClick={onClose} />
         </div>
 
         <div className="shrink-0">

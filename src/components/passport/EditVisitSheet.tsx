@@ -26,9 +26,9 @@ import type { CatalogGym, GradeSystem, GymGroup, GymOutlet, GymVisit } from "@/l
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { DeleteStampDialog } from "./DeleteStampDialog";
 import { FlashToast } from "./FlashToast";
-import { CloseIcon } from "./icons";
 import { GradePicker } from "./GradePicker";
 import { usePassport } from "./PassportContext";
+import { SheetCloseButton } from "./SheetCloseButton";
 import { VisitMediaFields } from "./VisitMediaFields";
 import { VisitMediaPreview } from "./VisitMediaPreview";
 import { Button } from "@/components/ui/Button";
@@ -240,15 +240,7 @@ function EditVisitSheetInner({
                   router.refresh();
                 }}
               />
-              <button
-                ref={closeRef}
-                type="button"
-                onClick={onClose}
-                className="inline-flex size-11 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
-                aria-label="Close"
-              >
-                <CloseIcon />
-              </button>
+              <SheetCloseButton ref={closeRef} onClick={onClose} />
             </div>
           </div>
 
