@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Plus_Jakarta_Sans, Poppins } from "next/font/google";
 import { CountryFlagsPolyfill } from "@/components/CountryFlagsPolyfill";
+import { IosSearchZoomGuard } from "@/components/IosSearchZoomGuard";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="min-h-full font-sans antialiased">
         <CountryFlagsPolyfill />
+        <IosSearchZoomGuard />
         {children}
       </body>
     </html>

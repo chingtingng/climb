@@ -8,13 +8,18 @@ import { cx } from "./cx";
 
 export const Field = forwardRef<
   HTMLInputElement,
-  InputHTMLAttributes<HTMLInputElement> & { icon?: boolean }
->(function Field({ className, icon, ...props }, ref) {
+  InputHTMLAttributes<HTMLInputElement> & {
+    icon?: boolean;
+    /** Cap iOS page scale on focus so Safari does not zoom the search field. */
+    preventIosZoom?: boolean;
+  }
+>(function Field({ className, icon, preventIosZoom, ...props }, ref) {
   return (
     <input
       ref={ref}
       className={cx("field", icon && "field-icon", className)}
       {...props}
+      data-prevent-ios-zoom={preventIosZoom ? "" : undefined}
     />
   );
 });

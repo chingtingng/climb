@@ -535,6 +535,7 @@ function GymPickerSheet({
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search gyms"
                   icon
+                  preventIosZoom
                   autoFocus={allowSearchFocus}
                   className="!text-base"
                 />
