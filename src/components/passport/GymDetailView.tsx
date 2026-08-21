@@ -74,7 +74,7 @@ export function GymDetailView({ slug }: { slug: string }) {
       <section className="grid grid-cols-2 gap-2.5 wide:grid-cols-3">
         <Card className="flex flex-col px-4 py-4">
           <p className="label-micro">Highest grade</p>
-          <div className="mt-2 flex flex-1 items-center justify-center">
+          <div className="mt-2 flex flex-1 items-center justify-start">
             <GradeBadge
               system={gym.bestGradeSystem}
               grade={gym.bestGrade}
@@ -84,7 +84,7 @@ export function GymDetailView({ slug }: { slug: string }) {
         </Card>
         <Card className="flex flex-col px-4 py-4">
           <p className="label-micro">Visits</p>
-          <p className="mark mt-2 flex flex-1 items-center justify-center text-xl leading-none tabular-nums">
+          <p className="mark mt-2 flex flex-1 items-center justify-start text-xl leading-none tabular-nums">
             {gym.visitCount}
           </p>
         </Card>
