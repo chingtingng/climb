@@ -130,24 +130,6 @@ export function LoginForm({
         ) : (
           <>
             <label>
-              Email
-              <Field
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="you@email.com"
-                disabled={!configured || loading}
-                preventIosZoom
-              />
-            </label>
-
-            <label>
               Username
               <Field
                 name="username"
@@ -174,6 +156,24 @@ export function LoginForm({
                   {usernameError}
                 </span>
               )}
+            </label>
+
+            <label>
+              Email
+              <Field
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="you@email.com"
+                disabled={!configured || loading}
+                preventIosZoom
+              />
             </label>
           </>
         )}
