@@ -680,6 +680,12 @@ textarea.passport-field {
   transform: scale(0.97);
 }
 
+.btn.auth-switch {
+  font-size: var(--fs-sm);
+  min-height: 2.5rem;
+  padding-block: 0.4rem;
+}
+
 .btn-destructive {
   background: var(--danger-solid);
   color: var(--surface);
