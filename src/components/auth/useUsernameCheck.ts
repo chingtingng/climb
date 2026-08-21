@@ -23,6 +23,7 @@ export function useUsernameCheck(username: string, enabled: boolean) {
   const canCheckRemote = enabled && !localError && Boolean(trimmed);
   const [remote, setRemote] = useState<{
     username: string;
+    available: boolean | null;
     error: string | null;
   } | null>(null);
 
@@ -35,9 +36,10 @@ export function useUsernameCheck(username: string, enabled: boolean) {
       if (cancelled) return;
       setRemote({
         username: trimmed,
+        available: result.available,
         error:
           result.available === false
-            ? (result.error ?? "Username already in use.")
+            ? (result.error ?? `The username ${trimmed} is not available.`)
             : null,
       });
     }, CHECK_DELAY_MS);
@@ -48,9 +50,11 @@ export function useUsernameCheck(username: string, enabled: boolean) {
     };
   }, [trimmed, canCheckRemote]);
 
-  const usernameError =
-    localError ?? (remote?.username === trimmed ? remote.error : null);
-  const usernameChecking = canCheckRemote && remote?.username !== trimmed;
+  const remoteMatches = remote?.username === trimmed;
+  const usernameError = localError ?? (remoteMatches ? remote.error : null);
+  const usernameChecking = canCheckRemote && !remoteMatches;
+  const usernameAvailable =
+    canCheckRemote && remoteMatches && remote.available === true;
 
-  return { usernameError, usernameChecking };
+  return { usernameError, usernameChecking, usernameAvailable };
 }

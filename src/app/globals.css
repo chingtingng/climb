@@ -649,8 +649,40 @@ a {
 }
 
 .field-clearable,
-.passport-field-clearable {
+.passport-field-clearable,
+.username-field .field {
   padding-inline-end: 2.75rem;
+}
+
+.username-field {
+  position: relative;
+  display: block;
+}
+
+.username-field-status {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--ink-faint);
+}
+
+.username-available-mark {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--success-ink);
+  color: var(--surface);
+}
+
+.username-field-invalid {
+  color: var(--danger-ink);
 }
 
 select.field,

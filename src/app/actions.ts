@@ -87,7 +87,10 @@ function parsePassword(formData: FormData): string | ActionResult {
 }
 
 const DUPLICATE_ACCOUNT_ERROR = "Username or email already in use.";
-const USERNAME_IN_USE_ERROR = "Username already in use.";
+
+function usernameTakenError(username: string) {
+  return `The username ${username} is not available.`;
+}
 
 export type UsernameCheckResult = {
   available: boolean | null;
@@ -111,7 +114,7 @@ function mapAuthError(message: string, context: "signup" | "login" = "login"): s
     return "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.";
   }
   if (lower.includes("duplicate") && lower.includes("username")) {
-    return USERNAME_IN_USE_ERROR;
+    return "That username is not available.";
   }
   return message;
 }
@@ -176,7 +179,7 @@ export async function checkUsernameAvailableAction(
 
     return availability.available
       ? { available: true }
-      : { available: false, error: USERNAME_IN_USE_ERROR };
+      : { available: false, error: usernameTakenError(username) };
   } catch {
     return { available: null };
   }
@@ -312,7 +315,7 @@ export async function completeUsernameAction(
       return { ok: false, error: availability.error };
     }
     if (!availability.available) {
-      return { ok: false, error: USERNAME_IN_USE_ERROR };
+      return { ok: false, error: usernameTakenError(parsedUsername) };
     }
 
     const { error: metaError } = await supabase.auth.updateUser({

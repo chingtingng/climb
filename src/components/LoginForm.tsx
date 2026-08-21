@@ -7,6 +7,7 @@ import {
   loginAction,
   type ActionResult,
 } from "@/app/actions";
+import { UsernameField } from "@/components/auth/UsernameField";
 import { useUsernameCheck } from "@/components/auth/useUsernameCheck";
 import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
 import { Button } from "@/components/ui/Button";
@@ -38,7 +39,7 @@ export function LoginForm({
   );
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { usernameError, usernameChecking } = useUsernameCheck(
+  const { usernameError, usernameChecking, usernameAvailable } = useUsernameCheck(
     username,
     mode === "signup" && configured,
   );
@@ -129,34 +130,14 @@ export function LoginForm({
           </label>
         ) : (
           <>
-            <label>
-              Username
-              <Field
-                name="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="yourname"
-                minLength={3}
-                maxLength={30}
-                pattern="[A-Za-z0-9_]+"
-                title="Letters, numbers, and underscores only"
-                disabled={!configured || loading}
-                preventIosZoom
-                aria-invalid={Boolean(usernameError)}
-                aria-describedby={usernameError ? "username-availability" : undefined}
-              />
-              {usernameError && (
-                <span id="username-availability" className="text-xs font-medium text-danger-ink" role="alert">
-                  {usernameError}
-                </span>
-              )}
-            </label>
+            <UsernameField
+              value={username}
+              onChange={setUsername}
+              disabled={!configured || loading}
+              error={usernameError}
+              checking={usernameChecking}
+              available={usernameAvailable}
+            />
 
             <label>
               Email
