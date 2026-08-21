@@ -105,7 +105,10 @@ export function HomeView() {
                   <Card className="flex min-h-16 w-full items-center gap-3 px-3 py-3 transition-colors hover:bg-sky-50">
                     <CountryStamp country={visit.country} size="sm" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold leading-tight">
+                      <span className="block truncate text-micro leading-tight text-ink-soft">
+                        {formatStampDate(visit.visited_on)}
+                      </span>
+                      <span className="mt-0.5 block truncate font-semibold leading-tight">
                         {visit.gym_name}
                       </span>
                       <span className="flex items-center gap-1 truncate text-sm text-ink-soft">
@@ -114,16 +117,12 @@ export function HomeView() {
                         <DisciplineMark type={visit.climbing_type} />
                       </span>
                     </span>
-                    <span className="shrink-0 text-right">
-                      <GradeBadge
-                        system={visit.grade_system}
-                        grade={visit.highest_grade}
-                        vEquiv={visit.v_equiv}
-                      />
-                      <span className="mt-1 block text-xs text-ink-soft">
-                        {formatStampDate(visit.visited_on)}
-                      </span>
-                    </span>
+                    <GradeBadge
+                      className="shrink-0"
+                      system={visit.grade_system}
+                      grade={visit.highest_grade}
+                      vEquiv={visit.v_equiv}
+                    />
                   </Card>
                 </Link>
               </li>
