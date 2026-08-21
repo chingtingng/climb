@@ -95,7 +95,7 @@ export function GradesView() {
 
       <p className="text-xs leading-relaxed text-ink-soft">
         {chart === "compare"
-          ? "House colours and numbers come from each gym’s chart. A band that spans two V grades shows in both rows. Sport vs boulder is still a feel comparison."
+          ? "House colours and numbers come from each gym’s chart. V is for bouldering and French (6a) is for toprope and lead, so lining them up is only a rough conversion — they don’t map 1:1."
           : "Approximate gym-poster conversions, not law. YDS and French are sport — more 1:1 than lining a boulder up against a route."}
       </p>
     </div>
