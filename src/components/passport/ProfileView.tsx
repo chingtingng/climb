@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
+import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { countryName } from "@/lib/countries";
 import { formatStampDayMonth } from "@/lib/dates";
 import { gymSlug, uniqueCountries } from "@/lib/gyms";
@@ -16,7 +17,6 @@ import { DisciplineMark } from "@/components/ui/Marks";
 import { GlobeIcon, GymsIcon, MenuIcon, MountainIcon, PlusIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
-const FEEDBACK_URL = "https://www.instagram.com/chalkchingup";
 const RECENT_LIMIT = 4;
 
 function countryTitle(countries: string[]): string {
@@ -54,7 +54,7 @@ export function ProfileView() {
           <p className="min-w-0 truncate text-sm font-semibold text-ink">
             @{username}
           </p>
-          <AccountMenu />
+          <AccountMenu username={username} />
         </header>
 
         <h1 className="mark mt-2 text-2xl leading-none text-ink">
@@ -213,7 +213,7 @@ function climbingSinceYear(visits: GymVisit[]): number | null {
   return Number.isFinite(year) ? year : null;
 }
 
-function AccountMenu() {
+function AccountMenu({ username }: { username: string }) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
 
@@ -263,19 +263,34 @@ function AccountMenu() {
               <h2 id={titleId} className="label-micro px-4 pt-1">
                 Account
               </h2>
-              <a
-                href={FEEDBACK_URL}
-                target="_blank"
-                rel="noreferrer"
+              <Link
+                href="/help"
                 onClick={() => setOpen(false)}
                 className="flex h-14 items-center gap-3 px-4"
               >
                 <HelpIcon />
                 <span className="text-sm font-semibold">Help & feedback</span>
-              </a>
+              </Link>
+              <Link
+                href="/privacy"
+                onClick={() => setOpen(false)}
+                className="flex h-14 items-center gap-3 px-4"
+              >
+                <DocIcon />
+                <span className="text-sm font-semibold">Privacy</span>
+              </Link>
+              <Link
+                href="/terms"
+                onClick={() => setOpen(false)}
+                className="flex h-14 items-center gap-3 px-4"
+              >
+                <DocIcon />
+                <span className="text-sm font-semibold">Terms</span>
+              </Link>
               <form action={logoutAction} className="m-0">
                 <LogoutButton />
               </form>
+              <DeleteAccountDialog username={username} />
             </div>
           </div>
         </div>
@@ -470,6 +485,26 @@ function HelpIcon() {
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function DocIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="size-5 shrink-0" fill="none">
+      <path
+        d="M7 4.5h7.2L17.5 8v11.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 4.5V8h3.5M8.5 12h7M8.5 15.5h5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

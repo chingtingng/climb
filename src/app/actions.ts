@@ -23,6 +23,7 @@ import {
   normalizeVEquiv,
 } from "@/lib/grades";
 import { isPlaceKind, normalizePlaceKind } from "@/lib/placeKinds";
+import { deleteAccountForUser } from "@/lib/account";
 import {
   createVisit,
   deleteVisit,
@@ -87,7 +88,10 @@ function parsePassword(formData: FormData): string | ActionResult {
 }
 
 const DUPLICATE_ACCOUNT_ERROR = "Username or email already in use.";
-const USERNAME_IN_USE_ERROR = "Username already in use.";
+
+function usernameTakenError(username: string) {
+  return `The username ${username} is not available.`;
+}
 
 export type UsernameCheckResult = {
   available: boolean | null;
@@ -109,6 +113,9 @@ function mapAuthError(message: string, context: "signup" | "login" = "login"): s
   }
   if (lower.includes("permission denied")) {
     return "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.";
+  }
+  if (lower.includes("duplicate") && lower.includes("username")) {
+    return "That username is not available.";
   }
   return message;
 }
@@ -173,7 +180,7 @@ export async function checkUsernameAvailableAction(
 
     return availability.available
       ? { available: true }
-      : { available: false, error: USERNAME_IN_USE_ERROR };
+      : { available: false, error: usernameTakenError(username) };
   } catch {
     return { available: null };
   }
@@ -286,6 +293,55 @@ export async function createAccountAction(
   redirect("/passport");
 }
 
+export async function completeUsernameAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const parsedUsername = parseUsername(formData);
+  if (typeof parsedUsername !== "string") return parsedUsername;
+
+  const session = await getSessionUser();
+  if (!session) {
+    return { ok: false, error: "Please sign in first." };
+  }
+  if (session.username) redirect("/passport");
+
+  try {
+    const supabase = await createClient();
+    const availability = await isUsernameFree(supabase, parsedUsername);
+    if (!availability.ok) {
+      return { ok: false, error: availability.error };
+    }
+    if (!availability.available) {
+      return { ok: false, error: usernameTakenError(parsedUsername) };
+    }
+
+    const { error: metaError } = await supabase.auth.updateUser({
+      data: { username: parsedUsername },
+    });
+    if (metaError) {
+      return { ok: false, error: mapAuthError(metaError.message, "signup") };
+    }
+
+    await ensureOwnProfile(
+      supabase,
+      session.id,
+      parsedUsername,
+      session.email ?? undefined,
+    );
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not save username",
+    };
+  }
+
+  redirect("/passport");
+}
+
 export async function loginAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -306,6 +362,7 @@ export async function loginAction(
   const parsedPassword = parsePassword(formData);
   if (typeof parsedPassword !== "string") return parsedPassword;
 
+  let destination = "/passport";
   try {
     const supabase = await createClient();
     const email = await resolveAuthEmailForLogin(supabase, identifier);
@@ -334,6 +391,9 @@ export async function loginAction(
           username,
           data.user.email ?? undefined,
         );
+        destination = "/passport";
+      } else {
+        destination = "/welcome";
       }
     }
   } catch (error) {
@@ -343,7 +403,7 @@ export async function loginAction(
     };
   }
 
-  redirect("/passport");
+  redirect(destination);
 }
 
 export async function logoutAction() {
@@ -352,6 +412,41 @@ export async function logoutAction() {
     await supabase.auth.signOut();
   }
   redirect("/");
+}
+
+/** Permanently delete the signed-in Auth user, stamps, and grade-chart files. */
+export async function deleteAccountAction(
+  confirmation: string,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  let typed: string;
+  try {
+    typed = normalizeUsername(confirmation);
+  } catch {
+    return { ok: false, error: "Type your username to confirm." };
+  }
+  if (typed !== auth.session.username) {
+    return { ok: false, error: "Type your username to confirm." };
+  }
+
+  try {
+    await deleteAccountForUser(auth.session.id);
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Couldn't delete the account.",
+    };
+  }
+
+  return { ok: true };
 }
 
 function parseVisitInput(formData: FormData): GymVisitInput | string {
@@ -525,6 +620,7 @@ async function withResolvedClip(
 async function requireSessionProfile() {
   const session = await getSessionUser();
   if (!session) return { error: "Please sign in first." as const };
+  if (!session.username) return { error: "Choose a username first." as const };
   return { session };
 }
 

@@ -83,3 +83,22 @@ export function emailToUsername(email: string | undefined): string | undefined {
   }
   return undefined;
 }
+
+/**
+ * Best-effort handle from a display name or email local-part.
+ * Empty when nothing valid can be made (the climber still types their own).
+ */
+export function suggestUsername(
+  ...parts: Array<string | null | undefined>
+): string {
+  for (const part of parts) {
+    if (!part) continue;
+    const cleaned = part
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, "")
+      .slice(0, 30);
+    if (cleaned.length >= 3) return cleaned;
+  }
+  return "";
+}

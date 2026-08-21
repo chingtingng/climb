@@ -113,20 +113,27 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  chosen text := lower(trim(coalesce(new.raw_user_meta_data->>'username', '')));
+  contact text;
 begin
+  -- Skip until the climber picks a valid handle (incomplete signup).
+  -- Do not fall back to the email local-part — many addresses contain dots.
+  if chosen = ''
+     or char_length(chosen) < 3
+     or char_length(chosen) > 30
+     or chosen !~ '^[a-z0-9_]+$' then
+    return new;
+  end if;
+
+  contact := case
+    when new.email is null then null
+    when new.email like '%@chalk.local' then null
+    else lower(new.email)
+  end;
+
   insert into public.profiles (id, username, email)
-  values (
-    new.id,
-    lower(coalesce(
-      new.raw_user_meta_data->>'username',
-      split_part(new.email, '@', 1)
-    )),
-    case
-      when new.email is null then null
-      when new.email like '%@chalk.local' then null
-      else lower(new.email)
-    end
-  )
+  values (new.id, chosen, contact)
   on conflict (id) do update
     set email = coalesce(excluded.email, public.profiles.email);
   return new;

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useState, type FormEvent } from "react";
 import {
-  checkUsernameAvailableAction,
   createAccountAction,
   loginAction,
   type ActionResult,
 } from "@/app/actions";
+import { UsernameField } from "@/components/auth/UsernameField";
+import { useUsernameCheck } from "@/components/auth/useUsernameCheck";
 import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
 import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/EmptyState";
@@ -20,14 +22,14 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     "That verification link is invalid or expired. Sign in if you already confirmed, or create the account again.",
 };
 
-const USERNAME_CHECK_DELAY_MS = 450;
-
 export function LoginForm({
   configured,
   authError,
+  deleted,
 }: {
   configured: boolean;
   authError?: string | null;
+  deleted?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("signin");
   const [identifier, setIdentifier] = useState("");
@@ -37,64 +39,14 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(
     authError ? AUTH_ERROR_MESSAGES[authError] ?? "Could not complete sign-in." : null,
   );
-  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
-  const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(
+    deleted ? "Your account and stamps have been deleted." : null,
+  );
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (mode !== "signup" || !configured) {
-      setUsernameError(null);
-      setUsernameChecking(false);
-      return;
-    }
-
-    const trimmed = username.trim().toLowerCase();
-    if (!trimmed) {
-      setUsernameError(null);
-      setUsernameChecking(false);
-      return;
-    }
-
-    // Match Instagram-style: only hit the server once the value looks like a real username.
-    if (trimmed.length < 3) {
-      setUsernameChecking(false);
-      setUsernameError("Username must be at least 3 characters");
-      return;
-    }
-    if (trimmed.length > 30) {
-      setUsernameChecking(false);
-      setUsernameError("Username must be 30 characters or fewer");
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(trimmed)) {
-      setUsernameChecking(false);
-      setUsernameError("Username can only contain letters, numbers, and underscores");
-      return;
-    }
-
-    let cancelled = false;
-    setUsernameChecking(true);
-    setUsernameError(null);
-
-    const timer = window.setTimeout(async () => {
-      const result = await checkUsernameAvailableAction(trimmed);
-      if (cancelled) return;
-
-      setUsernameChecking(false);
-      // Only treat a confirmed conflict as "in use". Setup/network failures fail open.
-      if (result.available === false) {
-        setUsernameError(result.error ?? "Username already in use.");
-      } else {
-        setUsernameError(null);
-      }
-    }, USERNAME_CHECK_DELAY_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [username, mode, configured]);
+  const { usernameError, usernameChecking, usernameAvailable } = useUsernameCheck(
+    username,
+    mode === "signup" && configured,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -143,18 +95,18 @@ export function LoginForm({
   return (
     <div className="auth-card">
       <div className="auth-card-glows" aria-hidden>
-        <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-surface/50 blur-2xl" />
-        <div className="absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-sky-500/35 blur-3xl" />
+        <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-surface/50 blur-2xl" />
+        <div className="absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-sky-500/30 blur-3xl" />
       </div>
       <div className="auth-layout">
       <div className="auth-brand">
-      <div aria-hidden className="auth-stamps mb-3 flex justify-center gap-3">
+      <div aria-hidden className="auth-stamps">
         <Stamp variant="grade" size="sm" seed="login-v17" label="V17" />
         <Stamp variant="country" size="sm" country="Singapore" seed="SG" />
       </div>
 
-      <p className="label-micro mb-2">climbing log</p>
-      <h1 className="mark text-mark text-ink">Chalk Passport</h1>
+      <p className="label-micro">climbing log</p>
+      <h1 className="mark auth-title">Chalk Passport</h1>
       <p className="auth-subtitle">
         Stamp the places you’ve sent — by country, city, and highest grade.
       </p>
@@ -177,37 +129,19 @@ export function LoginForm({
               spellCheck={false}
               placeholder="yourname or you@email.com"
               disabled={!configured || loading}
+              preventIosZoom
             />
           </label>
         ) : (
           <>
-            <label>
-              Username
-              <Field
-                name="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="yourname"
-                minLength={3}
-                maxLength={30}
-                pattern="[A-Za-z0-9_]+"
-                title="Letters, numbers, and underscores only"
-                disabled={!configured || loading}
-                aria-invalid={Boolean(usernameError)}
-                aria-describedby={usernameError ? "username-availability" : undefined}
-              />
-              {usernameError && (
-                <span id="username-availability" className="text-xs font-medium text-danger-ink" role="alert">
-                  {usernameError}
-                </span>
-              )}
-            </label>
+            <UsernameField
+              value={username}
+              onChange={setUsername}
+              disabled={!configured || loading}
+              error={usernameError}
+              checking={usernameChecking}
+              available={usernameAvailable}
+            />
 
             <label>
               Email
@@ -223,6 +157,7 @@ export function LoginForm({
                 spellCheck={false}
                 placeholder="you@email.com"
                 disabled={!configured || loading}
+                preventIosZoom
               />
             </label>
           </>
@@ -240,6 +175,7 @@ export function LoginForm({
             placeholder="••••••••"
             minLength={6}
             disabled={!configured || loading}
+            preventIosZoom
           />
         </label>
 
@@ -267,27 +203,42 @@ export function LoginForm({
         >
           <ActionButtonLabel
             pending={loading}
-            idle={mode === "signin" ? "Sign in" : "Create account"}
+            idle={mode === "signin" ? "Sign in" : "Sign up"}
             busy="Please wait…"
           />
         </Button>
+
+        {mode === "signup" ? (
+          <p className="auth-legal">
+            By signing up, you agree to the{" "}
+            <Link href="/terms">Terms</Link> and{" "}
+            <Link href="/privacy">Privacy Policy</Link>.
+          </p>
+        ) : null}
       </form>
 
       <Button
         type="button"
         variant="tertiary"
         disabled={loading}
-        className="mt-4 text-sky-600"
+        className="auth-switch"
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
           setVerifyMessage(null);
-          setUsernameError(null);
         }}
       >
-        {mode === "signin"
-          ? "Don’t have an account? Sign up"
-          : "Already have an account? Sign in"}
+        {mode === "signin" ? (
+          <>
+            Don’t have an account?{" "}
+            <span className="auth-switch-action">Sign up</span>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <span className="auth-switch-action">Sign in</span>
+          </>
+        )}
       </Button>
       </div>
       </div>
