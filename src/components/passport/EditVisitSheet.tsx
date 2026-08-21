@@ -172,7 +172,7 @@ function EditVisitSheetInner({
           className="absolute inset-0 bg-ink/35"
           onClick={onSaved}
         />
-        <div className="relative w-full sm:px-3">
+        <div className="relative min-w-0 w-full sm:px-3">
           <div
             role="dialog"
             aria-modal="true"
@@ -201,7 +201,7 @@ function EditVisitSheetInner({
         onClick={onClose}
       />
       <FlashToast message={sheetError} />
-      <div className="relative w-full sm:px-3">
+      <div className="relative min-w-0 w-full sm:px-3">
         <div
           role="dialog"
           aria-modal="true"
@@ -236,7 +236,7 @@ function EditVisitSheetInner({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pb-3">
+          <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto pb-3">
             {needsOutlet ? (
               <OutletEditor
                 outlets={outlets}
@@ -286,7 +286,7 @@ function EditVisitSheetInner({
               onGrade={setGrade}
             />
 
-            <label className="block">
+            <label className="block min-w-0 max-w-full">
               <span className="mb-1.5 block text-sm font-semibold">Visited on</span>
               <Field
                 type="date"

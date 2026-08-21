@@ -693,7 +693,7 @@ function LogGymSheetInner({
           )}
 
           {step === "date" && (
-            <label className="block">
+            <label className="block min-w-0 max-w-full">
               <span className="mb-1.5 block text-sm font-semibold">Visited on</span>
               <Field
                 type="date"
@@ -850,7 +850,7 @@ function Overlay({
         className="absolute inset-0 bg-ink/35"
         onClick={onClose}
       />
-      <div className="passport-overlay-frame relative w-full sm:px-3">{children}</div>
+      <div className="passport-overlay-frame relative min-w-0 w-full sm:px-3">{children}</div>
     </div>
   );
 }
