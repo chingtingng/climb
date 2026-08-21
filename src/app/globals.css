@@ -417,6 +417,144 @@ a {
   color: var(--ink);
 }
 
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0.15rem 0 1rem;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--sky-200);
+}
+
+.auth-legal {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.auth-legal a {
+  font-weight: 600;
+  color: var(--sky-700);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-google {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--sky-300);
+  box-shadow: none;
+}
+
+.btn-google:enabled:active {
+  background: var(--sky-50);
+  transform: scale(0.97);
+}
+
+.btn-google:disabled {
+  background: var(--sky-50);
+  border-color: var(--sky-200);
+}
+
+.legal-shell {
+  width: min(100%, 42rem);
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 1.25rem 1.1rem 3rem;
+  position: relative;
+}
+
+.legal-updated {
+  margin: 0.5rem 0 1.25rem;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.legal-doc {
+  text-align: left;
+}
+
+.legal-doc h2 {
+  margin: 1.75rem 0 0.6rem;
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.legal-doc p,
+.legal-doc li {
+  font-size: var(--fs-base);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.legal-doc p + p {
+  margin-top: 0.75rem;
+}
+
+.legal-doc ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.legal-doc li + li {
+  margin-top: 0.55rem;
+}
+
+.legal-doc a {
+  font-weight: 600;
+  color: var(--sky-700);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-doc strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.site-footer {
+  text-align: center;
+}
+
+.site-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.1rem;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.site-footer-nav a {
+  text-decoration: underline;
+  text-decoration-color: var(--sky-300);
+  text-underline-offset: 4px;
+}
+
+.site-footer-nav a:hover {
+  color: var(--ink);
+}
+
 .field,
 .passport-field {
   width: 100%;

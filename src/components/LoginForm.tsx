@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useState, type FormEvent } from "react";
 import {
-  checkUsernameAvailableAction,
   createAccountAction,
   loginAction,
   type ActionResult,
 } from "@/app/actions";
+import { GoogleButton } from "@/components/auth/GoogleButton";
+import { useUsernameCheck } from "@/components/auth/useUsernameCheck";
 import { ActionButtonLabel } from "@/components/passport/ActionButtonLabel";
 import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/EmptyState";
@@ -18,9 +20,8 @@ type Mode = "signin" | "signup";
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   confirm:
     "That verification link is invalid or expired. Sign in if you already confirmed, or create the account again.",
+  oauth: "Google sign-in was cancelled or failed. Try again, or use email.",
 };
-
-const USERNAME_CHECK_DELAY_MS = 450;
 
 export function LoginForm({
   configured,
@@ -38,63 +39,11 @@ export function LoginForm({
     authError ? AUTH_ERROR_MESSAGES[authError] ?? "Could not complete sign-in." : null,
   );
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
-  const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [usernameChecking, setUsernameChecking] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (mode !== "signup" || !configured) {
-      setUsernameError(null);
-      setUsernameChecking(false);
-      return;
-    }
-
-    const trimmed = username.trim().toLowerCase();
-    if (!trimmed) {
-      setUsernameError(null);
-      setUsernameChecking(false);
-      return;
-    }
-
-    // Match Instagram-style: only hit the server once the value looks like a real username.
-    if (trimmed.length < 3) {
-      setUsernameChecking(false);
-      setUsernameError("Username must be at least 3 characters");
-      return;
-    }
-    if (trimmed.length > 30) {
-      setUsernameChecking(false);
-      setUsernameError("Username must be 30 characters or fewer");
-      return;
-    }
-    if (!/^[a-z0-9_]+$/.test(trimmed)) {
-      setUsernameChecking(false);
-      setUsernameError("Username can only contain letters, numbers, and underscores");
-      return;
-    }
-
-    let cancelled = false;
-    setUsernameChecking(true);
-    setUsernameError(null);
-
-    const timer = window.setTimeout(async () => {
-      const result = await checkUsernameAvailableAction(trimmed);
-      if (cancelled) return;
-
-      setUsernameChecking(false);
-      // Only treat a confirmed conflict as "in use". Setup/network failures fail open.
-      if (result.available === false) {
-        setUsernameError(result.error ?? "Username already in use.");
-      } else {
-        setUsernameError(null);
-      }
-    }, USERNAME_CHECK_DELAY_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [username, mode, configured]);
+  const { usernameError, usernameChecking } = useUsernameCheck(
+    username,
+    mode === "signup" && configured,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,6 +110,18 @@ export function LoginForm({
       </div>
 
       <div className="auth-panel">
+      <GoogleButton
+        disabled={!configured || loading}
+        onError={(message) => {
+          setVerifyMessage(null);
+          setError(message);
+        }}
+      />
+
+      <p className="auth-or" role="separator">
+        or
+      </p>
+
       <form onSubmit={handleSubmit} className="auth-form">
         {mode === "signin" ? (
           <label>
@@ -181,6 +142,23 @@ export function LoginForm({
           </label>
         ) : (
           <>
+            <label>
+              Email
+              <Field
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="you@gmail.com"
+                disabled={!configured || loading}
+              />
+            </label>
+
             <label>
               Username
               <Field
@@ -207,23 +185,6 @@ export function LoginForm({
                   {usernameError}
                 </span>
               )}
-            </label>
-
-            <label>
-              Email
-              <Field
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="you@email.com"
-                disabled={!configured || loading}
-              />
             </label>
           </>
         )}
@@ -267,10 +228,18 @@ export function LoginForm({
         >
           <ActionButtonLabel
             pending={loading}
-            idle={mode === "signin" ? "Sign in" : "Create account"}
+            idle={mode === "signin" ? "Sign in" : "Sign up"}
             busy="Please wait…"
           />
         </Button>
+
+        {mode === "signup" ? (
+          <p className="auth-legal">
+            By signing up, you agree to the{" "}
+            <Link href="/terms">Terms</Link> and{" "}
+            <Link href="/privacy">Privacy Policy</Link>.
+          </p>
+        ) : null}
       </form>
 
       <Button
@@ -282,7 +251,6 @@ export function LoginForm({
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
           setVerifyMessage(null);
-          setUsernameError(null);
         }}
       >
         {mode === "signin"
