@@ -72,25 +72,24 @@ export function GymDetailView({ slug }: { slug: string }) {
       ) : null}
 
       <section className="grid grid-cols-2 gap-2.5 wide:grid-cols-3">
-        <Card className="flex flex-col px-4 py-4">
+        <Card className="flex flex-col items-start px-4 py-4 text-left">
           <p className="label-micro">Highest grade</p>
-          <div className="mt-2 flex flex-1 items-center justify-center">
-            <GradeBadge
-              system={gym.bestGradeSystem}
-              grade={gym.bestGrade}
-              vEquiv={gym.bestVEquiv}
-            />
-          </div>
+          <GradeBadge
+            className="mt-2"
+            system={gym.bestGradeSystem}
+            grade={gym.bestGrade}
+            vEquiv={gym.bestVEquiv}
+          />
         </Card>
-        <Card className="flex flex-col px-4 py-4">
+        <Card className="flex flex-col items-start px-4 py-4 text-left">
           <p className="label-micro">Visits</p>
-          <p className="mark mt-2 flex flex-1 items-center justify-center text-xl leading-none tabular-nums">
+          <p className="mark mt-2 text-xl leading-none tabular-nums">
             {gym.visitCount}
           </p>
         </Card>
-        <Card className="hidden flex-col px-4 py-4 wide:flex">
+        <Card className="hidden flex-col items-start px-4 py-4 text-left wide:flex">
           <p className="label-micro">Last visit</p>
-          <p className="mark mt-2 flex flex-1 items-center justify-center text-center text-lg leading-tight">
+          <p className="mark mt-2 text-lg leading-tight">
             {formatStampDate(gym.lastVisited)}
           </p>
         </Card>
