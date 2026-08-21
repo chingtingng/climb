@@ -110,6 +110,9 @@ function mapAuthError(message: string, context: "signup" | "login" = "login"): s
   if (lower.includes("permission denied")) {
     return "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.";
   }
+  if (lower.includes("duplicate") && lower.includes("username")) {
+    return USERNAME_IN_USE_ERROR;
+  }
   return message;
 }
 
@@ -286,6 +289,55 @@ export async function createAccountAction(
   redirect("/passport");
 }
 
+export async function completeUsernameAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const parsedUsername = parseUsername(formData);
+  if (typeof parsedUsername !== "string") return parsedUsername;
+
+  const session = await getSessionUser();
+  if (!session) {
+    return { ok: false, error: "Please sign in first." };
+  }
+  if (session.username) redirect("/passport");
+
+  try {
+    const supabase = await createClient();
+    const availability = await isUsernameFree(supabase, parsedUsername);
+    if (!availability.ok) {
+      return { ok: false, error: availability.error };
+    }
+    if (!availability.available) {
+      return { ok: false, error: USERNAME_IN_USE_ERROR };
+    }
+
+    const { error: metaError } = await supabase.auth.updateUser({
+      data: { username: parsedUsername },
+    });
+    if (metaError) {
+      return { ok: false, error: mapAuthError(metaError.message, "signup") };
+    }
+
+    await ensureOwnProfile(
+      supabase,
+      session.id,
+      parsedUsername,
+      session.email ?? undefined,
+    );
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not save username",
+    };
+  }
+
+  redirect("/passport");
+}
+
 export async function loginAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -306,6 +358,7 @@ export async function loginAction(
   const parsedPassword = parsePassword(formData);
   if (typeof parsedPassword !== "string") return parsedPassword;
 
+  let destination = "/passport";
   try {
     const supabase = await createClient();
     const email = await resolveAuthEmailForLogin(supabase, identifier);
@@ -334,6 +387,9 @@ export async function loginAction(
           username,
           data.user.email ?? undefined,
         );
+        destination = "/passport";
+      } else {
+        destination = "/welcome";
       }
     }
   } catch (error) {
@@ -343,7 +399,7 @@ export async function loginAction(
     };
   }
 
-  redirect("/passport");
+  redirect(destination);
 }
 
 export async function logoutAction() {
@@ -525,6 +581,7 @@ async function withResolvedClip(
 async function requireSessionProfile() {
   const session = await getSessionUser();
   if (!session) return { error: "Please sign in first." as const };
+  if (!session.username) return { error: "Choose a username first." as const };
   return { session };
 }
 

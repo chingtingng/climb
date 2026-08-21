@@ -17,11 +17,14 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Chalk Passport",
+  title: {
+    default: "Chalk Passport",
+    template: "%s · Chalk Passport",
+  },
   description:
     "Track the climbing places you’ve visited — countries, cities, and your highest grade at each.",
   applicationName: "Chalk Passport",
-  authors: [{ name: "chalkchingup" }],
+  authors: [{ name: "Chalk Passport" }],
 };
 
 export const viewport: Viewport = {

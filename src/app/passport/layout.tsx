@@ -16,6 +16,7 @@ export default async function PassportLayout({
 }) {
   const session = await getSessionUser();
   if (!session) redirect("/");
+  if (!session.username) redirect("/welcome");
 
   const configured = isSupabaseConfigured();
   let visits: GymVisit[] = [];

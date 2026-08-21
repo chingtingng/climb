@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/LoginForm";
+import { SiteFooter } from "@/components/site/SiteFooter";
 import { getSessionUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -9,27 +10,18 @@ export default async function HomePage({
   searchParams: Promise<{ authError?: string }>;
 }) {
   const session = await getSessionUser();
-  if (session) redirect("/passport");
+  if (session?.username) redirect("/passport");
+  if (session) redirect("/welcome");
 
   const configured = isSupabaseConfigured();
   const params = await searchParams;
 
   return (
-    <main className="app-shell flex flex-col justify-center">
-      <div className="fade-up">
+    <main className="auth-page">
+      <div className="fade-up auth-page-card">
         <LoginForm configured={configured} authError={params.authError} />
       </div>
-
-      <footer className="fade-up-delay mt-8 pb-2 text-center text-sm text-ink-soft">
-        <a
-          href="https://www.instagram.com/chalkchingup"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline decoration-sky-300 underline-offset-4 transition hover:text-ink"
-        >
-          @chalkchingup
-        </a>
-      </footer>
+      <SiteFooter className="fade-up-delay" />
     </main>
   );
 }
