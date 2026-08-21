@@ -750,7 +750,11 @@ function LogGymSheetInner({
               stamps it too.
             </p>
           ) : null}
-          {catalogMatch?.id && step !== "country" && step !== "city" ? (
+          {catalogMatch?.id &&
+          step !== "country" &&
+          step !== "city" &&
+          step !== "date" &&
+          step !== "notes" ? (
             <ReportPlaceButton
               gymId={catalogMatch.id}
               gymName={catalogMatch.name}
