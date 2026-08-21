@@ -1683,12 +1683,14 @@ function SuccessState({
       </p>
       <p className="grade-text mt-1 text-xl text-ink">{gradeLabel}</p>
       <p className="mt-1 text-sm text-ink-soft">Added to your passport</p>
-      <Button type="button" onClick={onViewGym} className="mt-6">
-        View place
-      </Button>
-      <Button type="button" variant="tertiary" onClick={onHome} className="mt-1 w-full">
-        Back to home
-      </Button>
+      <div className="mt-6 flex w-full flex-col gap-1">
+        <Button type="button" onClick={onViewGym}>
+          View place
+        </Button>
+        <Button type="button" variant="tertiary" onClick={onHome} className="!w-full">
+          Back to home
+        </Button>
+      </div>
     </div>
   );
 }
