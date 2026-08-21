@@ -68,6 +68,7 @@ export function GymsView() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search places, cities or countries"
             icon
+            preventIosZoom
             className="!text-base"
           />
         </label>

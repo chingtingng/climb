@@ -1254,6 +1254,7 @@ function SearchSelect({
             autoComplete="off"
             autoCapitalize="words"
             placeholder={placeholder}
+            preventIosZoom
             className={showClear ? "field-clearable" : undefined}
             onFocus={() => setOpenState(true)}
             onChange={(e) => {
