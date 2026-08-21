@@ -545,7 +545,7 @@ function GymPickerSheet({
                 {rows.map((gym) => {
                   const key = compareKey(gym);
                   const mapped = hasVMapping(gym.scale);
-                  const already = selectedKeys.includes(key) && key !== replaceKey;
+                  const already = selectedKeys.includes(key);
                   if (!mapped) {
                     return (
                       <li key={key}>
