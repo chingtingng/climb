@@ -52,6 +52,7 @@ export function WelcomeForm({ suggested }: { suggested: string }) {
           pattern="[A-Za-z0-9_]+"
           title="Letters, numbers, and underscores only"
           disabled={loading}
+          preventIosZoom
           aria-invalid={Boolean(usernameError)}
           aria-describedby={usernameError ? "welcome-username" : undefined}
         />

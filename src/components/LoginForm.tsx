@@ -138,6 +138,7 @@ export function LoginForm({
               spellCheck={false}
               placeholder="yourname or you@email.com"
               disabled={!configured || loading}
+              preventIosZoom
             />
           </label>
         ) : (
@@ -156,6 +157,7 @@ export function LoginForm({
                 spellCheck={false}
                 placeholder="you@gmail.com"
                 disabled={!configured || loading}
+                preventIosZoom
               />
             </label>
 
@@ -177,6 +179,7 @@ export function LoginForm({
                 pattern="[A-Za-z0-9_]+"
                 title="Letters, numbers, and underscores only"
                 disabled={!configured || loading}
+                preventIosZoom
                 aria-invalid={Boolean(usernameError)}
                 aria-describedby={usernameError ? "username-availability" : undefined}
               />
@@ -201,6 +204,7 @@ export function LoginForm({
             placeholder="••••••••"
             minLength={6}
             disabled={!configured || loading}
+            preventIosZoom
           />
         </label>
 

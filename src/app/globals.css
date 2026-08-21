@@ -417,11 +417,18 @@ a {
   color: var(--ink);
 }
 
+.auth-form .field {
+  min-height: 40px;
+  padding-block: 0.5rem;
+  padding-inline: 0.9rem;
+  font-size: var(--fs-base);
+}
+
 .auth-or {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  margin: 0.15rem 0 1rem;
+  margin-block: 1rem;
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
