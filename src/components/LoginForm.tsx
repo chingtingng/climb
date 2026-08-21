@@ -92,18 +92,18 @@ export function LoginForm({
   return (
     <div className="auth-card">
       <div className="auth-card-glows" aria-hidden>
-        <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-surface/50 blur-2xl" />
-        <div className="absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-sky-500/35 blur-3xl" />
+        <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-surface/50 blur-2xl" />
+        <div className="absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-sky-500/30 blur-3xl" />
       </div>
       <div className="auth-layout">
       <div className="auth-brand">
-      <div aria-hidden className="auth-stamps mb-3 flex justify-center gap-3">
+      <div aria-hidden className="auth-stamps">
         <Stamp variant="grade" size="sm" seed="login-v17" label="V17" />
         <Stamp variant="country" size="sm" country="Singapore" seed="SG" />
       </div>
 
-      <p className="label-micro mb-2">climbing log</p>
-      <h1 className="mark text-mark text-ink">Chalk Passport</h1>
+      <p className="label-micro">climbing log</p>
+      <h1 className="mark auth-title">Chalk Passport</h1>
       <p className="auth-subtitle">
         Stamp the places you’ve sent — by country, city, and highest grade.
       </p>
@@ -250,16 +250,24 @@ export function LoginForm({
         type="button"
         variant="tertiary"
         disabled={loading}
-        className="auth-switch mt-4 text-sky-600"
+        className="auth-switch"
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
           setVerifyMessage(null);
         }}
       >
-        {mode === "signin"
-          ? "Don’t have an account? Sign up"
-          : "Already have an account? Sign in"}
+        {mode === "signin" ? (
+          <>
+            Don’t have an account?{" "}
+            <span className="auth-switch-action">Sign up</span>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <span className="auth-switch-action">Sign in</span>
+          </>
+        )}
       </Button>
       </div>
       </div>

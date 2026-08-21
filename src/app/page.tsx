@@ -17,11 +17,11 @@ export default async function HomePage({
   const params = await searchParams;
 
   return (
-    <main className="app-shell flex flex-col justify-center">
-      <div className="fade-up">
+    <main className="auth-page">
+      <div className="fade-up auth-page-card">
         <LoginForm configured={configured} authError={params.authError} />
       </div>
-      <SiteFooter className="fade-up-delay mt-8" />
+      <SiteFooter className="fade-up-delay" />
     </main>
   );
 }
