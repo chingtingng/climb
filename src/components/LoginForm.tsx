@@ -250,7 +250,7 @@ export function LoginForm({
         type="button"
         variant="tertiary"
         disabled={loading}
-        className="mt-4 text-sky-600"
+        className="auth-switch mt-4 text-sky-600"
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
           setError(null);
