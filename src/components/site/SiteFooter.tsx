@@ -16,7 +16,9 @@ export function SiteFooter({ className = "" }: { className?: string }) {
             {link.label}
           </Link>
         ))}
-        <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>
+        <a href={SUPPORT_MAILTO} title={SUPPORT_EMAIL}>
+          Contact us
+        </a>
       </nav>
     </footer>
   );

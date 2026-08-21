@@ -372,6 +372,18 @@ a {
   padding: max(1.1rem, env(safe-area-inset-top)) 1.15rem
     max(1.35rem, env(safe-area-inset-bottom));
   gap: 1.35rem;
+
+  /* Login home: 1px smaller than the global type scale. */
+  --fs-micro: 9px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 21px;
+  --fs-2xl: 25px;
+  --fs-3xl: 31px;
+  --fs-mark: 37px;
 }
 
 .auth-page-card {
@@ -431,6 +443,10 @@ a {
   justify-content: center;
   gap: 0.65rem;
   margin: 0;
+}
+
+.auth-page .stamp-sm .stamp-code {
+  font-size: 10px;
 }
 
 .auth-brand .label-micro {
