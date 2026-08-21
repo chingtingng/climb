@@ -84,6 +84,12 @@ Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (
 2. Add the same env vars in the Vercel project
 3. Deploy
 
+Use a **separate Supabase project** for production (Singapore region) and keep `.env.local` on a dev project. Do not re-run [`supabase/schema.sql`](./supabase/schema.sql) on a project that already has stamps — it drops visit and gym tables.
+
+## Opening to the Singapore community
+
+Checklist and plan: [`docs/sg-community-launch.md`](./docs/sg-community-launch.md). That doc marks which items need source-code changes versus Supabase/Vercel/ops work.
+
 ## Notes
 
 - **Email signup** is username + any email + password. After signup, confirm the email before signing in. Signup agrees to the [Terms](/terms) and [Privacy Policy](/privacy).
