@@ -7,7 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ authError?: string }>;
+  searchParams: Promise<{ authError?: string; deleted?: string }>;
 }) {
   const session = await getSessionUser();
   if (session?.username) redirect("/passport");
@@ -19,7 +19,11 @@ export default async function HomePage({
   return (
     <main className="auth-page">
       <div className="fade-up auth-page-card">
-        <LoginForm configured={configured} authError={params.authError} />
+        <LoginForm
+          configured={configured}
+          authError={params.authError}
+          deleted={params.deleted === "1"}
+        />
       </div>
       <SiteFooter className="fade-up-delay" />
     </main>

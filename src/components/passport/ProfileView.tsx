@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
+import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { countryName } from "@/lib/countries";
 import { formatStampDayMonth } from "@/lib/dates";
 import { gymSlug, uniqueCountries } from "@/lib/gyms";
@@ -53,7 +54,7 @@ export function ProfileView() {
           <p className="min-w-0 truncate text-sm font-semibold text-ink">
             @{username}
           </p>
-          <AccountMenu />
+          <AccountMenu username={username} />
         </header>
 
         <h1 className="mark mt-2 text-2xl leading-none text-ink">
@@ -212,7 +213,7 @@ function climbingSinceYear(visits: GymVisit[]): number | null {
   return Number.isFinite(year) ? year : null;
 }
 
-function AccountMenu() {
+function AccountMenu({ username }: { username: string }) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
 
@@ -289,6 +290,7 @@ function AccountMenu() {
               <form action={logoutAction} className="m-0">
                 <LogoutButton />
               </form>
+              <DeleteAccountDialog username={username} />
             </div>
           </div>
         </div>

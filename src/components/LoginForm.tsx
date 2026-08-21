@@ -25,9 +25,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export function LoginForm({
   configured,
   authError,
+  deleted,
 }: {
   configured: boolean;
   authError?: string | null;
+  deleted?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("signin");
   const [identifier, setIdentifier] = useState("");
@@ -37,7 +39,9 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(
     authError ? AUTH_ERROR_MESSAGES[authError] ?? "Could not complete sign-in." : null,
   );
-  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(
+    deleted ? "Your account and stamps have been deleted." : null,
+  );
   const [loading, setLoading] = useState(false);
   const { usernameError, usernameChecking, usernameAvailable } = useUsernameCheck(
     username,

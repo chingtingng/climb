@@ -3,7 +3,11 @@ import Link from "next/link";
 import { PublicShell } from "@/components/site/PublicShell";
 import { getSessionUser } from "@/lib/auth";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
-import { LEGAL_UPDATED_ON } from "@/lib/legal";
+import {
+  LEGAL_UPDATED_ON,
+  OPERATOR_COUNTRY,
+  OPERATOR_NAME,
+} from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -21,15 +25,21 @@ export default async function PrivacyPage() {
         <p className="legal-updated">Last updated {LEGAL_UPDATED_ON}</p>
 
         <p>
-          Chalk Passport (“we”, “us”) is a climbing log. This page explains what
-          information the app collects, why, and how to reach us. It is written for this
-          product — not as a generic template.
+          {OPERATOR_NAME} (“we”, “us”) is a climbing log. This page explains what
+          information the app collects, why, who we share it with, and how to reach
+          us. It is written for this product — not as a generic template. If you are in{" "}
+          {OPERATOR_COUNTRY}, this notice is meant to meet our duties under the Personal
+          Data Protection Act 2012 (PDPA).
         </p>
 
         <h2>Who we are</h2>
         <p>
-          Chalk Passport is operated by the people behind this site. For privacy questions
-          or to ask us to delete your account, email{" "}
+          {OPERATOR_NAME} is a hobby project operated from {OPERATOR_COUNTRY}. For PDPA
+          purposes, {OPERATOR_NAME} is the organisation that collects and uses your
+          personal data. There is no separate company name.
+        </p>
+        <p>
+          Privacy contact (questions, access, correction, or deletion):{" "}
           <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.
         </p>
 
@@ -58,12 +68,17 @@ export default async function PrivacyPage() {
           </li>
         </ul>
 
-        <h2>How we use it</h2>
+        <h2>How we use it (purpose)</h2>
         <p>
-          We use this information to run Chalk Passport: create your account, show your
-          passport, keep the shared list of places usable, send account emails (sign-up
-          confirmation, and recovery if you ask), and fix bugs. We do not sell your
-          personal information. We do not use your stamps for advertising.
+          We use this information only to run {OPERATOR_NAME}: create your account, show
+          your passport, keep the shared list of places usable, send account emails
+          (sign-up confirmation, and recovery if you ask), and fix bugs. We do not sell
+          your personal information. We do not use your stamps for advertising.
+        </p>
+        <p>
+          By creating an account you agree we may collect and use this information for
+          those purposes. You can withdraw that agreement by deleting your account in the
+          app (Profile → Account → Delete account) or by emailing us.
         </p>
 
         <h2>Who can see what</h2>
@@ -73,11 +88,13 @@ export default async function PrivacyPage() {
           to other people using the app, because the log only works if gyms are shared.
         </p>
 
-        <h2>Companies that process data for us</h2>
+        <h2>Companies that process data for us (including overseas)</h2>
         <p>
-          The app is hosted on Vercel. Accounts, the database, and grade-chart files are
-          stored with Supabase (Postgres, Auth, and Storage). If you paste a social clip,
-          that platform’s own privacy policy applies to the video.
+          The website is hosted on Vercel. Accounts, the database, and grade-chart files
+          are stored with Supabase (Postgres, Auth, and Storage). Those companies may
+          process data outside {OPERATOR_COUNTRY}, including in the United States. We use
+          them only to operate the app. If you paste a social clip, that platform’s own
+          privacy policy applies to the video.
         </p>
 
         <h2>Email</h2>
@@ -89,25 +106,37 @@ export default async function PrivacyPage() {
 
         <h2>How long we keep it</h2>
         <p>
-          We keep your account and stamps while the account exists. If you ask us to
-          delete your account, we will delete your Auth user, profile, stamps, and
-          grade-chart files uploaded under your account, unless we must keep a limited
-          record to handle abuse or a legal request. Shared catalog rows (a gym someone
-          else still uses) may remain with your user id removed where we can do that
-          safely.
+          We keep your account and stamps while the account exists. If you delete the
+          account (in the app or by emailing us), we delete your Auth user, profile,
+          stamps, and grade-chart files uploaded under your account, unless we must keep
+          a limited record to handle abuse or a legal request. Shared catalog rows (a gym
+          someone else still uses) may remain with your user id removed where we can do
+          that safely.
         </p>
 
-        <h2>Your choices</h2>
+        <h2>Your PDPA rights</h2>
         <p>
-          You can edit or delete stamps in the app. You can email us to correct your
-          email, download a copy of what we hold, or delete the account. If you are in
-          the UK or EEA you also have rights under UK GDPR / GDPR, including access,
-          deletion, and complaint to a supervisory authority.
+          You can edit or delete stamps in the app. You can delete the whole account from
+          Profile → Account. You can also email {SUPPORT_EMAIL} to:
+        </p>
+        <ul>
+          <li>ask what personal data we hold about you (access)</li>
+          <li>correct username or email</li>
+          <li>ask us to delete the account if you cannot use the in-app button</li>
+        </ul>
+        <p>
+          We will handle these requests as soon as we reasonably can. If you are not
+          satisfied, you may contact the Personal Data Protection Commission (PDPC) in
+          Singapore.
+        </p>
+        <p>
+          If you are in the UK or EEA, you may also have rights under UK GDPR / GDPR,
+          including complaint to a supervisory authority there.
         </p>
 
         <h2>Children</h2>
         <p>
-          Chalk Passport is not directed at children under 13. Do not create an account
+          {OPERATOR_NAME} is not directed at children under 13. Do not create an account
           if you are under 13. If you believe a child has signed up, email us and we will
           delete the account.
         </p>

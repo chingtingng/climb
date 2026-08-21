@@ -23,6 +23,7 @@ import {
   normalizeVEquiv,
 } from "@/lib/grades";
 import { isPlaceKind, normalizePlaceKind } from "@/lib/placeKinds";
+import { deleteAccountForUser } from "@/lib/account";
 import {
   createVisit,
   deleteVisit,
@@ -411,6 +412,41 @@ export async function logoutAction() {
     await supabase.auth.signOut();
   }
   redirect("/");
+}
+
+/** Permanently delete the signed-in Auth user, stamps, and grade-chart files. */
+export async function deleteAccountAction(
+  confirmation: string,
+): Promise<ActionResult> {
+  const configured = requireConfigured();
+  if (configured) return configured;
+
+  const auth = await requireSessionProfile();
+  if ("error" in auth) return { ok: false, error: auth.error };
+
+  let typed: string;
+  try {
+    typed = normalizeUsername(confirmation);
+  } catch {
+    return { ok: false, error: "Type your username to confirm." };
+  }
+  if (typed !== auth.session.username) {
+    return { ok: false, error: "Type your username to confirm." };
+  }
+
+  try {
+    await deleteAccountForUser(auth.session.id);
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Couldn't delete the account.",
+    };
+  }
+
+  return { ok: true };
 }
 
 function parseVisitInput(formData: FormData): GymVisitInput | string {

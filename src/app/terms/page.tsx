@@ -3,7 +3,11 @@ import Link from "next/link";
 import { PublicShell } from "@/components/site/PublicShell";
 import { getSessionUser } from "@/lib/auth";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
-import { LEGAL_UPDATED_ON } from "@/lib/legal";
+import {
+  LEGAL_UPDATED_ON,
+  OPERATOR_COUNTRY,
+  OPERATOR_NAME,
+} from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Terms of Use",
@@ -21,24 +25,30 @@ export default async function TermsPage() {
         <p className="legal-updated">Last updated {LEGAL_UPDATED_ON}</p>
 
         <p>
-          These terms are the agreement between you and Chalk Passport when you create an
-          account or use the site. If you do not agree, do not sign up.
+          These terms are the agreement between you and {OPERATOR_NAME} when you create an
+          account or use the site. {OPERATOR_NAME} is a hobby climbing log operated from{" "}
+          {OPERATOR_COUNTRY}. If you do not agree, do not sign up.
         </p>
 
         <h2>The service</h2>
         <p>
-          Chalk Passport is a personal climbing log: you stamp gyms and rocks you have
+          {OPERATOR_NAME} is a personal climbing log: you stamp gyms and rocks you have
           visited and the highest grade you climbed there. It is provided as a hobby
           project, “as is”, without a promise that it will always be available or error
-          free.
+          free. Gym names and house grades are for logging only — we are not affiliated
+          with those gyms.
         </p>
 
         <h2>Your account</h2>
         <p>
           You need an email, a username, and a password. Keep your password to yourself.
           You are responsible for activity on your account. You must be at least 13.
-          Email us at{" "}
-          <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a> if you want the account deleted.
+        </p>
+        <p>
+          You can delete your account in the app (Profile → Account → Delete account).
+          That removes your login, profile, stamps, and grade-chart files you uploaded.
+          You can also email{" "}
+          <a href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a> and we will delete it for you.
         </p>
 
         <h2>Your content</h2>
@@ -56,7 +66,7 @@ export default async function TermsPage() {
 
         <h2>Be decent</h2>
         <p>
-          Do not use Chalk Passport to harass people, spam the catalog with fake gyms,
+          Do not use {OPERATOR_NAME} to harass people, spam the catalog with fake gyms,
           scrape other climbers’ data, break the law, or try to access someone else’s
           account. We can suspend or delete an account that abuses the service.
         </p>
@@ -65,6 +75,13 @@ export default async function TermsPage() {
         <p>
           V-scale mappings on house grades are community approximations, not official
           conversions. Use them as a rough comparison, not as a guarantee.
+        </p>
+
+        <h2>Privacy</h2>
+        <p>
+          How we collect and use personal data is explained in the{" "}
+          <Link href="/privacy">Privacy Policy</Link>, including overseas hosting
+          (Vercel and Supabase) and your PDPA rights.
         </p>
 
         <h2>Liability</h2>
