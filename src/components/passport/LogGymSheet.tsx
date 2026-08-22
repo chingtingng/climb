@@ -533,10 +533,10 @@ function LogGymSheetInner({
         role="dialog"
         aria-modal="true"
         aria-labelledby="log-title"
-        className="passport-sheet-in sheet sheet-expandable relative mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="passport-sheet-in sheet sheet-expandable relative mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col overflow-hidden p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-sky-100"
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden rounded-t-[var(--r-xl)] bg-sky-100"
           aria-hidden
         >
           <div
