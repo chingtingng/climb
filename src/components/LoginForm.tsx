@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { Banner } from "@/components/ui/EmptyState";
 import { Field } from "@/components/ui/Field";
 import { Stamp } from "@/components/ui/Stamp";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password";
 
 type Mode = "signin" | "signup";
 
@@ -175,7 +176,7 @@ export function LoginForm({
             required
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
             placeholder="••••••••"
-            minLength={6}
+            minLength={mode === "signup" ? MIN_PASSWORD_LENGTH : undefined}
             disabled={!configured || busy}
             preventIosZoom
           />

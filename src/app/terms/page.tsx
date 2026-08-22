@@ -41,8 +41,9 @@ export default async function TermsPage() {
 
         <h2>Your account</h2>
         <p>
-          You need an email, a username, and a password. Keep your password to yourself.
-          You are responsible for activity on your account. You must be at least 13.
+          You need an email, a username, and a password. Keep your password to yourself
+          and do not reuse one that has appeared in a public data leak. You are
+          responsible for activity on your account. You must be at least 13.
         </p>
         <p>
           You can change your username or password in the app (Profile → Account →

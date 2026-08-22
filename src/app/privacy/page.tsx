@@ -47,7 +47,10 @@ export default async function PrivacyPage() {
         <ul>
           <li>
             <strong>Account.</strong> Username, email address, and a password (stored as a
-            hash by our auth provider — we never see the plain password).
+            hash by our auth provider — we never see the plain password). When you set
+            or change a password, we check a short hash prefix against the public Have
+            I Been Pwned breach list so known-leaked passwords can be rejected. The
+            password itself is not sent to that service.
           </li>
           <li>
             <strong>Your stamps.</strong> Places you log (gym or rock, city, country,
@@ -94,7 +97,8 @@ export default async function PrivacyPage() {
         <h2>Companies that process data for us (including overseas)</h2>
         <p>
           The website is hosted on Vercel. Accounts and the database are stored with
-          Supabase (Postgres and Auth). Those companies may
+          Supabase (Postgres and Auth). New-password checks use Have I Been Pwned
+          (hash prefix only). Those companies may
           process data outside {OPERATOR_COUNTRY}, including in the United States. We use
           them only to operate the app. If you paste a social clip, that platform’s own
           privacy policy applies to the video.

@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { changePasswordAction } from "@/app/actions";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { AccountDialog } from "./AccountDialog";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 
@@ -42,7 +43,7 @@ export function ChangePasswordDialog({
       titleId={titleId}
       descriptionId={copyId}
       title="Change password"
-      description="Use at least 6 characters. You'll need your current password."
+      description={`Use at least ${MIN_PASSWORD_LENGTH} characters, and don’t reuse a password from another site. You'll need your current password.`}
     >
       <form
         className="account-edit-form mt-4"
@@ -95,7 +96,7 @@ export function ChangePasswordDialog({
             required
             autoComplete="new-password"
             placeholder="••••••••"
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             disabled={pending}
             preventIosZoom
           />
@@ -111,7 +112,7 @@ export function ChangePasswordDialog({
             required
             autoComplete="new-password"
             placeholder="••••••••"
-            minLength={6}
+            minLength={MIN_PASSWORD_LENGTH}
             disabled={pending}
             preventIosZoom
           />

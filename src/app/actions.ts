@@ -40,6 +40,8 @@ import {
   saveGymGradeMapping,
   updateVisit,
 } from "@/lib/visits";
+import { PASSWORD_LEAKED } from "@/lib/password";
+import { validateNewPassword } from "@/lib/passwordPwned";
 import {
   emailToUsername,
   normalizeEmail,
@@ -88,11 +90,18 @@ function parseEmail(formData: FormData): string | ActionResult {
   }
 }
 
-function parsePassword(formData: FormData): string | ActionResult {
+function parseLoginPassword(formData: FormData): string | ActionResult {
   const password = String(formData.get("password") ?? "");
-  if (password.length < 6) {
-    return { ok: false, error: "Password must be at least 6 characters." };
+  if (!password) {
+    return { ok: false, error: "Password is required." };
   }
+  return password;
+}
+
+async function parseNewPassword(formData: FormData): Promise<string | ActionResult> {
+  const password = String(formData.get("password") ?? "");
+  const invalid = await validateNewPassword(password);
+  if (invalid) return { ok: false, error: invalid };
   return password;
 }
 
@@ -127,6 +136,15 @@ function mapAuthError(
   }
   if (lower.includes("different from the old password") || lower.includes("same as the old password")) {
     return "Pick a password that is different from the current one.";
+  }
+  if (
+    lower.includes("leaked") ||
+    lower.includes("pwned") ||
+    lower.includes("haveibeenpwned") ||
+    lower.includes("weak password") ||
+    lower.includes("easy to guess")
+  ) {
+    return PASSWORD_LEAKED;
   }
   if (lower.includes("permission denied")) {
     return "Database permissions are missing. Re-run supabase/schema.sql in the Supabase SQL Editor.";
@@ -272,7 +290,7 @@ export async function createAccountAction(
   const parsedEmail = parseEmail(formData);
   if (typeof parsedEmail !== "string") return parsedEmail;
 
-  const parsedPassword = parsePassword(formData);
+  const parsedPassword = await parseNewPassword(formData);
   if (typeof parsedPassword !== "string") return parsedPassword;
 
   try {
@@ -415,7 +433,7 @@ export async function loginAction(
     };
   }
 
-  const parsedPassword = parsePassword(formData);
+  const parsedPassword = parseLoginPassword(formData);
   if (typeof parsedPassword !== "string") return parsedPassword;
 
   let destination = "/passport";
@@ -584,8 +602,9 @@ export async function changePasswordAction(
   const auth = await requireSessionProfile();
   if ("error" in auth) return { ok: false, error: auth.error };
 
-  if (nextPassword.length < 6) {
-    return { ok: false, error: "Password must be at least 6 characters." };
+  const invalid = await validateNewPassword(nextPassword);
+  if (invalid) {
+    return { ok: false, error: invalid };
   }
   if (nextPassword === currentPassword) {
     return { ok: false, error: "Pick a password that is different from the current one." };
