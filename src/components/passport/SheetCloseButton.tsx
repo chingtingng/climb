@@ -1,20 +1,24 @@
 import { forwardRef } from "react";
 import { CloseIcon } from "./icons";
+import { cx } from "@/components/ui/cx";
 
 /** Same circular dismiss control as Edit stamp. */
 export const SheetCloseButton = forwardRef<
   HTMLButtonElement,
-  { onClick: () => void }
->(function SheetCloseButton({ onClick }, ref) {
+  { onClick: () => void; className?: string }
+>(function SheetCloseButton({ onClick, className }, ref) {
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
-      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-100 text-ink-soft"
+      className={cx(
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-sky-50 text-ink-soft hover:bg-sky-100",
+        className,
+      )}
       aria-label="Close"
     >
-      <CloseIcon />
+      <CloseIcon className="size-4" />
     </button>
   );
 });
