@@ -1,5 +1,14 @@
 import { countryCode, countryMeta, countryName } from "./countries";
-import { catalogCity, sameCountry, scaleForClimb, skipsCityStep } from "./gymCatalog";
+import {
+  catalogCity,
+  catalogIdentityKey,
+  catalogNameMatchKind,
+  findCatalogGymByName,
+  normalizeCatalogLabel,
+  sameCountry,
+  scaleForClimb,
+  skipsCityStep,
+} from "./gymCatalog";
 import { compactBestSend, compareSendRank, gradeSortValue, vEquivFor } from "./grades";
 import { normalizePlaceKind } from "./placeKinds";
 import type {
@@ -32,7 +41,7 @@ function slugPart(value: string): string {
 }
 
 export function gymKey(name: string, country: string): string {
-  return [name, country].map((part) => part.trim().toLowerCase()).join("\u001f");
+  return catalogIdentityKey(name, country);
 }
 
 export function visitOutlet(visit: GymVisit): string {
@@ -333,11 +342,7 @@ function catalogGymForVisit(
     const byId = catalogGyms.find((gym) => gym.id && gym.id === visit.gym_id);
     if (byId) return byId;
   }
-  return catalogGyms.find(
-    (gym) =>
-      gym.name.toLowerCase() === visit.gym_name.trim().toLowerCase() &&
-      sameCountry(gym.country, visit.country),
-  );
+  return findCatalogGymByName(catalogGyms, visit.gym_name, visit.country);
 }
 
 function scaleForVisit(
@@ -625,7 +630,10 @@ function filterPlaces(
   if (keepAll) return places;
   const next: LocationPlaceGroup[] = [];
   for (const place of places) {
-    if (place.name.toLowerCase().includes(query)) {
+    if (
+      normalizeCatalogLabel(place.name).includes(query) ||
+      catalogNameMatchKind(query, place.name) !== "none"
+    ) {
       next.push(place);
       continue;
     }
@@ -642,7 +650,7 @@ export function filterLocationGroups(
   query: string,
   countryFilter = "All",
 ): LocationCountryGroup[] {
-  const q = query.trim().toLowerCase();
+  const q = normalizeCatalogLabel(query);
   const filtered: LocationCountryGroup[] = [];
 
   for (const group of groups) {

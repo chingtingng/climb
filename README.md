@@ -26,6 +26,14 @@ Climbing types are `bouldering`, `top_rope`, and `lead`. If a place — or that 
 
 There is no `gym_visits` table. Gym name / city / country live on the catalog, not on each stamp.
 
+## Hide a place (Table Editor)
+
+Community places start `pending` (Unverified). A second distinct stamper publishes them. Three `closed_or_missing` reports auto-set `rejected`. There is no vote queue and no in-app admin.
+
+After the first gym group chat, watch **`gym_reports`** and the **`catalog_moderation`** view (service role). Hide junk by setting `gyms.status` to `rejected` (optionally `moderation_locked = true` so a second stamp cannot republish). Stamps stay on the creator’s passport; the picker hides the row for everyone else. Restore by setting `status` back to `published`.
+
+Do **not** paste [`supabase/schema.sql`](./supabase/schema.sql) into a project that already has stamps — it drops catalog/visit tables. For uniqueness + report-count changes on a live database, run [`supabase/patch_catalog_name_uniqueness.sql`](./supabase/patch_catalog_name_uniqueness.sql) instead.
+
 ## Supabase project setup
 
 When creating the project, use these **Security** checkboxes:
@@ -38,7 +46,7 @@ When creating the project, use these **Security** checkboxes:
 
 Then:
 
-1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `gym_reports` / `visits`, including the gym seed. Profiles and Auth users are kept. Re-run this file whenever the schema changes if you are okay wiping stamps.
+1. Open **SQL Editor** and paste/run the **entire** [`supabase/schema.sql`](./supabase/schema.sql) file. It drops stamp tables (`gym_visits` included) and recreates `gyms` / `gym_outlets` / `gym_grade_scales` / `gym_reports` / `visits`, including the gym seed. Profiles and Auth users are kept. Re-run this file whenever the schema changes **only if you are okay wiping stamps**. On a live project, use additive patches such as [`supabase/patch_catalog_name_uniqueness.sql`](./supabase/patch_catalog_name_uniqueness.sql).
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so email signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:

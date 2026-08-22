@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatStampDate } from "@/lib/dates";
 import { formatGymPlace, formatVisitPlace, findGymBySlug } from "@/lib/gyms";
-import { isUnverifiedPlace, sameCountry } from "@/lib/gymCatalog";
+import { findCatalogGymByName, isUnverifiedPlace } from "@/lib/gymCatalog";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -22,12 +22,7 @@ export function GymDetailView({ slug }: { slug: string }) {
   const catalogHasDbRows = catalogGyms.some((item) => item.id);
   const catalogRow =
     catalogGyms.find((item) => item.id && item.id === gym?.gymId) ??
-    catalogGyms.find(
-      (item) =>
-        gym &&
-        item.name.toLowerCase() === gym.name.toLowerCase() &&
-        sameCountry(item.country, gym.country),
-    );
+    (gym ? findCatalogGymByName(catalogGyms, gym.name, gym.country) : undefined);
   const hiddenFromCatalog =
     Boolean(gym?.gymId) &&
     catalogHasDbRows &&

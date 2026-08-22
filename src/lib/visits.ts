@@ -8,6 +8,8 @@ import {
 import { countryMeta } from "./countries";
 import {
   catalogCity,
+  catalogIdentityKey,
+  collapseCatalogLabel,
   findKnownGym,
   isClosedGym,
   KNOWN_GYMS,
@@ -15,6 +17,8 @@ import {
   mergeCatalogGyms,
   normalizeCatalogStatus,
   parseGymScaleRows,
+  sameCatalogName,
+  sameCountry,
   visibleOutlets,
 } from "./gymCatalog";
 import { isGradeSystem } from "./grades";
@@ -336,7 +340,7 @@ export async function listCatalogGyms(): Promise<CatalogGym[]> {
 }
 
 function catalogKey(name: string, country: string): string {
-  return `${name.trim().toLowerCase()}\u001f${country.trim().toLowerCase()}`;
+  return catalogIdentityKey(name, country);
 }
 
 /** Insert any seed gyms/outlets that are not in Supabase yet, then return the picker catalog. */
@@ -401,14 +405,14 @@ export async function loadPassportCatalog(profileId: string): Promise<CatalogGym
     if (isClosedGym(known.name)) continue;
     const dbGym = gyms.find(
       (gym) =>
-        gym.name.toLowerCase() === known.name.toLowerCase() &&
-        gym.country.toLowerCase() === known.country.toLowerCase(),
+        sameCatalogName(gym.name, known.name) &&
+        sameCountry(gym.country, known.country),
     );
     if (!dbGym?.id) continue;
 
     for (const outlet of visibleOutlets(known)) {
-      const exists = dbGym.outlets.some(
-        (item) => item.name.toLowerCase() === outlet.name.toLowerCase(),
+      const exists = dbGym.outlets.some((item) =>
+        sameCatalogName(item.name, outlet.name),
       );
       if (!exists) {
         const outletTypes = normalizeClimbingTypes(outlet.climbing_types);
@@ -488,11 +492,13 @@ async function findGymCatalogRow(
   name: string,
   country: string,
 ): Promise<GymCatalogRow | null> {
+  const gymName = collapseCatalogLabel(name);
+  const gymCountry = collapseCatalogLabel(country);
   const live = await supabase
     .from("gyms")
     .select("id, status, gym_outlets(id, name, city, status)")
-    .ilike("name", escapeIlike(name.trim()))
-    .ilike("country", escapeIlike(country.trim()))
+    .ilike("name", escapeIlike(gymName))
+    .ilike("country", escapeIlike(gymCountry))
     .in("status", ["pending", "published"])
     .limit(1)
     .maybeSingle();
@@ -504,8 +510,8 @@ async function findGymCatalogRow(
   const { data, error } = await supabase
     .from("gyms")
     .select("id, gym_outlets(id, name, city)")
-    .ilike("name", escapeIlike(name.trim()))
-    .ilike("country", escapeIlike(country.trim()))
+    .ilike("name", escapeIlike(gymName))
+    .ilike("country", escapeIlike(gymCountry))
     .limit(1)
     .maybeSingle();
   if (error) throw mapDbError(error.message);
@@ -522,6 +528,9 @@ function outletList(
 const HIDDEN_PLACE =
   "This place was hidden from the catalog. Your existing stamps are still on your passport.";
 
+const TAKEN_PLACE =
+  "That name is already used in this country. Pick the existing place, or send Help if it should come back.";
+
 function assertLiveCatalogStatus(status: string | null | undefined) {
   if (normalizeCatalogStatus(status) === "rejected") {
     throw new Error(HIDDEN_PLACE);
@@ -534,9 +543,11 @@ async function ensureGymCatalog(
   input: GymVisitInput,
 ): Promise<{ gymId: string; outletId: string }> {
   const known = findKnownGym(input.gym_name, input.country);
-  const gymName = known?.name ?? input.gym_name.trim();
+  const gymName = collapseCatalogLabel(known?.name ?? input.gym_name);
   const resolvedCountry = countryMeta(known?.country ?? input.country);
-  const country = resolvedCountry.name || (known?.country ?? input.country.trim());
+  const country = collapseCatalogLabel(
+    resolvedCountry.name || (known?.country ?? input.country),
+  );
   const climbingTypes = normalizeClimbingTypes(
     input.climbing_types ?? known?.climbing_types,
   );
@@ -546,20 +557,20 @@ async function ensureGymCatalog(
     input.place_kind ?? known?.place_kind,
   );
   const knownOutlets = known ? visibleOutlets(known) : [];
-  const typedOutlet = (input.outlet?.trim() || input.city.trim() || "").trim();
-  const dummyOutlet = typedOutlet.toLowerCase() === gymName.toLowerCase();
+  const typedOutlet = collapseCatalogLabel(input.outlet || input.city || "");
+  const dummyOutlet = sameCatalogName(typedOutlet, gymName);
   const resolvedOutlet =
     knownOutlets.length === 1
       ? knownOutlets[0]
-      : knownOutlets.find((outlet) => outlet.name.toLowerCase() === typedOutlet.toLowerCase());
-  const outletName = (
+      : knownOutlets.find((outlet) => sameCatalogName(outlet.name, typedOutlet));
+  const outletName = collapseCatalogLabel(
     resolvedOutlet?.name ||
-    (dummyOutlet ? knownOutlets[0]?.name : typedOutlet) ||
-    "Main"
-  ).trim();
+      (dummyOutlet ? knownOutlets[0]?.name : typedOutlet) ||
+      "Main",
+  );
   const city = catalogCity(
     country,
-    resolvedOutlet?.city || input.city.trim() || outletName,
+    collapseCatalogLabel(resolvedOutlet?.city || input.city || outletName),
   );
 
   // Fast path: client already resolved catalog IDs (still verify FK pairing).
@@ -624,6 +635,7 @@ async function ensureGymCatalog(
         if (retry.error) {
           if (/duplicate|unique/i.test(retry.error.message)) {
             gym = await findGymCatalogRow(supabase, gymName, country);
+            if (!gym) throw new Error(TAKEN_PLACE);
           } else {
             throw mapDbError(retry.error.message);
           }
@@ -632,6 +644,7 @@ async function ensureGymCatalog(
         }
       } else if (/duplicate|unique/i.test(inserted.error.message)) {
         gym = await findGymCatalogRow(supabase, gymName, country);
+        if (!gym) throw new Error(TAKEN_PLACE);
       } else {
         throw mapDbError(inserted.error.message);
       }
@@ -650,13 +663,13 @@ async function ensureGymCatalog(
   let outlet =
     outlets.find(
       (row) =>
-        row.name.toLowerCase() === outletName.toLowerCase() &&
+        sameCatalogName(row.name, outletName) &&
         normalizeCatalogStatus(row.status) !== "rejected",
     ) ?? null;
 
   if (!outlet) {
-    const seedOutlet = knownOutlets.some(
-      (item) => item.name.toLowerCase() === outletName.toLowerCase(),
+    const seedOutlet = knownOutlets.some((item) =>
+      sameCatalogName(item.name, outletName),
     );
     const outletStatus: CatalogStatus = seedOutlet ? "published" : "pending";
     const createdOutlet = await supabase
@@ -696,7 +709,8 @@ async function ensureGymCatalog(
               .ilike("name", escapeIlike(outletName))
               .maybeSingle();
             if (error) throw mapDbError(error.message);
-            outlet = raced ? { id: raced.id, name: outletName, city } : null;
+            if (!raced) throw new Error(TAKEN_PLACE);
+            outlet = { id: raced.id, name: outletName, city };
           } else {
             throw mapDbError(retry.error.message);
           }
@@ -711,7 +725,8 @@ async function ensureGymCatalog(
           .ilike("name", escapeIlike(outletName))
           .maybeSingle();
         if (error) throw mapDbError(error.message);
-        outlet = raced ? { id: raced.id, name: outletName, city } : null;
+        if (!raced) throw new Error(TAKEN_PLACE);
+        outlet = { id: raced.id, name: outletName, city };
       } else {
         throw mapDbError(createdOutlet.error.message);
       }

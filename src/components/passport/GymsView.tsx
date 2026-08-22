@@ -12,7 +12,7 @@ import Link from "next/link";
 import { countryCode } from "@/lib/countries";
 import { formatStampDate } from "@/lib/dates";
 import { gradeSortValue } from "@/lib/grades";
-import { sameCountry } from "@/lib/gymCatalog";
+import { catalogNameMatchKind, normalizeCatalogLabel, sameCountry } from "@/lib/gymCatalog";
 import {
   filterLocationGroups,
   formatGymPlace,
@@ -67,14 +67,15 @@ export function GymsView({
 
   const countries = uniqueCountries(gyms);
   const activeCountry = view === "location" ? "All" : country;
-  const q = query.trim().toLowerCase();
+  const q = normalizeCatalogLabel(query);
   const filtered = gyms
     .filter((gym) => {
       const matchesQuery =
         !q ||
-        `${gym.name} ${gym.city} ${gym.country} ${countryCode(gym.country)} ${gym.outlets.join(" ")}`
-          .toLowerCase()
-          .includes(q);
+        catalogNameMatchKind(query, gym.name) !== "none" ||
+        normalizeCatalogLabel(
+          `${gym.name} ${gym.city} ${gym.country} ${countryCode(gym.country)} ${gym.outlets.join(" ")}`,
+        ).includes(q);
       const matchesCountry =
         activeCountry === "All" || sameCountry(gym.country, activeCountry);
       return matchesQuery && matchesCountry;

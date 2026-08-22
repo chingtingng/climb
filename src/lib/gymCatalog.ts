@@ -347,8 +347,76 @@ const CLOSED_GYMS = new Set([
   "clip 'n climb",
 ]);
 
+/** Trim and collapse internal whitespace. Display casing is kept. */
+export function collapseCatalogLabel(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+/** Case-insensitive identity for name/country matching. */
+export function normalizeCatalogLabel(value: string): string {
+  return collapseCatalogLabel(value).toLowerCase();
+}
+
+export function catalogIdentityKey(name: string, country: string): string {
+  return `${normalizeCatalogLabel(name)}\u001f${normalizeCatalogLabel(country)}`;
+}
+
+export function sameCatalogName(a: string, b: string): boolean {
+  return normalizeCatalogLabel(a) === normalizeCatalogLabel(b);
+}
+
+function catalogNameTokens(value: string): string[] {
+  return normalizeCatalogLabel(value)
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 3);
+}
+
+export type CatalogNameMatchKind = "exact" | "similar" | "none";
+
+/** Exact collapsed name, substring, or a shared 3+ letter token. */
+export function catalogNameMatchKind(
+  query: string,
+  name: string,
+): CatalogNameMatchKind {
+  const q = normalizeCatalogLabel(query);
+  const n = normalizeCatalogLabel(name);
+  if (!q || !n) return "none";
+  if (q === n) return "exact";
+  if (n.includes(q) || q.includes(n)) return "similar";
+  const nameTokens = new Set(catalogNameTokens(n));
+  if (catalogNameTokens(q).some((token) => nameTokens.has(token))) return "similar";
+  return "none";
+}
+
+export function findCatalogGymByName(
+  gyms: CatalogGym[],
+  name: string,
+  country: string,
+): CatalogGym | undefined {
+  return gyms.find(
+    (gym) => sameCatalogName(gym.name, name) && sameCountry(gym.country, country),
+  );
+}
+
+export function similarCatalogGyms(
+  gyms: CatalogGym[],
+  query: string,
+  country: string,
+  limit = 8,
+): CatalogGym[] {
+  const ranked = gyms
+    .filter((gym) => sameCountry(gym.country, country))
+    .map((gym) => ({ gym, kind: catalogNameMatchKind(query, gym.name) }))
+    .filter((item) => item.kind !== "none")
+    .sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === "exact" ? -1 : 1;
+      return a.gym.name.localeCompare(b.gym.name);
+    });
+  return ranked.slice(0, limit).map((item) => item.gym);
+}
+
 function gymKey(gym: Pick<CatalogGym, "name" | "country">): string {
-  return `${gym.name.trim().toLowerCase()}\u001f${gym.country.trim().toLowerCase()}`;
+  return catalogIdentityKey(gym.name, gym.country);
 }
 
 export function normalizeCatalogStatus(
@@ -365,7 +433,7 @@ export function isUnverifiedPlace(
 }
 
 export function isClosedGym(name: string): boolean {
-  return CLOSED_GYMS.has(name.trim().toLowerCase());
+  return CLOSED_GYMS.has(normalizeCatalogLabel(name));
 }
 
 /** Drop leftover rows where the outlet was stored as the gym name. */
@@ -593,9 +661,8 @@ function mergeTypeScales(
 }
 
 export function findKnownGym(name: string, country?: string): CatalogGym | undefined {
-  const n = name.trim().toLowerCase();
   return KNOWN_GYMS.find((gym) => {
-    if (gym.name.toLowerCase() !== n) return false;
+    if (!sameCatalogName(gym.name, name)) return false;
     if (country && !sameCountry(gym.country, country)) return false;
     return true;
   });
@@ -606,25 +673,25 @@ export function searchKnownGyms(
   gyms: CatalogGym[] = KNOWN_GYMS,
   filters?: { country?: string; city?: string },
 ): CatalogGym[] {
-  const q = query.trim().toLowerCase();
+  const q = normalizeCatalogLabel(query);
   const country = filters?.country?.trim();
-  const city = filters?.city?.trim().toLowerCase();
+  const city = normalizeCatalogLabel(filters?.city ?? "");
 
   const filtered = gyms.filter((gym) => {
     if (country && !sameCountry(gym.country, country)) return false;
-    if (city && !gym.outlets.some((outlet) => outlet.city.toLowerCase() === city)) {
+    if (city && !gym.outlets.some((outlet) => normalizeCatalogLabel(outlet.city) === city)) {
       return false;
     }
     if (!q) return true;
+    if (catalogNameMatchKind(query, gym.name) !== "none") return true;
     return (
-      gym.name.toLowerCase().includes(q) ||
-      gym.country.toLowerCase().includes(q) ||
-      countryMeta(gym.country).name.toLowerCase().includes(q) ||
-      countryMeta(gym.country).code.toLowerCase().includes(q) ||
+      normalizeCatalogLabel(gym.country).includes(q) ||
+      normalizeCatalogLabel(countryMeta(gym.country).name).includes(q) ||
+      normalizeCatalogLabel(countryMeta(gym.country).code).includes(q) ||
       gym.outlets.some(
         (outlet) =>
-          outlet.name.toLowerCase().includes(q) ||
-          outlet.city.toLowerCase().includes(q),
+          normalizeCatalogLabel(outlet.name).includes(q) ||
+          normalizeCatalogLabel(outlet.city).includes(q),
       )
     );
   });

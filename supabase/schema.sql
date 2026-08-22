@@ -1,14 +1,19 @@
 -- =============================================================================
 -- Chalk Passport — full schema
 -- =============================================================================
--- Paste this entire file into Supabase → SQL Editor → Run. This is the only
--- SQL file. Re-running DROPs stamp/catalog tables and recreates them (ok when
--- you have no stamps to keep). Profiles and Auth users are kept. There is no
--- visit-data migration.
+-- Paste this entire file into Supabase → SQL Editor → Run when creating a
+-- project or wiping stamps. Re-running DROPs stamp/catalog tables and recreates
+-- them (ok when you have no stamps to keep). Profiles and Auth users are kept.
+-- There is no visit-data migration.
+--
+-- Live databases: run supabase/patch_catalog_name_uniqueness.sql instead of
+-- re-pasting this file.
 --
 -- Model:
 --   gyms              shared brand (name + country + place_kind + climbing_types)
 --                     status: pending | published | rejected
+--                     unique on collapsed lower(name)+lower(country) for every status
+--                     (rejected names cannot be re-added; restore by setting published)
 --   gym_outlets       locations of that brand (same status rule);
 --                     optional climbing_types override (null = inherit gym)
 --   gym_catalog_seeds seeded names that are born published
@@ -260,6 +265,18 @@ revoke all on function public.climbing_types_valid(text[]) from public, anon, au
 grant execute on function public.is_climbing_type(text) to authenticated, service_role;
 grant execute on function public.climbing_types_valid(text[]) to authenticated, service_role;
 
+create or replace function public.normalize_catalog_label(value text)
+returns text
+language sql
+immutable
+parallel safe
+as $$
+  select btrim(regexp_replace(coalesce(value, ''), '\s+', ' ', 'g'));
+$$;
+
+revoke all on function public.normalize_catalog_label(text) from public, anon;
+grant execute on function public.normalize_catalog_label(text) to authenticated, service_role;
+
 -- ---------------------------------------------------------------------------
 -- Gyms (shared catalog — stamp picker reads these tables)
 -- Add/remove gyms and outlets here or in Table Editor.
@@ -284,9 +301,25 @@ create table public.gyms (
   constraint gyms_status_check check (status in ('pending', 'published', 'rejected'))
 );
 
-create unique index gyms_name_country_live_idx
-  on public.gyms (lower(name), lower(country))
-  where status in ('pending', 'published');
+create unique index gyms_name_country_idx
+  on public.gyms (lower(name), lower(country));
+
+create or replace function public.sync_gym_label_normalize()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.name := public.normalize_catalog_label(new.name);
+  new.country := public.normalize_catalog_label(new.country);
+  return new;
+end;
+$$;
+
+drop trigger if exists gyms_normalize_labels on public.gyms;
+create trigger gyms_normalize_labels
+before insert or update of name, country on public.gyms
+for each row
+execute function public.sync_gym_label_normalize();
 
 -- ---------------------------------------------------------------------------
 -- Outlets (one gym, several locations)
@@ -310,9 +343,28 @@ create table public.gym_outlets (
   constraint gym_outlets_status_check check (status in ('pending', 'published', 'rejected'))
 );
 
-create unique index gym_outlets_gym_name_live_idx
-  on public.gym_outlets (gym_id, lower(name))
-  where status in ('pending', 'published');
+create unique index gym_outlets_gym_name_idx
+  on public.gym_outlets (gym_id, lower(name));
+
+create or replace function public.sync_outlet_label_normalize()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.name := public.normalize_catalog_label(new.name);
+  new.city := public.normalize_catalog_label(new.city);
+  return new;
+end;
+$$;
+
+drop trigger if exists gym_outlets_normalize_labels on public.gym_outlets;
+create trigger gym_outlets_normalize_labels
+before insert or update of name, city on public.gym_outlets
+for each row
+execute function public.sync_outlet_label_normalize();
+
+revoke all on function public.sync_gym_label_normalize() from public, anon, authenticated;
+revoke all on function public.sync_outlet_label_normalize() from public, anon, authenticated;
 
 -- Seeded names (SG gyms and known overseas outlets). Community inserts matching
 -- these rows may be born published; everything else starts pending.
@@ -339,8 +391,10 @@ as $$
   select exists (
     select 1
     from public.gym_catalog_seeds s
-    where lower(s.gym_name) = lower(trim(coalesce(p_name, '')))
-      and lower(s.country) = lower(trim(coalesce(p_country, '')))
+    where lower(public.normalize_catalog_label(s.gym_name))
+        = lower(public.normalize_catalog_label(p_name))
+      and lower(public.normalize_catalog_label(s.country))
+        = lower(public.normalize_catalog_label(p_country))
   );
 $$;
 
@@ -354,10 +408,13 @@ as $$
     select 1
     from public.gyms g
     join public.gym_catalog_seeds s
-      on lower(s.gym_name) = lower(g.name)
-     and lower(s.country) = lower(g.country)
+      on lower(public.normalize_catalog_label(s.gym_name))
+       = lower(public.normalize_catalog_label(g.name))
+     and lower(public.normalize_catalog_label(s.country))
+       = lower(public.normalize_catalog_label(g.country))
     where g.id = p_gym_id
-      and lower(s.outlet_name) = lower(trim(coalesce(p_outlet_name, '')))
+      and lower(public.normalize_catalog_label(s.outlet_name))
+        = lower(public.normalize_catalog_label(p_outlet_name))
   );
 $$;
 
@@ -1159,7 +1216,13 @@ select
     from public.gym_reports r
     where r.gym_id = g.id
       and r.reason = 'closed_or_missing'
-  ) as closed_report_count
+  ) as closed_report_count,
+  (
+    select count(*)
+    from public.gym_reports r
+    where r.gym_id = g.id
+      and r.reason = 'duplicate'
+  ) as duplicate_report_count
 from public.gyms g;
 
 revoke all on table public.catalog_moderation from public, anon, authenticated;

@@ -18,16 +18,22 @@ import {
   catalogCities,
   catalogCountries,
   catalogGymSubtitle,
+  catalogNameMatchKind,
+  collapseCatalogLabel,
   defaultScaleFor,
+  findCatalogGymByName,
   findKnownGym,
   gymsInCity,
   gymsInCountry,
   isUnverifiedPlace,
   mergeOutlets,
+  normalizeCatalogLabel,
   outletsInCity,
+  sameCatalogName,
   sameCountry,
   scaleForClimb,
   searchKnownGyms,
+  similarCatalogGyms,
   skipsCityStep,
   typesForOutlet,
   visibleOutlets,
@@ -172,6 +178,7 @@ function LogGymSheetInner({
   const [gymOfferTypes, setGymOfferTypes] = useState<ClimbingType[]>(DEFAULT_CLIMBING_TYPES);
   const [climbType, setClimbType] = useState<ClimbingType>("bouldering");
   const [placeKind, setPlaceKind] = useState<PlaceKind>("gym");
+  const [addAsNew, setAddAsNew] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const errorBannerRef = useRef<HTMLParagraphElement>(null);
   const prevStepRef = useRef<Step | null>(null);
@@ -184,16 +191,15 @@ function LogGymSheetInner({
   }, [sheetError]);
 
   const known = findKnownGym(name, country);
-  const catalogMatch = catalogGyms.find(
-    (gym) =>
-      gym.name.toLowerCase() === name.trim().toLowerCase() &&
-      sameCountry(gym.country, country),
-  );
+  const catalogMatch = findCatalogGymByName(catalogGyms, name, country);
   const userMatch = gyms.find(
-    (gym) =>
-      gym.name.toLowerCase() === name.trim().toLowerCase() &&
-      sameCountry(gym.country, country),
+    (gym) => sameCatalogName(gym.name, name) && sameCountry(gym.country, country),
   );
+  const similarNotExact = similarCatalogGyms(
+    gymsInCountry(catalogGyms, country),
+    name,
+    country,
+  ).filter((gym) => catalogNameMatchKind(name, gym.name) !== "exact");
 
   const catalogGym = catalogMatch ?? known ?? null;
   const resolvedScale: GradeScale | null =
@@ -395,7 +401,7 @@ function LogGymSheetInner({
     setGrade("");
   }
 
-  function goNext() {
+  function goNext(options?: { addAsNew?: boolean }) {
     if (step === "country") {
       if (!country.trim()) return;
       if (skipsCityStep(country)) {
@@ -412,15 +418,25 @@ function LogGymSheetInner({
       return;
     }
     if (step === "gym") {
+      const creatingNew = Boolean(options?.addAsNew || addAsNew);
       if (!name.trim()) return;
+      if (!isExistingBrand && similarNotExact.length > 0 && !creatingNew) return;
       if (skipsCityStep(country) && !city.trim()) setCity("Singapore");
       if (isExistingBrand) {
+        const canonical = catalogMatch ?? known;
+        if (canonical) {
+          setName(canonical.name);
+          setQuery(canonical.name);
+        } else if (userMatch) {
+          setName(userMatch.name);
+          setQuery(userMatch.name);
+        }
         if (outlets.length >= 1 && !outlet.trim()) {
           setOutlet(outlets[0].name);
           setCity(outlets[0].city);
         } else if (outlet.trim()) {
-          const match = outlets.find(
-            (item) => item.name.toLowerCase() === outlet.trim().toLowerCase(),
+          const match = outlets.find((item) =>
+            sameCatalogName(item.name, outlet),
           );
           if (match) setCity(match.city);
         }
@@ -430,6 +446,9 @@ function LogGymSheetInner({
       } else if (!skipsCityStep(country) && !city.trim()) {
         setStep("city");
       } else {
+        const collapsed = collapseCatalogLabel(name);
+        setName(collapsed);
+        setQuery(collapsed);
         if (!outlet.trim()) setOutlet(city.trim() || country.trim());
         setStep(afterLocationStep());
       }
@@ -489,6 +508,7 @@ function LogGymSheetInner({
       setName("");
       setQuery("");
       setOutlet("");
+      setAddAsNew(false);
     }
     setStep(prev);
   }
@@ -496,7 +516,9 @@ function LogGymSheetInner({
   const canNext =
     (step === "country" && country.trim().length > 0) ||
     (step === "city" && city.trim().length > 0) ||
-    (step === "gym" && name.trim().length > 0) ||
+    (step === "gym" &&
+      name.trim().length > 0 &&
+      (isExistingBrand || addAsNew || similarNotExact.length === 0)) ||
     (step === "outlet" && Boolean(outlet.trim() || newOutletName.trim())) ||
     (step === "kind" && Boolean(placeKind)) ||
     (step === "offer" && gymOfferTypes.length > 0) ||
@@ -581,6 +603,7 @@ function LogGymSheetInner({
                 setName("");
                 setQuery("");
                 setOutlet("");
+                setAddAsNew(false);
                 if (skipsCityStep(value)) setCity("Singapore");
                 else setCity("");
               }}
@@ -627,14 +650,11 @@ function LogGymSheetInner({
               onQuery={(value) => {
                 setQuery(value);
                 setName(value);
+                setAddAsNew(false);
               }}
               onOutlet={setOutlet}
               onSelectUser={(gym) => {
-                const catalog = catalogGyms.find(
-                  (item) =>
-                    item.name.toLowerCase() === gym.name.toLowerCase() &&
-                    sameCountry(item.country, gym.country),
-                );
+                const catalog = findCatalogGymByName(catalogGyms, gym.name, gym.country);
                 const choice =
                   catalog ?? {
                     name: gym.name,
@@ -645,11 +665,17 @@ function LogGymSheetInner({
                     climbing_types: DEFAULT_CLIMBING_TYPES,
                   };
                 applyGym(choice);
+                setAddAsNew(false);
                 setStep(stepAfterPickingPlace(choice, city));
               }}
               onSelectCatalog={(gym) => {
                 applyGym(gym);
+                setAddAsNew(false);
                 setStep(stepAfterPickingPlace(gym, city));
+              }}
+              onAddNew={() => {
+                setAddAsNew(true);
+                goNext({ addAsNew: true });
               }}
               onNext={goNext}
             />
@@ -877,7 +903,7 @@ function LogGymSheetInner({
           ) : (
             <Button
               type="button"
-              onClick={goNext}
+              onClick={() => goNext()}
               disabled={!canNext}
               className="flex-1"
             >
@@ -1110,6 +1136,7 @@ function GymStep({
   onOutlet,
   onSelectUser,
   onSelectCatalog,
+  onAddNew,
   onNext,
 }: {
   query: string;
@@ -1122,9 +1149,14 @@ function GymStep({
   onOutlet: (value: string) => void;
   onSelectUser: (gym: GymGroup) => void;
   onSelectCatalog: (gym: CatalogGym) => void;
+  onAddNew: () => void;
   onNext: () => void;
 }) {
-  const q = query.trim().toLowerCase();
+  const q = normalizeCatalogLabel(query);
+  const exactName = Boolean(q) && catalogGyms.some(
+    (gym) =>
+      sameCatalogName(gym.name, query) && sameCountry(gym.country, country),
+  );
   const catalogIds = new Set(
     catalogGyms.map((gym) => gym.id).filter((id): id is string => Boolean(id)),
   );
@@ -1136,23 +1168,39 @@ function GymStep({
   });
   const recent = (q
     ? inCountry.filter((gym) =>
-        `${gym.name} ${gym.outlets.join(" ")} ${gym.country} ${countryCode(gym.country)}`.toLowerCase().includes(q),
+        catalogNameMatchKind(query, gym.name) !== "none" ||
+        normalizeCatalogLabel(
+          `${gym.name} ${gym.outlets.join(" ")} ${gym.country} ${countryCode(gym.country)}`,
+        ).includes(q),
       )
     : inCountry
   ).slice(0, 5);
+  const didYouMean = q
+    ? similarCatalogGyms(gymsInCountry(catalogGyms, country), query, country).filter(
+        (gym) =>
+          catalogNameMatchKind(query, gym.name) !== "exact" &&
+          !recent.some((item) => sameCatalogName(item.name, gym.name)),
+      )
+    : [];
   const filters = { country, city: city || undefined };
   const known = searchKnownGyms(query, catalogGyms, filters).filter(
-    (gym) => !recent.some((item) => item.name.toLowerCase() === gym.name.toLowerCase()),
+    (gym) =>
+      !recent.some((item) => sameCatalogName(item.name, gym.name)) &&
+      !didYouMean.some((item) => sameCatalogName(item.name, gym.name)),
   );
   const scopedCatalog = city
     ? gymsInCity(catalogGyms, country, city)
     : gymsInCountry(catalogGyms, country);
   const extra = scopedCatalog.filter(
     (gym) =>
-      (!q || gym.name.toLowerCase().includes(q)) &&
-      !recent.some((item) => item.name.toLowerCase() === gym.name.toLowerCase()) &&
-      !known.some((item) => item.name.toLowerCase() === gym.name.toLowerCase()),
+      (!q || catalogNameMatchKind(query, gym.name) !== "none") &&
+      !recent.some((item) => sameCatalogName(item.name, gym.name)) &&
+      !didYouMean.some((item) => sameCatalogName(item.name, gym.name)) &&
+      !known.some((item) => sameCatalogName(item.name, gym.name)),
   );
+  const newPlaceLabel = [collapseCatalogLabel(query), collapseCatalogLabel(outlet)]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="space-y-3">
@@ -1196,12 +1244,24 @@ function GymStep({
           className="!text-base"
         />
       </label>
+      {didYouMean.length > 0 && (
+        <ChoiceList
+          label="Did you mean"
+          items={didYouMean.map((gym) => ({
+            key: `mean-${gym.name}-${gym.country}`,
+            title: gym.name,
+            subtitle: catalogGymSubtitle(gym, city),
+            meta: isUnverifiedPlace(gym.status) ? "Unverified" : undefined,
+            onClick: () => onSelectCatalog(gym),
+          }))}
+        />
+      )}
       {recent.length > 0 && (
         <ChoiceList
           label={q ? "Your places" : "Recent places"}
           items={recent.map((gym) => {
             const places = gym.outlets.filter(
-              (item) => item.toLowerCase() !== gym.name.toLowerCase(),
+              (item) => !sameCatalogName(item, gym.name),
             );
             return {
               key: gym.slug,
@@ -1243,15 +1303,22 @@ function GymStep({
           }))}
         />
       )}
-      {query.trim() && (
-        <p className="text-sm text-ink-soft">
-          New place? Continue to add{" "}
-          <span className="font-semibold text-ink">
-            {[query.trim(), outlet.trim()].filter(Boolean).join(" · ")}
+      {q && !exactName ? (
+        <button
+          type="button"
+          onClick={onAddNew}
+          className="flex min-h-[var(--control-min)] w-full items-center justify-between gap-2 rounded-lg border border-dashed border-sky-400 bg-sky-50/70 px-3.5 py-2 text-left"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold leading-tight">
+              Add this as a new place
+            </span>
+            <span className="mt-0.5 block text-sm leading-snug text-ink-soft">
+              {newPlaceLabel}
+            </span>
           </span>
-          .
-        </p>
-      )}
+        </button>
+      ) : null}
     </div>
   );
 }
