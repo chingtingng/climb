@@ -57,7 +57,6 @@ export function BottomNav() {
         );
       })}
       <div className="passport-nav-footer">
-        <AccountMenu variant="rail" />
         <button
           type="button"
           className="passport-nav-log btn btn-primary"
@@ -67,6 +66,7 @@ export function BottomNav() {
           <PlusIcon className="size-4" />
           Log a visit
         </button>
+        <AccountMenu variant="rail" />
       </div>
     </nav>
   );
