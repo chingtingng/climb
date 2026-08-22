@@ -1,3 +1,4 @@
+import type { ClimbingType } from "./climbingTypes";
 import type { GradeBand, GradeScale, GradeSystem } from "./types";
 
 export const GRADE_SYSTEMS: { value: GradeSystem; label: string }[] = [
@@ -426,14 +427,15 @@ export function vEquivFor(
   grade: string,
   scale?: GradeScale | null,
 ): string | undefined {
-  const band = scale?.bands.find(
-    (item) => item.label.toLowerCase() === grade.trim().toLowerCase(),
-  );
+  const band = bandForGrade(scale, grade);
   if (band) {
     const high = bandVMax(band);
     if (high) return high;
   }
   if (system === "v") return normalizeVEquiv(grade);
+  if (system === "font" || system === "french" || system === "yds") {
+    return highestVForStandard(system, grade);
+  }
   return undefined;
 }
 
@@ -443,8 +445,14 @@ export function gradeSortValue(
   grade: string,
   vEquiv?: string | null,
 ): number {
-  if (vEquiv) {
-    const idx = vGradeIndex(vEquiv);
+  const v =
+    canonicalVGrade(vEquiv) ??
+    (system === "v" ? canonicalVGrade(grade) : undefined) ??
+    (system === "font" || system === "french" || system === "yds"
+      ? highestVForStandard(system, grade)
+      : undefined);
+  if (v) {
+    const idx = vGradeIndex(v);
     if (idx >= 0) return (idx / Math.max(1, V_GRADES.length - 1)) * 100;
   }
   if (system === "number") {
@@ -457,4 +465,142 @@ export function gradeSortValue(
   );
   if (idx < 0) return 0;
   return (idx / Math.max(1, list.length - 1)) * 100;
+}
+
+type SendRankInput = {
+  grade_system: GradeSystem;
+  highest_grade: string;
+  v_equiv?: string | null;
+  visited_on?: string;
+  created_at?: string;
+};
+
+/** Best send first: higher V-spine rank, then more recent stamp. */
+export function compareSendRank(a: SendRankInput, b: SendRankInput): number {
+  const byGrade =
+    gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
+    gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv);
+  if (byGrade !== 0) return byGrade;
+  const aDay = a.visited_on ?? "";
+  const bDay = b.visited_on ?? "";
+  if (aDay !== bDay) return bDay.localeCompare(aDay);
+  return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+}
+
+/**
+ * Short passport-stat grade: V for bouldering, French for top-rope / lead.
+ * House colours and custom labels are converted; unmapped sends return null.
+ */
+export function compactBestSend(
+  visit: {
+    climbing_type: ClimbingType;
+    grade_system: GradeSystem;
+    highest_grade: string;
+    v_equiv?: string | null;
+  },
+  scale?: GradeScale | null,
+): string | null {
+  const grade = visit.highest_grade.trim();
+  const band = bandForGrade(scale, grade);
+  const storedV = (band ? bandVMax(band) : undefined) ?? canonicalVGrade(visit.v_equiv);
+  if (visit.climbing_type === "bouldering") {
+    return boulderCompactV(visit.grade_system, grade, storedV) ?? null;
+  }
+  return ropeCompactFrench(visit.grade_system, grade, band, storedV) ?? null;
+}
+
+function bandForGrade(
+  scale: GradeScale | null | undefined,
+  grade: string,
+): GradeBand | undefined {
+  if (!scale?.bands.length) return undefined;
+  const target = grade.trim().toLowerCase();
+  if (!target) return undefined;
+  return scale.bands.find((band) => band.label.toLowerCase() === target);
+}
+
+function highestVForStandard(
+  system: "font" | "french" | "yds",
+  grade: string,
+): string | undefined {
+  const vs = vGradesForStandardGrade(system, grade);
+  if (vs.length === 0) return undefined;
+  return vs.reduce((best, v) => (vGradeIndex(v) > vGradeIndex(best) ? v : best));
+}
+
+function frenchFromV(v: string | null | undefined): string | undefined {
+  const key = canonicalVGrade(v);
+  if (!key) return undefined;
+  const row = GRADE_COMPARISON.find((item) => item.v === key);
+  return row ? highEndInList(row.french, FRENCH_GRADES) : undefined;
+}
+
+function ydsToFrench(grade: string): string | undefined {
+  const target = grade.trim().toLowerCase();
+  const exact = SPORT_GRADE_COMPARISON.find((row) => row.yds.toLowerCase() === target);
+  if (exact) return exact.french;
+  return frenchFromV(highestVForStandard("yds", grade));
+}
+
+function listMatch(grade: string, list: string[]): string | undefined {
+  const target = grade.trim().toLowerCase();
+  if (!target) return undefined;
+  return list.find((item) => item.toLowerCase() === target);
+}
+
+function highEndInList(cell: string, list: string[]): string | undefined {
+  const value = cell.trim();
+  if (!value) return undefined;
+  const exact = listMatch(value, list);
+  if (exact) return exact;
+  const parts = value.split(/[–-]/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return undefined;
+  const start = parts[0];
+  const end = expandRangeEnd(start, parts[parts.length - 1]);
+  const i0 = list.findIndex((item) => item.toLowerCase() === start.toLowerCase());
+  const i1 = list.findIndex((item) => item.toLowerCase() === end.toLowerCase());
+  if (i0 < 0 && i1 < 0) return undefined;
+  if (i0 < 0) return list[i1];
+  if (i1 < 0) return list[i0];
+  return list[Math.max(i0, i1)];
+}
+
+function boulderCompactV(
+  system: GradeSystem,
+  grade: string,
+  storedV: string | undefined,
+): string | undefined {
+  switch (system) {
+    case "v":
+      return canonicalVGrade(grade) ?? storedV;
+    case "font":
+      return highestVForStandard("font", grade) ?? storedV;
+    case "french":
+      return highestVForStandard("french", grade) ?? storedV;
+    case "yds":
+      return highestVForStandard("yds", grade) ?? storedV;
+    default:
+      return storedV;
+  }
+}
+
+function ropeCompactFrench(
+  system: GradeSystem,
+  grade: string,
+  band: GradeBand | undefined,
+  storedV: string | undefined,
+): string | undefined {
+  const fromHint = highEndInList(band?.hint ?? "", FRENCH_GRADES);
+  switch (system) {
+    case "french":
+      return listMatch(grade, FRENCH_GRADES) ?? fromHint ?? frenchFromV(storedV);
+    case "yds":
+      return ydsToFrench(grade) ?? fromHint ?? frenchFromV(storedV);
+    case "v":
+      return frenchFromV(grade) ?? frenchFromV(storedV);
+    case "font":
+      return frenchFromV(highestVForStandard("font", grade) ?? storedV);
+    default:
+      return fromHint ?? frenchFromV(storedV);
+  }
 }

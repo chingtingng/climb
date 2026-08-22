@@ -139,30 +139,6 @@ export function GymsView({
           />
         </label>
 
-        {view === "places" && countries.length > 0 ? (
-          <div
-            role="group"
-            aria-label="Filter by country"
-            className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] wide:flex-wrap wide:overflow-visible [&::-webkit-scrollbar]:hidden"
-          >
-            {["All", ...countries].map((item) => {
-              const selected = item === country;
-              const label = item === "All" ? "All" : countryCode(item) || item;
-              return (
-                <Pill
-                  key={item}
-                  selected={selected}
-                  aria-pressed={selected}
-                  aria-label={item === "All" ? "All countries" : item}
-                  onClick={() => setCountry(item)}
-                >
-                  {label}
-                </Pill>
-              );
-            })}
-          </div>
-        ) : null}
-
         <div className="relative z-20 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className="flex min-w-0 shrink items-center gap-1.5 text-sm text-ink-soft">
             {view === "location" ? (

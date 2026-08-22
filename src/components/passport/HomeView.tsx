@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { gradeSortValue } from "@/lib/grades";
 import { formatStampDate } from "@/lib/dates";
 import type { GymVisit } from "@/lib/types";
 import { formatVisitPlace, gymSlug } from "@/lib/gyms";
@@ -18,7 +17,7 @@ export function HomeView() {
   const { username, visits, stats, configured, loadError, openLog } =
     usePassport();
   const countries = uniqueRecentCountries(visits);
-  const bestVisit = bestSendVisit(visits);
+  const bestVisit = stats.bestSendVisit;
 
   return (
     <div
@@ -153,13 +152,4 @@ function uniqueRecentCountries(visits: GymVisit[]): string[] {
     countries.push(visit.country);
   }
   return countries;
-}
-
-function bestSendVisit(visits: GymVisit[]): GymVisit | null {
-  if (visits.length === 0) return null;
-  return [...visits].sort(
-    (a, b) =>
-      gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
-      gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv),
-  )[0];
 }

@@ -61,7 +61,10 @@ export function PassportProvider({
     () => groupVisitsByGym(visits, catalogGyms),
     [visits, catalogGyms],
   );
-  const stats = useMemo(() => computeStats(visits, gyms), [visits, gyms]);
+  const stats = useMemo(
+    () => computeStats(visits, gyms, catalogGyms),
+    [visits, gyms, catalogGyms],
+  );
 
   const openLog = useCallback((prefill?: LogPrefill) => {
     setEditVisit(null);

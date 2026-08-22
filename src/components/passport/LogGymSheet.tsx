@@ -69,14 +69,6 @@ import { cx } from "@/components/ui/cx";
 const initial: ActionResult | null = null;
 const NOTES_MAX = 400;
 
-function outletsInSelectedCity(
-  gym: { name: string; outlets?: GymOutlet[] },
-  city: string,
-): GymOutlet[] {
-  const all = visibleOutlets({ name: gym.name, outlets: gym.outlets ?? [] });
-  return city.trim() ? outletsInCity({ outlets: all }, city) : all;
-}
-
 type Step =
   | "country"
   | "city"
@@ -89,6 +81,32 @@ type Step =
   | "grade"
   | "date"
   | "notes";
+
+function outletsInSelectedCity(
+  gym: { name: string; outlets?: GymOutlet[] },
+  city: string,
+): GymOutlet[] {
+  const all = visibleOutlets({ name: gym.name, outlets: gym.outlets ?? [] });
+  return city.trim() ? outletsInCity({ outlets: all }, city) : all;
+}
+
+/** Next step after picking a known/catalog place — never the new-place scale setup. */
+function stepAfterPickingPlace(
+  choice: {
+    name: string;
+    climbing_types?: ClimbingType[] | null;
+    outlets?: GymOutlet[] | null;
+  },
+  selectedCity: string,
+): Step {
+  const locations = outletsInSelectedCity(
+    { name: choice.name, outlets: choice.outlets ?? [] },
+    selectedCity,
+  );
+  if (locations.length > 1) return "outlet";
+  if (typesForOutlet(choice, locations[0]?.name).length > 1) return "climb";
+  return "grade";
+}
 
 export function LogGymSheet() {
   const router = useRouter();
@@ -336,6 +354,8 @@ function LogGymSheetInner({
     outlets?: GymOutlet[];
     climbing_types?: ClimbingType[];
     place_kind?: PlaceKind;
+    scale?: GradeScale | null;
+    scales?: CatalogGym["scales"];
   }) {
     const locations = outletsInSelectedCity(
       { name: choice.name, outlets: choice.outlets ?? [] },
@@ -345,12 +365,21 @@ function LogGymSheetInner({
       normalizeClimbingTypes(choice.climbing_types).length > 0
         ? normalizeClimbingTypes(choice.climbing_types)
         : DEFAULT_CLIMBING_TYPES;
+    const gymScale = scaleForClimb(
+      { scale: choice.scale ?? null, scales: choice.scales },
+      types[0],
+    );
     setName(choice.name);
     setQuery(choice.name);
     setCountry(choice.country);
     setPlaceKind(normalizePlaceKind(choice.place_kind));
     setGymOfferTypes(types);
     setClimbType(types[0]);
+    if (gymScale?.bands.length) {
+      setScale(gymScale);
+      setScaleDraft(gymScale);
+      setSystem(gymScale.kind);
+    }
     if (skipsCityStep(choice.country) && locations.length !== 1) {
       setCity("Singapore");
     }
@@ -616,25 +645,11 @@ function LogGymSheetInner({
                     climbing_types: DEFAULT_CLIMBING_TYPES,
                   };
                 applyGym(choice);
-                const locations = outletsInSelectedCity(choice, city);
-                if (locations.length > 1) {
-                  setStep("outlet");
-                } else if (typesForOutlet(choice, locations[0]?.name).length > 1) {
-                  setStep("climb");
-                } else if (needsScale) {
-                  setStep("scale");
-                } else {
-                  setStep("grade");
-                }
+                setStep(stepAfterPickingPlace(choice, city));
               }}
               onSelectCatalog={(gym) => {
                 applyGym(gym);
-                const locations = outletsInSelectedCity(gym, city);
-                if (locations.length > 1) setStep("outlet");
-                else if (typesForOutlet(gym, locations[0]?.name).length > 1) {
-                  setStep("climb");
-                } else if (needsScale) setStep("scale");
-                else setStep("grade");
+                setStep(stepAfterPickingPlace(gym, city));
               }}
               onNext={goNext}
             />
@@ -729,6 +744,8 @@ function LogGymSheetInner({
                 value={visitedOn}
                 onChange={(e) => setVisitedOn(e.target.value)}
                 required
+                preventIosZoom
+                className="!text-base"
               />
             </label>
           )}
@@ -1603,6 +1620,7 @@ function OutletStep({
               key={item.name}
               selected={active}
               onClick={() => handleSelectOutlet(item)}
+              className="!rounded-lg !px-3.5 !py-2 !text-sm !leading-tight"
             >
               {item.name}
               {isUnverifiedPlace(item.status) ? (
@@ -1615,6 +1633,7 @@ function OutletStep({
           selected={addingNew}
           onClick={handleSelectNew}
           aria-pressed={addingNew}
+          className="!rounded-lg !px-3.5 !py-2 !text-sm !leading-tight"
         >
           + New outlet
         </Chip>

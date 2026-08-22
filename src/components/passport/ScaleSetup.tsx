@@ -148,7 +148,7 @@ export function ScaleSetup({
               key={item.value}
               selected={item.value === scale.kind}
               onClick={() => setKind(item.value)}
-              className="w-full justify-center"
+              className="w-full justify-center !rounded-lg !px-3.5 !py-2 !text-sm !leading-tight"
             >
               {item.label}
             </Chip>
@@ -168,7 +168,8 @@ export function ScaleSetup({
                 max={99}
                 value={from}
                 onChange={(e) => applyRange(Number(e.target.value || 0), to)}
-                className="!w-[5.75rem]"
+                preventIosZoom
+                className="!w-[5.75rem] !text-base"
               />
             </label>
             <span className="mb-2.5 text-sm font-medium text-ink-soft" aria-hidden>
@@ -183,7 +184,8 @@ export function ScaleSetup({
                 max={99}
                 value={to}
                 onChange={(e) => applyRange(from, Number(e.target.value || 0))}
-                className="!w-[5.75rem]"
+                preventIosZoom
+                className="!w-[5.75rem] !text-base"
               />
             </label>
           </div>

@@ -141,6 +141,7 @@ export type PassportStats = {
   cities: number;
   countries: number;
   bestSend: string | null;
+  bestSendVisit: GymVisit | null;
   mostVisitedGym: GymGroup | null;
   favouriteCity: FavouriteCity | null;
 };

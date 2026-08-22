@@ -35,6 +35,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "How do house grades compare to V?",
     answer: [
       "House colours and numbers are what the gym uses. The V-scale next to them is a community approximation — useful for a rough compare, not an official conversion.",
+      "Your passport’s best-send stat uses a short V for bouldering and French for top-rope and lead, so a gym colour can fit. Ranking still uses V as a rough spine — a boulder and a lead are not 1:1.",
     ],
   },
   {

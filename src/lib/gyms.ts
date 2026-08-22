@@ -1,6 +1,6 @@
 import { countryCode, countryMeta, countryName } from "./countries";
-import { catalogCity, skipsCityStep } from "./gymCatalog";
-import { displayGrade, gradeSortValue } from "./grades";
+import { catalogCity, sameCountry, scaleForClimb, skipsCityStep } from "./gymCatalog";
+import { compactBestSend, compareSendRank, gradeSortValue, vEquivFor } from "./grades";
 import { normalizePlaceKind } from "./placeKinds";
 import type {
   CatalogGym,
@@ -87,11 +87,7 @@ export function groupVisitsByGym(
       }
       return b.visited_on.localeCompare(a.visited_on);
     });
-    const best = [...gymVisits].sort(
-      (a, b) =>
-        gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
-        gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv),
-    )[0];
+    const best = [...gymVisits].sort(compareSendRank)[0];
 
     const outlets: string[] = [];
     const seen = new Set<string>();
@@ -140,7 +136,11 @@ export function findGymBySlug(gyms: GymGroup[], slug: string): GymGroup | undefi
   );
 }
 
-export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStats {
+export function computeStats(
+  visits: GymVisit[],
+  gyms: GymGroup[],
+  catalogGyms: CatalogGym[] = [],
+): PassportStats {
   const cities = new Set(
     visits.map((visit) => {
       const city = visitCityLabel(visit);
@@ -149,11 +149,7 @@ export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStat
   );
   const countries = new Set(gyms.map((gym) => gym.country.trim().toLowerCase()));
 
-  const bestVisit = [...visits].sort(
-    (a, b) =>
-      gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
-      gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv),
-  )[0];
+  const bestVisit = pickBestSendVisit(visits, catalogGyms);
 
   const mostVisitedGym =
     [...gyms].sort((a, b) => {
@@ -205,12 +201,9 @@ export function computeStats(visits: GymVisit[], gyms: GymGroup[]): PassportStat
     cities: cities.size,
     countries: countries.size,
     bestSend: bestVisit
-      ? displayGrade(
-          bestVisit.grade_system,
-          bestVisit.highest_grade,
-          bestVisit.v_equiv,
-        ).grade
+      ? compactBestSend(bestVisit, scaleForVisit(bestVisit, catalogGyms))
       : null,
+    bestSendVisit: bestVisit,
     mostVisitedGym,
     favouriteCity,
   };
@@ -311,11 +304,51 @@ function maxDate(left: string, right: string): string {
   return right > left ? right : left;
 }
 
+export function pickBestSendVisit(
+  visits: GymVisit[],
+  catalogGyms: CatalogGym[] = [],
+): GymVisit | null {
+  const ranked = visits.flatMap((visit) => {
+    const scale = scaleForVisit(visit, catalogGyms);
+    const compact = compactBestSend(visit, scale);
+    if (!compact) return [];
+    const v =
+      vEquivFor(visit.grade_system, visit.highest_grade, scale) ?? visit.v_equiv;
+    return [{ visit, v }];
+  });
+  ranked.sort((a, b) =>
+    compareSendRank(
+      { ...a.visit, v_equiv: a.v },
+      { ...b.visit, v_equiv: b.v },
+    ),
+  );
+  return ranked[0]?.visit ?? null;
+}
+
+function catalogGymForVisit(
+  visit: GymVisit,
+  catalogGyms: CatalogGym[],
+): CatalogGym | undefined {
+  if (visit.gym_id) {
+    const byId = catalogGyms.find((gym) => gym.id && gym.id === visit.gym_id);
+    if (byId) return byId;
+  }
+  return catalogGyms.find(
+    (gym) =>
+      gym.name.toLowerCase() === visit.gym_name.trim().toLowerCase() &&
+      sameCountry(gym.country, visit.country),
+  );
+}
+
+function scaleForVisit(
+  visit: GymVisit,
+  catalogGyms: CatalogGym[],
+): ReturnType<typeof scaleForClimb> {
+  return scaleForClimb(catalogGymForVisit(visit, catalogGyms), visit.climbing_type);
+}
+
 function betterVisit(left: GymVisit, right: GymVisit): GymVisit {
-  return gradeSortValue(right.grade_system, right.highest_grade, right.v_equiv) >
-    gradeSortValue(left.grade_system, left.highest_grade, left.v_equiv)
-    ? right
-    : left;
+  return compareSendRank(left, right) <= 0 ? left : right;
 }
 
 function rollupLastVisited(items: { lastVisited: string }[]): string {

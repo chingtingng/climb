@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatClimbingType } from "@/lib/climbingTypes";
 import { countryName } from "@/lib/countries";
 import { formatMonthYear, formatStampDayMonth } from "@/lib/dates";
 import { gymSlug, uniqueCountries } from "@/lib/gyms";
-import type { FavouriteCity, GymGroup, GymVisit } from "@/lib/types";
+import type { FavouriteCity, GymGroup, GymVisit, PassportStats } from "@/lib/types";
 import { AccountMenu } from "./AccountMenu";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -83,8 +84,9 @@ export function ProfileView() {
           <Stat value={stats.countries} label="Countries" dim={empty} />
           <Stat
             value={stats.bestSend ?? "—"}
-            label="Best grade"
+            label="Best send"
             dim={!stats.bestSend}
+            hint={bestSendHint(stats)}
           />
         </div>
       </Card>
@@ -201,6 +203,13 @@ export function ProfileView() {
   );
 }
 
+function bestSendHint(stats: PassportStats): string | undefined {
+  if (!stats.bestSend || !stats.bestSendVisit) return undefined;
+  const visit = stats.bestSendVisit;
+  const discipline = formatClimbingType(visit.climbing_type);
+  return `Best send ${stats.bestSend}, ${discipline} at ${visit.gym_name}`;
+}
+
 function climbingSinceLabel(visits: GymVisit[]): string | null {
   if (visits.length === 0) return null;
   let oldest = visits[0].visited_on;
@@ -214,13 +223,18 @@ function Stat({
   value,
   label,
   dim,
+  hint,
 }: {
   value: string | number;
   label: string;
   dim?: boolean;
+  hint?: string;
 }) {
   return (
-    <div className="min-w-0 px-1.5 text-center first:pl-0 last:pr-0">
+    <div
+      className="min-w-0 px-1.5 text-center first:pl-0 last:pr-0"
+      aria-label={hint}
+    >
       <p
         className={`mark truncate text-2xl leading-none tabular-nums ${
           dim ? "text-ink-faint" : "text-ink"

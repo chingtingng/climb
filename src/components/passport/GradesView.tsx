@@ -17,10 +17,11 @@ import {
   bandsForVGrade,
   canonicalVGrade,
   colorHex,
-  gradeSortValue,
+  compareSendRank,
   gradeSystemLabel,
   hasVMapping,
   isHouseSystem,
+  vEquivFor,
 } from "@/lib/grades";
 import { defaultScaleFor } from "@/lib/gymCatalog";
 import { gymSlug } from "@/lib/gyms";
@@ -742,13 +743,10 @@ function readCompareKeys(): string[] | null {
 
 function bestSendV(visits: GymVisit[]): string | undefined {
   if (visits.length === 0) return undefined;
-  const best = [...visits].sort(
-    (a, b) =>
-      gradeSortValue(b.grade_system, b.highest_grade, b.v_equiv) -
-      gradeSortValue(a.grade_system, a.highest_grade, a.v_equiv),
-  )[0];
+  const best = [...visits].sort(compareSendRank)[0];
   return (
     canonicalVGrade(best.v_equiv) ??
-    (best.grade_system === "v" ? canonicalVGrade(best.highest_grade) : undefined)
+    (best.grade_system === "v" ? canonicalVGrade(best.highest_grade) : undefined) ??
+    vEquivFor(best.grade_system, best.highest_grade)
   );
 }
