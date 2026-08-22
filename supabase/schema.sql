@@ -50,7 +50,7 @@
 -- 1) Authentication → Providers → Email: enabled
 -- 2) Turn ON “Confirm email” (signup uses a real inbox for recovery)
 -- 3) Authentication → URL Configuration:
---    Site URL = https://chalk-passport.vercel.app
+--    Site URL = https://chalkpassport.com
 --    (not https://chalk-passport-cassiejt.vercel.app — that alias is Vercel
 --    SSO-gated, so verify-email links would send climbers to a Vercel login)
 --    Redirect URLs: {SITE_URL}/auth/confirm** and {SITE_URL}/auth/callback**

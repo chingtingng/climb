@@ -1,12 +1,17 @@
 /**
  * Public production origin. Auth emails (confirm / recovery) must use this,
- * never the Vercel project alias `chalk-passport-cassiejt.vercel.app`.
- * That host is Deployment Protection (SSO) gated, so a climber who is not
- * logged into Vercel hits a Vercel login wall instead of confirming email.
+ * never a Vercel preview / `{project}-{user}.vercel.app` alias.
+ * Those hosts can be Deployment Protection (SSO) gated, so a climber who is
+ * not logged into Vercel hits a Vercel login wall instead of confirming email.
  */
-export const PRODUCTION_SITE_URL = "https://chalk-passport.vercel.app";
+export const PRODUCTION_SITE_URL = "https://chalkpassport.com";
 
-const SSO_GATED_HOSTS = new Set(["chalk-passport-cassiejt.vercel.app"]);
+/** Hosts that must never appear in signup / recovery email links. */
+const REWRITE_TO_PRODUCTION = new Set([
+  "www.chalkpassport.com",
+  "chalk-passport.vercel.app",
+  "chalk-passport-cassiejt.vercel.app",
+]);
 
 export function canonicalizeSiteUrl(origin: string): string {
   const trimmed = origin.trim().replace(/\/$/, "");
@@ -14,7 +19,8 @@ export function canonicalizeSiteUrl(origin: string): string {
 
   try {
     const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    if (SSO_GATED_HOSTS.has(url.hostname.toLowerCase())) {
+    const host = url.hostname.toLowerCase();
+    if (REWRITE_TO_PRODUCTION.has(host)) {
       return PRODUCTION_SITE_URL;
     }
     return `${url.protocol}//${url.host}`;
