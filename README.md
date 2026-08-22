@@ -42,9 +42,14 @@ Then:
 2. **Authentication → Providers → Email**: enabled
 3. Turn **on** “Confirm email” so email signup sends a verification link (needed for account recovery).
 4. **Authentication → URL Configuration**:
-   - Site URL = your app origin (e.g. `http://localhost:3000` or the Vercel URL)
-   - Redirect URLs include `{SITE_URL}/auth/confirm` and `{SITE_URL}/auth/callback`
-5. Optional but recommended — **Authentication → Email Templates → Confirm signup**:
+   - Site URL = **`https://chalk-passport.vercel.app`** (the public production app)
+   - Do **not** use `https://chalk-passport-cassiejt.vercel.app`. That is Vercel’s `{project}-{username}` alias and is gated by Vercel login (SSO). Verification emails that point there send climbers to a Vercel login wall, not Chalk Passport.
+   - Redirect URLs:
+     - `https://chalk-passport.vercel.app/auth/confirm**`
+     - `https://chalk-passport.vercel.app/auth/callback**`
+     - `http://localhost:3000/auth/confirm**`
+     - `http://localhost:3000/auth/callback**`
+5. Optional but recommended — **Authentication → Email Templates → Confirm signup**. `{{ .SiteURL }}` is the dashboard Site URL above, not whichever host the climber used:
 
 ```html
 <h2>Confirm your email</h2>
@@ -62,8 +67,8 @@ Then:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-# Optional override for email redirect links in production:
-# NEXT_PUBLIC_SITE_URL=https://your-app.vercel.app
+# Required on Vercel so verification emails open the public app:
+NEXT_PUBLIC_SITE_URL=https://chalk-passport.vercel.app
 ```
 
 The app talks to the database as the signed-in user. RLS policies keep each climber’s visits private. You do **not** need the service role key in the app.
@@ -81,7 +86,7 @@ Open [http://localhost:3000](http://localhost:3000). Phone-first for iPhone 15 (
 ## Deploy to Vercel
 
 1. Push this repo and import it in Vercel
-2. Add the same env vars in the Vercel project
+2. Add the same env vars in the Vercel project, including `NEXT_PUBLIC_SITE_URL=https://chalk-passport.vercel.app`
 3. Deploy
 
 ## Notes

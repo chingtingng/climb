@@ -6,7 +6,9 @@ import { safeAuthNextPath } from "@/lib/site-url";
 import { syncProfileAfterAuth } from "@/lib/auth";
 
 /**
- * SSR email confirmation via token_hash (recommended email template):
+ * SSR email confirmation via token_hash (recommended email template).
+ * {{ .SiteURL }} is the dashboard Site URL — set it to
+ * https://chalk-passport.vercel.app (not the *-cassiejt.vercel.app alias):
  *   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/passport
  *
  * Also accepts the default ConfirmationURL PKCE redirect: ?code=…

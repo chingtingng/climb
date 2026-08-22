@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { getSiteUrl } from "@/lib/site-url";
+import { authConfirmRedirectUrl, getSiteUrl } from "@/lib/site-url";
 import { parseVisitMediaUrl, resolveVisitMediaUrl, type VisitMediaLink } from "@/lib/visitMedia";
 import type { GradeScale, GradeSystem, GymVisitInput } from "@/lib/types";
 import {
@@ -292,7 +292,7 @@ export async function createAccountAction(
       password: parsedPassword,
       options: {
         data: { username: parsedUsername },
-        emailRedirectTo: `${siteUrl}/auth/confirm?next=/passport`,
+        emailRedirectTo: authConfirmRedirectUrl(siteUrl),
       },
     });
 
@@ -381,6 +381,23 @@ export async function completeUsernameAction(
   redirect("/passport");
 }
 
+async function resendSignupConfirmation(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string,
+): Promise<void> {
+  if (!email.includes("@") || email.endsWith("@chalk.local")) return;
+  try {
+    const siteUrl = await getSiteUrl();
+    await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: authConfirmRedirectUrl(siteUrl) },
+    });
+  } catch {
+    // Rate-limit / already confirmed — the login error is enough.
+  }
+}
+
 export async function loginAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -412,6 +429,14 @@ export async function loginAction(
     });
 
     if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        await resendSignupConfirmation(supabase, email);
+        return {
+          ok: false,
+          error:
+            "Confirm your email before signing in. We sent a new verification link — check your inbox.",
+        };
+      }
       return { ok: false, error: mapAuthError(error.message, "login") };
     }
 
