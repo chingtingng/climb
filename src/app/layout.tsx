@@ -18,6 +18,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://chalkpassport.com"),
   title: {
     default: "Chalk Passport",
     template: "%s · Chalk Passport",
