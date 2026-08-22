@@ -1565,7 +1565,6 @@ function CityStep({
           items={withGyms.map((item) => ({
             key: item,
             title: item,
-            subtitle: countryCode(country) || country,
             onClick: () => onPick(item),
           }))}
         />
