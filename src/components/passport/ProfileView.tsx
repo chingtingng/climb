@@ -52,7 +52,7 @@ export function ProfileView() {
           <p className="min-w-0 truncate text-sm font-semibold text-ink">
             @{username}
           </p>
-          <AccountMenu />
+          <AccountMenu variant="header" />
         </header>
 
         <h1 className="mark mt-2 text-2xl leading-none text-ink">

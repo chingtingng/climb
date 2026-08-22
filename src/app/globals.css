@@ -1013,7 +1013,9 @@ html::-webkit-scrollbar,
 }
 
 .passport-nav-brand,
-.passport-nav-log {
+.passport-nav-footer,
+.passport-nav-log,
+.passport-nav-account {
   display: none;
 }
 
@@ -1302,10 +1304,41 @@ html::-webkit-scrollbar,
     color: var(--ink);
   }
 
+  .passport-nav-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--sky-200);
+  }
+
+  .passport-nav-account {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.75rem;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.7rem;
+    border: none;
+    border-radius: var(--r-md);
+    background: transparent;
+    padding: 0.35rem 0.55rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .passport-nav-account:hover {
+    background: var(--sky-50);
+  }
+
   .passport-nav-log {
     display: inline-flex;
     width: 100%;
-    margin-top: auto;
   }
 
   .passport-fab {

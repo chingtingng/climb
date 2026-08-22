@@ -2,21 +2,27 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import { logoutAction } from "@/app/actions";
+import { cx } from "@/components/ui/cx";
 import { ActionButtonLabel } from "./ActionButtonLabel";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ChangeUsernameDialog } from "./ChangeUsernameDialog";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { FaqDialog } from "./FaqDialog";
 import { HelpFeedbackDialog } from "./HelpFeedbackDialog";
-import { BackIcon, ChevronIcon, MenuIcon, TrashIcon } from "./icons";
+import { BackIcon, ChevronIcon, TrashIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
 type Panel = "menu" | "manage" | "about";
 type Overlay = "username" | "password" | "delete" | "help" | "faq" | null;
+type AccountMenuVariant = "header" | "rail";
 
-export function AccountMenu() {
+export function AccountMenu({
+  variant = "header",
+}: {
+  variant?: AccountMenuVariant;
+}) {
   const { username } = usePassport();
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("menu");
@@ -52,135 +58,132 @@ export function AccountMenu() {
     };
   }, [close, overlayOpen, open, panel]);
 
-  return (
-    <>
+  const sheet = open ? (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
-        aria-label="Account menu"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        className="-mr-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink"
-      >
-        <MenuIcon />
-      </button>
-
-      {open ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <button
-            type="button"
-            className="absolute inset-0 bg-ink/35"
-            aria-label="Close menu"
-            onClick={close}
-          />
-          <div className="relative w-full sm:px-3">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={titleId}
-              className="passport-sheet-in sheet mx-auto w-full max-w-[var(--sheet-max)] pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
-            >
-              <div className="sheet-handle mx-auto mb-2 h-1 w-10 rounded-full bg-sky-300" />
-              {panel === "manage" ? (
-                <div key="manage" className="sheet-step">
-                  <PanelHeader
-                    titleId={titleId}
-                    title="Manage account"
-                    onBack={() => setPanel("menu")}
-                  />
-                  <SettingsRow
-                    icon={<AtIcon />}
-                    label="Username"
-                    value={`@${username}`}
-                    onClick={() => setEdit("username")}
-                  />
-                  <SettingsRow
-                    icon={<LockIcon />}
-                    label="Password"
-                    value="••••••••"
-                    onClick={() => setEdit("password")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setEdit("delete")}
-                    className="flex h-14 w-full cursor-pointer items-center gap-3 border-0 border-t border-sky-200 bg-transparent px-4 py-0 text-danger-ink"
-                  >
-                    <TrashIcon />
-                    <span className="text-sm font-semibold">Delete account</span>
-                  </button>
-                </div>
-              ) : panel === "about" ? (
-                <div key="about" className="sheet-step">
-                  <PanelHeader
-                    titleId={titleId}
-                    title="About"
-                    onBack={() => setPanel("menu")}
-                  />
-                  <Link
-                    href="/privacy"
-                    onClick={close}
-                    className="flex h-14 items-center gap-3 px-4"
-                  >
-                    <DocIcon />
-                    <span className="text-sm font-semibold">Privacy</span>
-                  </Link>
-                  <Link
-                    href="/terms"
-                    onClick={close}
-                    className="flex h-14 items-center gap-3 px-4"
-                  >
-                    <DocIcon />
-                    <span className="text-sm font-semibold">Terms</span>
-                  </Link>
-                </div>
-              ) : (
-                <div key="menu" className="sheet-step">
-                  <h2 id={titleId} className="label-micro px-4 pt-1">
-                    Account
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setPanel("manage")}
-                    className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
-                  >
-                    <SettingsIcon />
-                    <span className="text-sm font-semibold">Manage account</span>
-                    <ChevronIcon className="ml-auto size-4 -rotate-90 text-ink-soft" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEdit("faq")}
-                    className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
-                  >
-                    <QuestionIcon />
-                    <span className="text-sm font-semibold">FAQ</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEdit("help")}
-                    className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
-                  >
-                    <ChatIcon />
-                    <span className="text-sm font-semibold">Help & feedback</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPanel("about")}
-                    className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
-                  >
-                    <InfoIcon />
-                    <span className="text-sm font-semibold">About</span>
-                    <ChevronIcon className="ml-auto size-4 -rotate-90 text-ink-soft" />
-                  </button>
-                  <form action={logoutAction} className="m-0">
-                    <LogoutButton />
-                  </form>
-                </div>
-              )}
+        className="absolute inset-0 bg-ink/35"
+        aria-label="Close menu"
+        onClick={close}
+      />
+      <div className="relative w-full sm:px-3">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="passport-sheet-in sheet mx-auto w-full max-w-[var(--sheet-max)] pb-[max(1rem,env(safe-area-inset-bottom))] pt-3"
+        >
+          <div className="sheet-handle mx-auto mb-2 h-1 w-10 rounded-full bg-sky-300" />
+          {panel === "manage" ? (
+            <div key="manage" className="sheet-step">
+              <PanelHeader
+                titleId={titleId}
+                title="Manage account"
+                onBack={() => setPanel("menu")}
+              />
+              <SettingsRow
+                icon={<AtIcon />}
+                label="Username"
+                value={`@${username}`}
+                onClick={() => setEdit("username")}
+              />
+              <SettingsRow
+                icon={<LockIcon />}
+                label="Password"
+                value="••••••••"
+                onClick={() => setEdit("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setEdit("delete")}
+                className="flex h-14 w-full cursor-pointer items-center gap-3 border-0 border-t border-sky-200 bg-transparent px-4 py-0 text-danger-ink"
+              >
+                <TrashIcon />
+                <span className="text-sm font-semibold">Delete account</span>
+              </button>
             </div>
-          </div>
+          ) : panel === "about" ? (
+            <div key="about" className="sheet-step">
+              <PanelHeader
+                titleId={titleId}
+                title="About"
+                onBack={() => setPanel("menu")}
+              />
+              <Link
+                href="/privacy"
+                onClick={close}
+                className="flex h-14 items-center gap-3 px-4"
+              >
+                <DocIcon />
+                <span className="text-sm font-semibold">Privacy</span>
+              </Link>
+              <Link
+                href="/terms"
+                onClick={close}
+                className="flex h-14 items-center gap-3 px-4"
+              >
+                <DocIcon />
+                <span className="text-sm font-semibold">Terms</span>
+              </Link>
+            </div>
+          ) : (
+            <div key="menu" className="sheet-step">
+              <h2 id={titleId} className="label-micro px-4 pt-1">
+                Account
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPanel("manage")}
+                className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
+              >
+                <SettingsIcon />
+                <span className="text-sm font-semibold">Manage account</span>
+                <ChevronIcon className="ml-auto size-4 -rotate-90 text-ink-soft" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setEdit("faq")}
+                className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
+              >
+                <QuestionIcon />
+                <span className="text-sm font-semibold">FAQ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEdit("help")}
+                className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
+              >
+                <ChatIcon />
+                <span className="text-sm font-semibold">Help & feedback</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPanel("about")}
+                className="flex h-14 w-full cursor-pointer items-center gap-3 bg-transparent px-4 py-0 text-ink"
+              >
+                <InfoIcon />
+                <span className="text-sm font-semibold">About</span>
+                <ChevronIcon className="ml-auto size-4 -rotate-90 text-ink-soft" />
+              </button>
+              <form action={logoutAction} className="m-0">
+                <LogoutButton />
+              </form>
+            </div>
+          )}
         </div>
-      ) : null}
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <AccountTrigger
+        variant={variant}
+        username={username}
+        open={open}
+        onOpen={() => setOpen(true)}
+      />
+      {sheet ? createPortal(sheet, document.body) : null}
 
       <FaqDialog open={edit === "faq"} onClose={closeEdit} />
       <HelpFeedbackDialog
@@ -200,6 +203,60 @@ export function AccountMenu() {
         onClose={closeEdit}
       />
     </>
+  );
+}
+
+function AccountTrigger({
+  variant,
+  username,
+  open,
+  onOpen,
+}: {
+  variant: AccountMenuVariant;
+  username: string;
+  open: boolean;
+  onOpen: () => void;
+}) {
+  const initial = username.charAt(0).toUpperCase();
+  const avatar = (
+    <span
+      aria-hidden
+      className={cx(
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-100 font-semibold text-ink",
+        variant === "rail" ? "text-xs" : "text-sm",
+      )}
+    >
+      {initial}
+    </span>
+  );
+
+  if (variant === "rail") {
+    return (
+      <button
+        type="button"
+        aria-label="Account menu"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={onOpen}
+        className="passport-nav-account"
+      >
+        {avatar}
+        <span className="min-w-0 truncate">@{username}</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label="Account menu"
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      onClick={onOpen}
+      className="-mr-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink desktop:hidden"
+    >
+      {avatar}
+    </button>
   );
 }
 

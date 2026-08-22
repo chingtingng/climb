@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@/components/ui/cx";
+import { AccountMenu } from "./AccountMenu";
 import { GradesIcon, GymsIcon, HomeIcon, PlusIcon, ProfileIcon } from "./icons";
 import { usePassport } from "./PassportContext";
 
@@ -55,15 +56,18 @@ export function BottomNav() {
           </Link>
         );
       })}
-      <button
-        type="button"
-        className="passport-nav-log btn btn-primary"
-        onClick={() => openLog()}
-        disabled={!configured}
-      >
-        <PlusIcon className="size-4" />
-        Log a visit
-      </button>
+      <div className="passport-nav-footer">
+        <AccountMenu variant="rail" />
+        <button
+          type="button"
+          className="passport-nav-log btn btn-primary"
+          onClick={() => openLog()}
+          disabled={!configured}
+        >
+          <PlusIcon className="size-4" />
+          Log a visit
+        </button>
+      </div>
     </nav>
   );
 }
