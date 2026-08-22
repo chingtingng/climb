@@ -242,7 +242,7 @@ export function ScaleSetup({
                 const max = band.v_max ?? band.v_equiv ?? "";
                 const vOptions = ["", ...V_GRADES];
                 return (
-                  <li key={`${band.label}-${index}`} className={cx(mappingGrid, "min-h-12 py-2")}>
+                  <li key={`${band.label}-${index}`} className={cx(mappingGrid, "min-h-11 py-1.5")}>
                     <GradeRowLabel band={band} />
                     <SelectMenu
                       id={`v-min-${index}`}
@@ -250,7 +250,7 @@ export function ScaleSetup({
                       options={vOptions}
                       placeholder="Skip"
                       ariaLabel={`V-scale from for ${band.label}`}
-                      className="!min-h-[var(--control-min)] px-2.5 text-sm"
+                      className="!h-9 !min-h-9 !px-2 !text-[14px] [&_svg]:size-3.5"
                       onChange={(nextMin) => {
                         const nextMax = max && max !== min ? max : nextMin;
                         setBandV(index, nextMin, nextMax);
@@ -264,7 +264,7 @@ export function ScaleSetup({
                       placeholder="Skip"
                       ariaLabel={`V-scale to for ${band.label}`}
                       disabled={!min}
-                      className="!min-h-[var(--control-min)] px-2.5 text-sm"
+                      className="!h-9 !min-h-9 !px-2 !text-[14px] [&_svg]:size-3.5"
                       onChange={(nextMax) => setBandV(index, min, nextMax)}
                     />
                     {showRemove ? (
