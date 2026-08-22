@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   COLOR_GRADES,
+  colorHex,
   GRADE_SYSTEMS,
   isHouseSystem,
   normalizeBandVRange,
@@ -29,6 +30,8 @@ export function ScaleSetup({
   const [from, setFrom] = useState(firstNumber(scale) ?? 1);
   const [to, setTo] = useState(lastNumber(scale) ?? 12);
   const [customLabel, setCustomLabel] = useState("");
+  const [customColorLabel, setCustomColorLabel] = useState("");
+  const [customColorHex, setCustomColorHex] = useState("#14b8a6");
 
   function setKind(kind: GradeSystem) {
     if (kind === "number") {
@@ -70,6 +73,48 @@ export function ScaleSetup({
       ],
     });
     setCustomLabel("");
+  }
+
+  function addCustomColor() {
+    const label = customColorLabel.trim();
+    if (!label) return;
+    if (scale.bands.some((band) => band.label.toLowerCase() === label.toLowerCase())) {
+      return;
+    }
+    onChange({
+      ...scale,
+      bands: [
+        ...scale.bands,
+        {
+          label,
+          color: customColorHex,
+          v_equiv: `V${Math.min(16, scale.bands.length + 1)}`,
+        },
+      ],
+    });
+    setCustomColorLabel("");
+  }
+
+  function toggleColorBand(label: string, color: string) {
+    const selected = scale.bands.some((band) => band.label === label);
+    if (selected) {
+      onChange({
+        ...scale,
+        bands: scale.bands.filter((band) => band.label !== label),
+      });
+      return;
+    }
+    onChange({
+      ...scale,
+      bands: [
+        ...scale.bands,
+        {
+          label,
+          color,
+          v_equiv: `V${scale.bands.length + 1}`,
+        },
+      ],
+    });
   }
 
   function removeBand(index: number) {
@@ -158,26 +203,7 @@ export function ScaleSetup({
                 <ChoiceTile
                   key={item.label}
                   selected={selected}
-                  onClick={() => {
-                    if (selected) {
-                      onChange({
-                        ...scale,
-                        bands: scale.bands.filter((band) => band.label !== item.label),
-                      });
-                      return;
-                    }
-                    onChange({
-                      ...scale,
-                      bands: [
-                        ...scale.bands,
-                        {
-                          label: item.label,
-                          color: item.color,
-                          v_equiv: `V${scale.bands.length + 1}`,
-                        },
-                      ],
-                    });
-                  }}
+                  onClick={() => toggleColorBand(item.label, item.color)}
                   className="inline-flex min-h-[var(--control-min)] items-center gap-2 rounded-full px-3 py-0 text-sm font-semibold"
                 >
                   <span
@@ -189,6 +215,53 @@ export function ScaleSetup({
                 </ChoiceTile>
               );
             })}
+            {scale.bands
+              .filter((band) => !COLOR_GRADES.some((item) => item.label === band.label))
+              .map((band) => (
+                <ChoiceTile
+                  key={band.label}
+                  selected
+                  onClick={() => toggleColorBand(band.label, band.color ?? colorHex(band.label))}
+                  className="inline-flex min-h-[var(--control-min)] items-center gap-2 rounded-full px-3 py-0 text-sm font-semibold"
+                >
+                  <span
+                    className="size-4 rounded-full border border-ink/15"
+                    style={{ background: band.color ?? colorHex(band.label) }}
+                    aria-hidden
+                  />
+                  {band.label}
+                </ChoiceTile>
+              ))}
+          </div>
+          <div className="mt-3">
+            <p className="mb-1.5 text-sm font-semibold">Add a colour</p>
+            <div className="grid grid-cols-[minmax(0,4fr)_auto_minmax(0,1fr)] items-center gap-2">
+              <Field
+                value={customColorLabel}
+                onChange={(e) => setCustomColorLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomColor();
+                  }
+                }}
+                placeholder="Teal"
+                className="min-w-0"
+              />
+              <input
+                type="color"
+                value={customColorHex}
+                onChange={(e) => setCustomColorHex(e.target.value)}
+                aria-label="Pick colour swatch"
+                className="size-[var(--control-min)] shrink-0 cursor-pointer rounded-full border border-sky-300 bg-surface p-0.5"
+              />
+              <Button type="button" variant="secondary" onClick={addCustomColor} className="px-2">
+                Add
+              </Button>
+            </div>
+            <p className="mt-1.5 text-xs text-ink-soft">
+              For house colours not in the list — pick a swatch that matches the gym.
+            </p>
           </div>
         </div>
       ) : null}
@@ -196,7 +269,7 @@ export function ScaleSetup({
       {scale.kind === "custom" ? (
         <div>
           <p className="mb-1.5 text-sm font-semibold">Grade labels, easy to hard</p>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[4fr_1fr] gap-2">
             <Field
               value={customLabel}
               onChange={(e) => setCustomLabel(e.target.value)}
@@ -207,8 +280,9 @@ export function ScaleSetup({
                 }
               }}
               placeholder="7Q"
+              className="min-w-0"
             />
-            <Button type="button" variant="secondary" onClick={addCustom} className="w-auto shrink-0 px-4">
+            <Button type="button" variant="secondary" onClick={addCustom} className="px-2">
               Add
             </Button>
           </div>
