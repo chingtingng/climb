@@ -15,7 +15,7 @@ function phaseFor(step: string) {
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5" fill="none">
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3" fill="none">
       <path
         d="M3.5 8.2 6.4 11.2 12.5 4.8"
         stroke="currentColor"
@@ -35,54 +35,50 @@ export function Stepper({
   steps: readonly string[];
 }) {
   const currentPhase = phaseFor(step);
-  const phaseSteps = (PHASES[currentPhase].steps as readonly string[]).filter(
-    (item) => steps.includes(item),
-  );
-  const within = Math.max(0, phaseSteps.indexOf(step));
-  const withinRatio =
-    phaseSteps.length <= 1 ? 1 : (within + 1) / phaseSteps.length;
+  const stepNumber = Math.max(1, steps.indexOf(step) + 1);
 
   return (
-    <div className="mb-4">
-      <div className="grid grid-cols-3" aria-hidden>
-        {PHASES.map((phase, index) => {
-          const done = index < currentPhase;
-          const active = index === currentPhase;
-          const rotation = (index - 1) * 4;
-          return (
-            <div key={phase.id} className="flex min-w-0 flex-col items-center gap-1">
-              <span
-                className={cx(
-                  "flex size-7 shrink-0 items-center justify-center rounded-full border text-micro font-bold",
-                  done && "border-sky-600 bg-sky-600 text-surface",
-                  active && "border-sky-600 bg-surface text-sky-700",
-                  !done && !active && "border-sky-300 bg-sky-50 text-ink-faint",
-                )}
-                style={
-                  done ? { transform: `rotate(${rotation}deg)` } : undefined
-                }
-              >
-                {done ? <CheckIcon /> : index + 1}
-              </span>
-              <span
-                className={cx(
-                  "w-full text-center text-micro font-semibold leading-tight",
-                  active || done ? "text-sky-700" : "text-ink-faint",
-                )}
-              >
-                {phase.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-2 h-0.5 overflow-hidden rounded-full bg-sky-100">
-        <div
-          className="h-full rounded-full bg-sky-600 transition-[width] duration-200"
-          style={{
-            width: `${Math.round(((currentPhase + withinRatio) / PHASES.length) * 100)}%`,
-          }}
-        />
+    <div className="mb-1">
+      <p className="sr-only">
+        {PHASES[currentPhase].label} phase, step {stepNumber} of {steps.length}
+      </p>
+      <div className="relative" aria-hidden>
+        <div className="pointer-events-none absolute top-3 right-[16.666%] left-[16.666%] h-px bg-sky-200">
+          <div
+            className="h-full bg-sky-600 transition-[width] duration-200"
+            style={{
+              width: `${Math.round((currentPhase / (PHASES.length - 1)) * 100)}%`,
+            }}
+          />
+        </div>
+        <div className="relative grid grid-cols-3">
+          {PHASES.map((phase, index) => {
+            const done = index < currentPhase;
+            const active = index === currentPhase;
+            return (
+              <div key={phase.id} className="flex min-w-0 flex-col items-center gap-1.5">
+                <span
+                  className={cx(
+                    "flex size-6 shrink-0 items-center justify-center rounded-full border text-micro font-bold",
+                    done && "border-sky-600 bg-sky-600 text-surface",
+                    active && "border-sky-600 bg-surface text-sky-700",
+                    !done && !active && "border-sky-200 bg-surface text-ink-faint",
+                  )}
+                >
+                  {done ? <CheckIcon /> : index + 1}
+                </span>
+                <span
+                  className={cx(
+                    "w-full text-center text-micro font-semibold leading-tight",
+                    active || done ? "text-sky-700" : "text-ink-faint",
+                  )}
+                >
+                  {phase.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

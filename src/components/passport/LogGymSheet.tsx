@@ -504,15 +504,26 @@ function LogGymSheetInner({
         role="dialog"
         aria-modal="true"
         aria-labelledby="log-title"
-        className="passport-sheet-in sheet sheet-expandable mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="passport-sheet-in sheet sheet-expandable relative mx-auto flex max-h-[min(92dvh,760px)] w-full max-w-[var(--sheet-max)] flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        <div className="sheet-handle mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-sky-300" />
-        <div className="mb-3 flex shrink-0 items-start justify-between gap-3">
-          <div>
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-sky-100"
+          aria-hidden
+        >
+          <div
+            className="h-full bg-sky-600 transition-[width] duration-200"
+            style={{
+              width: `${Math.round(((stepIndex + 1) / Math.max(steps.length, 1)) * 100)}%`,
+            }}
+          />
+        </div>
+        <div className="sheet-handle mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-sky-200" />
+        <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="label-micro">
               Step {stepIndex + 1} of {steps.length}
             </p>
-            <h2 id="log-title" className="mark text-2xl text-ink">
+            <h2 id="log-title" className="mark mt-1 text-2xl text-ink">
               {titleFor(step)}
             </h2>
             {step !== "country" && (name || country) ? (
@@ -526,11 +537,11 @@ function LogGymSheetInner({
           <SheetCloseButton ref={closeRef} onClick={onClose} />
         </div>
 
-        <div className="shrink-0">
+        <div className="mb-4 shrink-0">
           <Stepper step={step} steps={steps} />
         </div>
 
-        <div className="sheet-body min-h-0 flex-1 overflow-y-auto pb-3">
+        <div className="sheet-body min-h-0 flex-1 overflow-y-auto pb-5">
           <div key={step} className="sheet-step">
           {step === "country" && (
             <CountryStep
@@ -776,13 +787,13 @@ function LogGymSheetInner({
           </p>
         ) : null}
 
-        <div className="flex shrink-0 gap-2 pt-2">
+        <div className="flex shrink-0 gap-2.5 pt-3">
           <Button
             type="button"
             variant="tertiary"
             onClick={goBack}
             disabled={pending}
-            className="min-w-22"
+            className="w-[5.75rem] shrink-0 !min-h-[var(--control-min)] bg-surface text-ink"
           >
             {step === steps[0] ? "Cancel" : "Back"}
           </Button>

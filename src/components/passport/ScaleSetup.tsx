@@ -15,6 +15,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ChoiceTile } from "@/components/ui/ChoiceTile";
 import { Field } from "@/components/ui/Field";
 import { SelectMenu } from "@/components/ui/SelectMenu";
+import { cx } from "@/components/ui/cx";
 
 export function ScaleSetup({
   scale,
@@ -78,12 +79,22 @@ export function ScaleSetup({
     });
   }
 
+  const showRemove = scale.kind === "custom";
+  const mappingGrid = cx(
+    "grid items-center gap-x-2",
+    showRemove
+      ? "grid-cols-[minmax(2.25rem,4.75rem)_minmax(0,1fr)_1.15rem_minmax(0,1fr)_2.25rem]"
+      : "grid-cols-[minmax(2.25rem,4.75rem)_minmax(0,1fr)_1.15rem_minmax(0,1fr)]",
+  );
+
   return (
-    <div className="space-y-4">
-      <p className="text-sm leading-relaxed text-ink-soft">{intro}</p>
+    <div className="space-y-5">
+      {intro ? (
+        <p className="text-sm leading-relaxed text-ink-soft">{intro}</p>
+      ) : null}
 
       <fieldset>
-        <legend className="mb-1.5 text-sm font-semibold">How does this place grade?</legend>
+        <legend className="mb-1.5 text-sm font-semibold">Grade system</legend>
         <div className="grid grid-cols-3 gap-2">
           {GRADE_SYSTEMS.map((item) => (
             <Chip
@@ -200,38 +211,43 @@ export function ScaleSetup({
 
       {isHouseSystem(scale.kind) && scale.bands.length > 0 ? (
         <div>
-          <p className="mb-1.5 text-sm font-semibold">Map to V-scale</p>
-          <p className="mb-2 text-xs text-ink-soft">
-            Set From and To the same for a single grade, or different for a range (V3–V4).
+          <p className="text-md font-semibold text-ink">Map to V-scale</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            Choose a V-grade or range for each grade.
           </p>
-          <ul className="space-y-1.5">
-            {scale.bands.map((band, index) => {
-              const min = band.v_equiv ?? "";
-              const max = band.v_max ?? band.v_equiv ?? "";
-              const vOptions = ["", ...V_GRADES];
-              return (
-                <li
-                  key={`${band.label}-${index}`}
-                  className="flex items-center gap-2 rounded-full border border-sky-300 bg-surface px-3 py-1"
-                >
-                  <span className="grade-text min-w-0 flex-1 truncate text-sm">{band.label}</span>
-                  <div className="flex shrink-0 items-center gap-1.5">
+          <p className="mt-2.5 inline-flex max-w-full rounded-full bg-sky-50 px-2.5 py-1 text-xs leading-snug text-ink-soft">
+            Example: V3 → V4 = grades covering V3 through V4
+          </p>
+
+          <div className="mt-4">
+            <div className={cx(mappingGrid, "px-0.5")} aria-hidden>
+              <span />
+              <span className="label-micro text-center">From</span>
+              <span />
+              <span className="label-micro text-center">To</span>
+              {showRemove ? <span /> : null}
+            </div>
+            <ul className="mt-1 divide-y divide-sky-100">
+              {scale.bands.map((band, index) => {
+                const min = band.v_equiv ?? "";
+                const max = band.v_max ?? band.v_equiv ?? "";
+                const vOptions = ["", ...V_GRADES];
+                return (
+                  <li key={`${band.label}-${index}`} className={cx(mappingGrid, "py-2")}>
+                    <GradeRowLabel band={band} />
                     <SelectMenu
                       id={`v-min-${index}`}
                       value={min}
                       options={vOptions}
                       placeholder="Skip"
                       ariaLabel={`V-scale from for ${band.label}`}
-                      fullWidth={false}
-                      className="!min-h-9 px-2.5 text-sm"
+                      className="!min-h-[var(--control-min)] !rounded-lg px-2.5 text-sm"
                       onChange={(nextMin) => {
                         const nextMax = max && max !== min ? max : nextMin;
                         setBandV(index, nextMin, nextMax);
                       }}
                     />
-                    <span className="text-xs font-semibold text-ink-soft" aria-hidden>
-                      –
-                    </span>
+                    <RangeArrow />
                     <SelectMenu
                       id={`v-max-${index}`}
                       value={max}
@@ -239,15 +255,14 @@ export function ScaleSetup({
                       placeholder="Skip"
                       ariaLabel={`V-scale to for ${band.label}`}
                       disabled={!min}
-                      fullWidth={false}
-                      className="!min-h-9 px-2.5 text-sm"
+                      className="!min-h-[var(--control-min)] !rounded-lg px-2.5 text-sm"
                       onChange={(nextMax) => setBandV(index, min, nextMax)}
                     />
-                    {scale.kind === "custom" ? (
+                    {showRemove ? (
                       <button
                         type="button"
                         onClick={() => removeBand(index)}
-                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-sky-100 hover:text-ink"
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-sky-50 hover:text-ink"
                         aria-label={`Remove ${band.label}`}
                       >
                         <span aria-hidden className="text-lg leading-none">
@@ -255,14 +270,45 @@ export function ScaleSetup({
                         </span>
                       </button>
                     ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function GradeRowLabel({ band }: { band: GradeBand }) {
+  return (
+    <span className="flex min-w-0 items-center gap-1.5">
+      {band.color ? (
+        <span
+          className="size-2.5 shrink-0 rounded-full border border-ink/10"
+          style={{ background: band.color }}
+          aria-hidden
+        />
+      ) : null}
+      <span className="grade-text truncate text-sm text-ink">{band.label}</span>
+    </span>
+  );
+}
+
+function RangeArrow() {
+  return (
+    <span className="flex items-center justify-center text-sky-600" aria-hidden>
+      <svg viewBox="0 0 16 16" className="size-3.5" fill="none">
+        <path
+          d="M2.5 8h11M10 4.5 13.5 8 10 11.5"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
   );
 }
 
