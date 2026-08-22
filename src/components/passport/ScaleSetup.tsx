@@ -80,15 +80,17 @@ export function ScaleSetup({
   }
 
   const showRemove = scale.kind === "custom";
+  const numberRows = scale.kind === "number";
   const mappingGrid = cx(
-    "grid items-center gap-x-2",
-    showRemove
-      ? "grid-cols-[minmax(2.25rem,4.75rem)_minmax(0,1fr)_1.15rem_minmax(0,1fr)_2.25rem]"
-      : "grid-cols-[minmax(2.25rem,4.75rem)_minmax(0,1fr)_1.15rem_minmax(0,1fr)]",
+    "grid items-center gap-x-2.5",
+    numberRows && showRemove && "grid-cols-[1.75rem_minmax(0,1fr)_1.25rem_minmax(0,1fr)_2.25rem]",
+    numberRows && !showRemove && "grid-cols-[1.75rem_minmax(0,1fr)_1.25rem_minmax(0,1fr)]",
+    !numberRows && showRemove && "grid-cols-[minmax(2.5rem,4.75rem)_minmax(0,1fr)_1.25rem_minmax(0,1fr)_2.25rem]",
+    !numberRows && !showRemove && "grid-cols-[minmax(2.5rem,4.75rem)_minmax(0,1fr)_1.25rem_minmax(0,1fr)]",
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {intro ? (
         <p className="text-sm leading-relaxed text-ink-soft">{intro}</p>
       ) : null}
@@ -110,30 +112,37 @@ export function ScaleSetup({
       </fieldset>
 
       {scale.kind === "number" ? (
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">From</span>
-            <Field
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={99}
-              value={from}
-              onChange={(e) => applyRange(Number(e.target.value || 0), to)}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">To</span>
-            <Field
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={99}
-              value={to}
-              onChange={(e) => applyRange(from, Number(e.target.value || 0))}
-            />
-          </label>
-          <p className="col-span-2 text-xs text-ink-soft">
+        <div>
+          <div className="flex items-end gap-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">From</span>
+              <Field
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={99}
+                value={from}
+                onChange={(e) => applyRange(Number(e.target.value || 0), to)}
+                className="!w-[5.75rem]"
+              />
+            </label>
+            <span className="mb-2.5 text-sm font-medium text-ink-soft" aria-hidden>
+              to
+            </span>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold">To</span>
+              <Field
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={99}
+                value={to}
+                onChange={(e) => applyRange(from, Number(e.target.value || 0))}
+                className="!w-[5.75rem]"
+              />
+            </label>
+          </div>
+          <p className="mt-1.5 text-xs text-ink-soft">
             Chart bands can map to a V range below (e.g. 7 and 8 both → V3–V4).
           </p>
         </div>
@@ -211,16 +220,16 @@ export function ScaleSetup({
 
       {isHouseSystem(scale.kind) && scale.bands.length > 0 ? (
         <div>
-          <p className="text-md font-semibold text-ink">Map to V-scale</p>
-          <p className="mt-1 text-sm text-ink-soft">
+          <p className="text-base font-semibold text-ink">Map to V-scale</p>
+          <p className="mt-0.5 text-sm text-ink-soft">
             Choose a V-grade or range for each grade.
           </p>
-          <p className="mt-2.5 inline-flex max-w-full rounded-full bg-sky-50 px-2.5 py-1 text-xs leading-snug text-ink-soft">
+          <p className="mt-2 inline-flex max-w-full rounded-full bg-sky-50 px-2.5 py-1 text-xs leading-snug text-ink-soft">
             Example: V3 → V4 = grades covering V3 through V4
           </p>
 
-          <div className="mt-4">
-            <div className={cx(mappingGrid, "px-0.5")} aria-hidden>
+          <div className="mt-3">
+            <div className={cx(mappingGrid, "pb-1")} aria-hidden>
               <span />
               <span className="label-micro text-center">From</span>
               <span />
@@ -233,7 +242,7 @@ export function ScaleSetup({
                 const max = band.v_max ?? band.v_equiv ?? "";
                 const vOptions = ["", ...V_GRADES];
                 return (
-                  <li key={`${band.label}-${index}`} className={cx(mappingGrid, "py-2")}>
+                  <li key={`${band.label}-${index}`} className={cx(mappingGrid, "min-h-12 py-2")}>
                     <GradeRowLabel band={band} />
                     <SelectMenu
                       id={`v-min-${index}`}
@@ -241,7 +250,7 @@ export function ScaleSetup({
                       options={vOptions}
                       placeholder="Skip"
                       ariaLabel={`V-scale from for ${band.label}`}
-                      className="!min-h-[var(--control-min)] !rounded-lg px-2.5 text-sm"
+                      className="!min-h-[var(--control-min)] px-2.5 text-sm"
                       onChange={(nextMin) => {
                         const nextMax = max && max !== min ? max : nextMin;
                         setBandV(index, nextMin, nextMax);
@@ -255,7 +264,7 @@ export function ScaleSetup({
                       placeholder="Skip"
                       ariaLabel={`V-scale to for ${band.label}`}
                       disabled={!min}
-                      className="!min-h-[var(--control-min)] !rounded-lg px-2.5 text-sm"
+                      className="!min-h-[var(--control-min)] px-2.5 text-sm"
                       onChange={(nextMax) => setBandV(index, min, nextMax)}
                     />
                     {showRemove ? (
@@ -282,16 +291,22 @@ export function ScaleSetup({
 }
 
 function GradeRowLabel({ band }: { band: GradeBand }) {
-  return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      {band.color ? (
+  if (band.color) {
+    return (
+      <span className="flex min-w-0 items-center gap-1.5">
         <span
           className="size-2.5 shrink-0 rounded-full border border-ink/10"
           style={{ background: band.color }}
           aria-hidden
         />
-      ) : null}
-      <span className="grade-text truncate text-sm text-ink">{band.label}</span>
+        <span className="grade-text truncate text-sm text-ink">{band.label}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="grade-text w-full text-center text-sm tabular-nums text-ink">
+      {band.label}
     </span>
   );
 }

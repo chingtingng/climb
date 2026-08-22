@@ -61,7 +61,7 @@ export function Stepper({
                   className={cx(
                     "flex size-6 shrink-0 items-center justify-center rounded-full border text-micro font-bold",
                     done && "border-sky-600 bg-sky-600 text-surface",
-                    active && "border-sky-600 bg-surface text-sky-700",
+                    active && "border-2 border-sky-600 bg-surface text-sky-700",
                     !done && !active && "border-sky-200 bg-surface text-ink-faint",
                   )}
                 >

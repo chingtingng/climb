@@ -703,6 +703,7 @@ function LogGymSheetInner({
             <ScaleSetup
               scale={scaleDraft}
               onChange={setScaleDraft}
+              intro=""
             />
           )}
 
@@ -793,7 +794,7 @@ function LogGymSheetInner({
             variant="tertiary"
             onClick={goBack}
             disabled={pending}
-            className="w-[5.75rem] shrink-0 !min-h-[var(--control-min)] bg-surface text-ink"
+            className="w-[5.75rem] shrink-0 !min-h-[var(--control-min)] !border-sky-300 bg-surface text-ink"
           >
             {step === steps[0] ? "Cancel" : "Back"}
           </Button>

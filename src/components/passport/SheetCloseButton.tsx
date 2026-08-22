@@ -13,7 +13,7 @@ export const SheetCloseButton = forwardRef<
       type="button"
       onClick={onClick}
       className={cx(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-sky-50",
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-sky-50 text-ink-soft hover:bg-sky-100",
         className,
       )}
       aria-label="Close"
