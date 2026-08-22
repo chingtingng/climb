@@ -176,7 +176,7 @@ export function ScaleSetup({
       {scale.kind === "custom" ? (
         <div>
           <p className="mb-1.5 text-sm font-semibold">Grade labels, easy to hard</p>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[4fr_1fr] gap-2">
             <Field
               value={customLabel}
               onChange={(e) => setCustomLabel(e.target.value)}
@@ -187,8 +187,9 @@ export function ScaleSetup({
                 }
               }}
               placeholder="7Q"
+              className="min-w-0"
             />
-            <Button type="button" variant="secondary" onClick={addCustom} className="w-auto shrink-0 px-4">
+            <Button type="button" variant="secondary" onClick={addCustom} className="px-2">
               Add
             </Button>
           </div>
